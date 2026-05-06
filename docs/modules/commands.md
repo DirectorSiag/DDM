@@ -2,7 +2,10 @@
 
 ## Descripción general
 
-Este módulo implementa la interfaz de comandos de consola del backend DDM usando el patrón Command. Cada comando concreto implementa `ICommand` y opera sobre `CommandContext` compartido. La ejecución se coordina con `CommandRegistry` y `CommandDispatcher`. Lo usamos exclusivamente para testing, no es algo que sirva para el usuario final.
+
+Este módulo implementa la interfaz de comandos de consola del backend DDM usando el patrón Command. Cada comando concreto implementa `ICommand` y opera sobre `CommandContext` compartido. La ejecución se coordina con `CommandRegistry` y `CommandDispatcher`.
+
+**Nota importante (uso de la CLI):** Esta interfaz de consola es una herramienta interna destinada exclusivamente a desarrolladores y pruebas (testing). No forma parte del flujo operativo ni de la interfaz de usuario; el usuario final no la utiliza ni suele conocer su existencia. Su finalidad es ayudar en depuración, pruebas manuales y escenarios de desarrollo; no debe usarse como mecanismo operativo en producción.
 
 Su propósito es exponer operaciones operativas/tácticas sin frontend GUI: creación/borrado/listado de tracks y cursores, manejo de ownship, SITREP, display mode, CPA y estacionamiento, además de comandos de geometría.
 

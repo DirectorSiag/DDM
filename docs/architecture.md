@@ -8,6 +8,8 @@ El DDM Backend es un servidor headless en C++/Qt que centraliza el estado tácti
 - Consola local (comandos CLI vía `CommandDispatcher`)
 - Concentrador DCL (tramas binarias decodificadas por `ConcDecoder`)
 
+**Nota importante (uso de la CLI):** La consola local (CLI) es una herramienta interna destinada exclusivamente a desarrolladores y a actividades de testing. No forma parte del flujo operativo ni de la interfaz de usuario final; el usuario final no la utiliza ni suele conocer su existencia. Su finalidad es ayudar en depuración, pruebas manuales y escenarios de desarrollo, y no debe ser empleada como mecanismo operativo en producción.
+
 El módulo existe para desacoplar UI, lógica táctica y protocolo de hardware. Su objetivo operativo es mantener un estado consistente único (`CommandContext`) y proyectarlo en dos direcciones:
 
 - Respuestas JSON para cliente frontend
