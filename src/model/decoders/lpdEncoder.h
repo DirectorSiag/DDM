@@ -21,8 +21,6 @@ public:
 
 private:
     void appendAB2Message(QByteArray& dst, const Track &track);
-    void appendCpaMarkerMessage(QByteArray& dst, const CommandContext::CpaMarkerState& marker);
-    void appendStationingMarkerMessage(QByteArray& dst, const CommandContext::StationingSession& session);
     void appendAB3Message(QByteArray& dst, const CursorEntity &cursor);
     void appendCoordinate(QByteArray& dst, double value, uint8_t idBits, bool AP=true, bool PV=false, bool LS=false);
     void appendAngle(QByteArray& dst, double value, bool e, bool v);

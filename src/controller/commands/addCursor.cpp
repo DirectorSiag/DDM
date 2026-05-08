@@ -1,7 +1,5 @@
 #include "addCursor.h"
 #include "enums.h"
-#include "../services/cursorservice.h"
-#include "model/utils/RadarMath.h"
 
 // helper como en add: parseo numérico robusto
 static bool takeNumber(const QString& s, double& out) {
@@ -10,7 +8,7 @@ static bool takeNumber(const QString& s, double& out) {
     return ok;
 }
 
-CommandResult AddCursorCommand::execute(const CommandInvocation &inv, CommandContext &ctx) const
+CommandResult addCursor::execute(const CommandInvocation &inv, CommandContext &ctx) const
 {
     // Uso: addCursor <tipoLinea> <x> <y> <largo> <angulo>
     const QStringList& args = inv.args;
@@ -39,27 +37,36 @@ CommandResult AddCursorCommand::execute(const CommandInvocation &inv, CommandCon
         return {false, "Valores inválidos. Deben ser números: <x> <y> <largo> <angulo>."};
     }
 
-    CursorService cursorService(&ctx);
-    CursorCreateRequest request;
-    request.type = lineType;
-    request.x = xd;
-    request.y = yd;
-    request.length = longd;
-    request.azimut = RadarMath::normalizeAngle360(angd);
+    if (longd < 0) return {false, "El largo no puede ser negativo."};
 
-    CursorOperationResult result = cursorService.createCursor(request);
-    if (!result.success) {
-        return {false, result.message};
-    }
+    // normalizar ángulo a [0, 360)
+    while (angd < 0)     angd += 360.0;
+    while (angd >= 360.) angd -= 360.0;
+
+    // construir dominio
+    const int id = ctx.nextCursorId++;
+    const QPair<qfloat16,qfloat16> coord(qfloat16(xd), qfloat16(yd));
+    const qfloat16 cursorAngle = qfloat16(angd);
+    const qfloat16 cursorLong  = qfloat16(longd);
+    const bool state = true; // al crear, activo (cámbialo si tu lógica dice otra cosa)
+
+    // alta O(1) como en add/emplace de tracks
+    CursorEntity& ref = ctx.emplaceCursorFront(
+        QPair<qfloat16,qfloat16>(qfloat16(xd), qfloat16(yd)), // coordenadas
+        qfloat16(angd),   // ángulo
+        qfloat16(longd),   // largo
+        lineType,                 // tipo de línea
+        id,                  // id
+        true);
 
     return {
         true,
         QString("OK addCursor → id=%1 tipo=%2 x=%3 y=%4 largo=%5 ang=%6")
-            .arg(result.cursorId)
+            .arg(id)
             .arg(lineType)
-            .arg(result.x, 0, 'f', 3)
-            .arg(result.y, 0, 'f', 3)
-            .arg(result.length, 0, 'f', 3)
-            .arg(result.angle, 0, 'f', 3)
+            .arg(double(ref.getCoordinates().first),  0, 'f', 3)
+            .arg(double(ref.getCoordinates().second), 0, 'f', 3)
+            .arg(double(ref.getCursorLength()),          0, 'f', 3)
+            .arg(double(ref.getCursorAngle()),            0, 'f', 3)
     };
 }

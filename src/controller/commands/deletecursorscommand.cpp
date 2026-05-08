@@ -1,5 +1,4 @@
 #include "deletecursorscommand.h"
-#include "../services/cursorservice.h"
 
 CommandResult DeleteCursorsCommand::execute(const CommandInvocation& inv, CommandContext& ctx) const {
     const QStringList& args = inv.args;
@@ -13,11 +12,13 @@ CommandResult DeleteCursorsCommand::execute(const CommandInvocation& inv, Comman
         return {false, "ID inválido"};
     }
 
-    CursorService cursorService(&ctx);
-    CursorOperationResult result = cursorService.deleteCursorById(id);
-    if (!result.success) {
-        return {false, QString("No existe el cursor id=%1").arg(id)};
+    // Borrado lineal como en eraseTrackById, pero sobre ctx.cursors
+    for (auto it = ctx.cursors.begin(); it != ctx.cursors.end(); ++it) {
+        if (it->getCursorId() == id) {
+            ctx.cursors.erase(it);
+            return {true, QString("OK deletecursor → id=%1").arg(id)};
+        }
     }
 
-    return {true, QString("OK deletecursor → id=%1").arg(id)};
+    return {false, QString("No existe el cursor id=%1").arg(id)};
 }

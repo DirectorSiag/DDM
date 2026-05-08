@@ -2,8 +2,7 @@
     Comando `center`: fija `ctx.centerX/centerY` con `<x> <y>` validando formatos numéricos.
 */
 
-#include "centerCommand.h"
-#include "../services/centerservice.h"
+#include "Commands/centerCommand.h"
 
 static bool takeNumber(const QString& s, double& out) {
     bool ok=false; double v = s.toDouble(&ok);
@@ -23,9 +22,7 @@ CommandResult CenterCommand::execute(const CommandInvocation& inv, CommandContex
     if (x < -255 || x > 255 || y < -255 || y > 255) {
         return {false, "Centro fuera de rango (-256 a 256)."};
     }
-
-    CenterService cs(&ctx);
-    cs.setCenter(x, y);
-
+    ctx.centerX = x;
+    ctx.centerY = y;
     return {true, QString("OK center → (%1, %2)").arg(x,0,'f',3).arg(y,0,'f',3)};
 }
