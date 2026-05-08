@@ -2,11 +2,12 @@
     Interfaz/implementación del despachador: recibe líneas, invoca el parser y
     ejecuta el comando correspondiente; maneja `help` y `exit`.
 */
-#include "CommandDispatcher.h"
+#include "commanddispatcher.h"
 #include "commandRegistry.h"
 #include "iInputParser.h"
 #include "iCommand.h"
 #include "commandContext.h"
+#include "commands/addareacommand.h"
 #include <QStringList>
 #include "consoleUtils.h"
 #include "ansi.h"

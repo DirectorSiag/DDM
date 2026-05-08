@@ -2,9 +2,9 @@
 #include "heco.h"
 #include <QDebug>
 
-void HECO::execute20() { addTrack(Type::Air, TrackMode::Auto);}
-void HECO::execute21() { addTrack(Type::Air, TrackMode::RAM);}
-void HECO::execute22() { addTrack(Type::Air, TrackMode::DR);}
+void HECO::execute20() { addTrack(Type::HECO, TrackMode::Auto);}
+void HECO::execute21() { addTrack(Type::HECO, TrackMode::RAM);}
+void HECO::execute22() { addTrack(Type::HECO, TrackMode::DR);}
 void HECO::execute23() {}
 void HECO::execute24() {}
 void HECO::execute25() {}

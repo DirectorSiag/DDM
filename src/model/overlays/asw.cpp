@@ -2,12 +2,12 @@
 #include "asw.h"
 #include <QDebug>
 
-void ASW::execute20() { addTrack(Type::Subsurface, TrackMode::DR);}
-void ASW::execute21() { addTrack(Type::Subsurface, TrackMode::Auto);}
-void ASW::execute22() { addTrack(Type::Air, TrackMode::DR);}
+void ASW::execute20() { addTrack(Type::ASW, TrackMode::DR);}
+void ASW::execute21() { addTrack(Type::ASW, TrackMode::Auto);}
+void ASW::execute22() { addTrack(Type::ASW, TrackMode::DR);}
 void ASW::execute23() {}
-void ASW::execute24() { addTrack(Type::ESM, TrackMode::Auto);}
-void ASW::execute25() { addTrack(Type::ESM, TrackMode::Auto);}
+void ASW::execute24() { addTrack(Type::ASW, TrackMode::Auto);}
+void ASW::execute25() { addTrack(Type::ASW, TrackMode::Auto);}
 void ASW::execute26() { assignTrackMode(TrackMode::Lost);}
 void ASW::execute27() { assignTrackMode(TrackMode::AutomaticLost);}
 void ASW::execute30() { changeIdentity(Identity::Pending);}

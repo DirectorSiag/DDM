@@ -16,11 +16,11 @@ void OverlayHandler::onNewOverlay(const QString& overlayName) {
     if (overlayName == currentOverlay && myQEK) return;
     currentOverlay = overlayName;
     myQEK = instanceNewQEK(overlayName);
-    myQEK->setContext(ctx);
-    myQEK->setOBMHandler(obmHandler);
     if (!myQEK) {
         qWarning() << "[OverlayHandler] Overlay desconocido:" << overlayName;
     } else {
+        myQEK->setContext(ctx);
+        myQEK->setOBMHandler(obmHandler);
         qDebug() << "[OverlayHandler] Overlay activo =" << overlayName;
     }
 }
@@ -49,14 +49,16 @@ void OverlayHandler::ownCursOn()
 }
 
 std::unique_ptr<QEK> OverlayHandler::instanceNewQEK(const QString& overlayName) {
-    if (overlayName.compare("SPC", Qt::CaseInsensitive) == 0) return std::make_unique<SPC>();
-    if (overlayName.compare("LINCO", Qt::CaseInsensitive) == 0) return std::make_unique<LINCO>();
-    if (overlayName.compare("HECO", Qt::CaseInsensitive) == 0) return std::make_unique<HECO>();
-    if (overlayName.compare("APC", Qt::CaseInsensitive) == 0) return std::make_unique<APC>();
-    if (overlayName.compare("ASW", Qt::CaseInsensitive) == 0) return std::make_unique<ASW>();
-    if (overlayName.compare("OPS", Qt::CaseInsensitive) == 0) return std::make_unique<OPS>();
-    if (overlayName.compare("AAW", Qt::CaseInsensitive) == 0) return std::make_unique<AAW>();
-    if (overlayName.compare("EW", Qt::CaseInsensitive) == 0) return std::make_unique<EW>();
+    const QString ov = overlayName.trimmed().toUpper();
+
+    if (ov == "SPC" || ov == "0001") return std::make_unique<SPC>();
+    if (ov == "LINCO" || ov == "0010") return std::make_unique<LINCO>();
+    if (ov == "ASW" || ov == "0011") return std::make_unique<ASW>();
+    if (ov == "OPS" || ov == "0100") return std::make_unique<OPS>();
+    if (ov == "HECO" || ov == "0101") return std::make_unique<HECO>();
+    if (ov == "APC" || ov == "0110") return std::make_unique<APC>();
+    if (ov == "AAW" || ov == "0111") return std::make_unique<AAW>();
+    if (ov == "EW" || ov == "1000") return std::make_unique<EW>();
     return nullptr;
 }
 

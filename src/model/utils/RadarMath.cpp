@@ -23,3 +23,28 @@ double RadarMath::azimuthDeg(double xDm, double yDm)
     const double deg = rad * (180.0 / M_PI);
     return normalizeDeg360(deg);
 }
+
+qfloat16 RadarMath::calculateAngle(const QPointF& start, const QPointF& end) {
+    double dx = end.x() - start.x();
+    double dy = end.y() - start.y();
+
+    // En Qt, Y aumenta hacia abajo.
+    // Para que 0° sea ARRIBA y el ángulo crezca HORARIO (CW):
+    // Usamos atan2(dx, -dy).
+    // El signo negativo en dy compensa el eje invertido de la pantalla.
+
+    double rad = std::atan2(dx, -dy);
+    double deg = rad * (180.0 / M_PI);
+
+    // normalizeDeg360 asegura que el resultado esté entre 0 y 360
+    return 180-static_cast<qfloat16>(normalizeDeg360(deg));
+}
+
+qfloat16 RadarMath::calculateLength(const QPointF& start, const QPointF& end) {
+    return qSqrt(qPow(end.x() - start.x(), 2) + qPow(end.y() - start.y(), 2));
+}
+
+double RadarMath::normalizeAngle360(double deg)
+{
+    return normalizeDeg360(deg);
+}

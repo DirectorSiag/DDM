@@ -1,4 +1,4 @@
-# DesformatConcentrator - AI Coding Agent Instructions
+# DDM - AI Coding Agent Instructions
 
 ## Project Overview
 Qt6 C++17 backend server (DDM - Display Data Manager) for a naval radar tactical display system. Processes commands from QML frontend, binary data from hardware concentrator (DCL), and interactive console commands. Uses UDP/LocalIPC for transport.
@@ -9,7 +9,7 @@ Qt6 C++17 backend server (DDM - Display Data Manager) for a naval radar tactical
 ```
 Frontend (QML) ──JSON via ITransport──┐
 Console (stdin) ──CommandDispatcher───┼──► CommandContext (shared state)
-DCL Hardware ────Binary via ITransport┘     • std::deque<CursorEntity> cursors
+DCL Hardware ────Binary via ITransport┘     • std::deque<LineEntity> lines
                                              • std::deque<Track> tracks
                                              • double centerX, centerY
 ```
@@ -47,7 +47,7 @@ class MyCommand : public ICommand {
     QString getName() const override { return "mycommand"; }
     CommandResult execute(const CommandInvocation& inv, CommandContext& ctx) const override {
         // Direct manipulation of ctx
-        ctx.emplaceCursorFront(...);
+        ctx.emplaceLineFront(...);
         ctx.out << "Success\n";
         return {true, ""};
     }
@@ -59,10 +59,10 @@ registry->registerCommand(QSharedPointer<ICommand>(new MyCommand()));
 ## Critical Data Types & Conventions
 
 ### qfloat16 for Network Precision
-`CursorEntity` uses `QPair<qfloat16, qfloat16>` for coordinates and `qfloat16` for angles/lengths. **Why**: Matches hardware protocol precision (16-bit floats reduce bandwidth). Convert from double→qfloat16 on input, maintain as qfloat16 in entities.
+`LineEntity` uses `QPair<qfloat16, qfloat16>` for coordinates and `qfloat16` for angles/lengths. **Why**: Matches hardware protocol precision (16-bit floats reduce bandwidth). Convert from double→qfloat16 on input, maintain as qfloat16 in entities.
 
 ### std::deque for Entity Storage
-`CommandContext` uses `std::deque<CursorEntity>` and `std::deque<Track>`, not `QList`. **Why**: Front insertion is O(1) (`emplaceCursorFront`), and no reallocation invalidates iterators during iteration.
+`CommandContext` uses `std::deque<LineEntity>` and `std::deque<Track>`, not `QList`. **Why**: Front insertion is O(1) (`emplaceLineFront`), and no reallocation invalidates iterators during iteration.
 
 ### QSharedPointer for Commands
 `CommandRegistry` stores `QSharedPointer<ICommand>`, not raw pointers. Qt's shared pointer with signal/slot integration.
@@ -84,8 +84,8 @@ Two implementations switchable via `Configuration::instance().useLocalIpc`:
 
 ### Separation of Concerns
 - **JsonValidator** (`src/controller/json/validators/`): Validates input fields, returns `ValidationResult` struct
-- **LineCommandHandler**: Business logic (create/delete cursors)
-- **JsonSerializer**: Entity → JSON (`serializeLine(CursorEntity)`)
+- **LineCommandHandler**: Business logic (create/delete lines)
+- **JsonSerializer**: Entity → JSON (`serializeLine(LineEntity)`)
 - **JsonResponseBuilder**: Constructs standardized responses (`buildSuccessResponse()`, `buildErrorResponse()`)
 
 **Never** mix validation/serialization/response building in handler. Each class has one job.
@@ -143,9 +143,9 @@ Output: `build/Desktop_Qt_6_7_3_MinGW_64_bit-Debug/debug/DDM.exe` (or `DDM` on L
 echo '{"command":"create_line","args":{"azimut":45.0,"length":100.0}}' | nc -u localhost 6340
 
 # Console commands (in DDM stdin):
-> addCursor 45.0 100.0
-> listcursors
-> deletecursors 2
+> addLine 45.0 100.0
+> listlines
+> deletelines 2
 > exit
 ```
 
@@ -176,11 +176,11 @@ echo '{"command":"create_line","args":{"azimut":45.0,"length":100.0}}' | nc -u l
 ### Emplacing Entities (Prefer emplace over add)
 ```cpp
 // PREFER (no extra copy):
-ctx.emplaceCursorFront(coords, azimut, length, type, cursorId, true);
+ctx.emplaceLineFront(coords, azimut, length, type, lineId, true);
 
 // AVOID (creates temp then copies):
-CursorEntity temp(...);
-ctx.addCursorFront(temp);
+LineEntity temp(...);
+ctx.addLineFront(temp);
 ```
 
 ### Validation Before Execution
@@ -250,6 +250,6 @@ Frontend has mirrored classes: `JsonCommandBuilder` (constructs requests), `Json
 
 - Enable verbose logging: Add `qDebug()` statements, output goes to console
 - Watch message routing: Add debug in `MessageRouter::onMessageReceived()`
-- Inspect context state: Print `ctx.cursors.size()`, iterate and log entities
+- Inspect context state: Print `ctx.lines.size()`, iterate and log entities
 - Test JSON commands: Use `nc` (netcat) or `curl` to send raw JSON to UDP port
-- Console commands are immediate: Type `listcursors` to see current state
+- Console commands are immediate: Type `listlines` to see current state

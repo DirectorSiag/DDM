@@ -2,6 +2,7 @@
 #pragma once
 #include "commandContext.h"
 #include "obmHandler.h"
+#include "controller/services/trackpppservice.h"
 #include <QString>
 #include <QDebug>
 
@@ -68,15 +69,28 @@ public:
 
     //quick
     void addTrack(Type type, TrackMode mode) {
+        addTrackWithIdentity(type, mode, Identity::Pending);
+    }
+
+    void addTrackWithIdentity(Type type, TrackMode mode, Identity identity) {
+        if (!ctx || !obmHandler) return;
+
         const auto pos = obmHandler->getPosition(); // QPair<float,float>
-        ctx->emplaceTrackFront(
+        Track& track = ctx->emplaceTrackFront(
             ctx->nextTrackId++,     // id
             type,                   // type
-            Identity::Pending,      // identidad inicial
+            identity,               // identidad inicial
             mode,                   // modo
             pos.first,              // x
-            pos.second              // y
+            pos.second,             // y
+            0.0,                    // speedKnots
+            0.0,                    // courseDeg
+            type                    // creationEnvironment
             );
+
+            // Mantiene consistencia con altas por CLI/JSON: si OwnShip ya es valido,
+            // el PPP de SITREP se calcula al momento del alta del track.
+            TrackPppService(ctx).recalculateTrackAgainstOwnShip(track);
     }
 
     bool wipeTrack() {

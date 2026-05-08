@@ -2,9 +2,9 @@
 #include "linco.h"
 #include <QDebug>
 
-void LINCO::execute20() { addTrack(Type::Surface, TrackMode::Auto);}
-void LINCO::execute21() { addTrack(Type::Surface, TrackMode::RAM);}
-void LINCO::execute22() { addTrack(Type::Surface, TrackMode::DR);}
+void LINCO::execute20() { addTrack(Type::LINCO, TrackMode::Auto);}
+void LINCO::execute21() { addTrack(Type::LINCO, TrackMode::RAM);}
+void LINCO::execute22() { addTrack(Type::LINCO, TrackMode::DR);}
 void LINCO::execute23() {}
 void LINCO::execute24() {}
 void LINCO::execute25() {}

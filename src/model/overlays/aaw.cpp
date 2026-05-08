@@ -2,13 +2,13 @@
 #include "aaw.h"
 #include <QDebug>
 
-void AAW::execute20() { addTrack(Type::Air, TrackMode::Auto);}
-void AAW::execute21() { addTrack(Type::Air, TrackMode::RAM);}
-void AAW::execute22() { addTrack(Type::Air, TrackMode::DR);}
+void AAW::execute20() { addTrack(Type::AAW, TrackMode::Auto);}
+void AAW::execute21() { addTrack(Type::AAW, TrackMode::RAM);}
+void AAW::execute22() { addTrack(Type::AAW, TrackMode::DR);}
 void AAW::execute23() {}
-void AAW::execute24() { addTrack(Type::Surface, TrackMode::Auto);}
-void AAW::execute25() { addTrack(Type::Surface, TrackMode::Auto);}
-void AAW::execute26() { addTrack(Type::Surface, TrackMode::Auto);}
+void AAW::execute24() { addTrack(Type::AAW, TrackMode::Auto);}
+void AAW::execute25() { addTrack(Type::AAW, TrackMode::Auto);}
+void AAW::execute26() { addTrack(Type::AAW, TrackMode::Auto);}
 void AAW::execute27() {}
 void AAW::execute30() { assignTrackMode(TrackMode::Auto);}
 void AAW::execute31() { assignTrackMode(TrackMode::RAM);}

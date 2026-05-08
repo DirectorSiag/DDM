@@ -168,7 +168,7 @@ void ConcDecoder::decodeWord4()
             for (QChar bit : qekMasterBits) {
                 quickEntryKeyboardMaster.append(bit == '1');
             }
-            qDebug() << "[Decodificación] QEK Master:" << qekMasterBits << "→" << decodedQEK;
+            // qDebug() << "[Decodificación] QEK Master:" << qekMasterBits << "→" << decodedQEK;
             emit newQEK(decodedQEK);
         }
     } else {
@@ -238,7 +238,10 @@ void ConcDecoder::decodeWord5()
 
 
     } else {
-        qWarning() << "[Decodificación] Overlay Izquierdo desconocido:" << overlayMasterBits;
+        if (overlayMasterBits != this->overlayMaster) {
+            qWarning() << "[Decodificación] Overlay Izquierdo desconocido:" << overlayMasterBits;
+            this->overlayMaster = overlayMasterBits;
+        }
     }
 
     // --- ICM Derecho (bits 8–10 de la palabra 5) ---
@@ -431,6 +434,10 @@ void ConcDecoder::decodeWord8()
 
  void ConcDecoder::readJson()
  {
+     if (!jsonFile.isEmpty()) {
+         return;
+     }
+
      QString jsonFilePath = ":/jsons/decodificado.json";
      QFile file(jsonFilePath);
      if (file.open(QIODevice::ReadOnly)) {
@@ -441,9 +448,9 @@ void ConcDecoder::decodeWord8()
          if (jsonError.error == QJsonParseError::NoError && document.isObject()) {
              jsonFile = document.object();
          } else {
-             //qWarning() << "Error al leer JSON:" << jsonError.errorString();
+             qWarning() << "[ConcDecoder] Error al leer JSON de decodificacion:" << jsonError.errorString();
          }
      } else {
-         //qWarning() << "No se pudo abrir el archivo JSON:" << jsonFilePath;
+         qWarning() << "[ConcDecoder] No se pudo abrir el archivo JSON:" << jsonFilePath;
      }
  }

@@ -1,0 +1,75 @@
+name: Tests para DDM
+
+on:
+  push:
+    branches: [ develop, linux-version ]
+  pull_request:
+    branches: [ develop ]
+
+jobs:
+  build-windows:
+    name: Compilar en Windows
+    runs-on: windows-latest
+    if: github.ref == 'refs/heads/develop'
+
+    steps:
+    - name: Descargar codigo (Develop)
+      uses: actions/checkout@v4
+
+    - name: Instalar MinGW 11.2.0
+      uses: egor-tensin/setup-mingw@v2
+      with:
+        platform: x64
+        version: 11.2.0
+
+    - name: Instalar Qt para Windows (MinGW 6.7.3)
+      uses: jurplel/install-qt-action@v3
+      with:
+        version: '6.7.3'
+        host: 'windows'
+        target: 'desktop'
+        arch: 'win64_mingw'
+
+    - name: Compilar en Windows
+      shell: cmd
+      run: |
+        qmake DDM.pro CONFIG+=debug
+        mingw32-make
+
+    - name: Empaquetar DLLs
+      shell: cmd
+      run: |
+        windeployqt debug\DDM.exe --compiler-runtime
+        
+    - name: Subir Artefacto Windows
+      uses: actions/upload-artifact@v4
+      with:
+        name: DDM-Windows-Debug
+        path: debug/
+
+  build-linux:
+    name: Compilar en Ubuntu 
+    runs-on: ubuntu-latest
+    #evita que una falla en Linux nos ponga todo el pipeline en rojo
+    #continue-on-error: true 
+
+    steps:
+    - name: Descargar codigo
+      uses: actions/checkout@v4
+      with:
+        #no importa quien disparó el pipeline, SIEMPRE baja el codigo de linux-version
+        ref: linux-version 
+
+    - name: Instalar Qt para Linux
+      uses: jurplel/install-qt-action@v3
+      with:
+        version: '6.5.*'
+        host: 'linux'
+        target: 'desktop'
+
+    - name: Compilar en Linux
+      run: |
+        mkdir build
+        cd build
+        qmake ../DDM.pro
+        make

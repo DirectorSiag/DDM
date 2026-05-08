@@ -2,29 +2,29 @@
 #include "spc.h"
 #include <QDebug>
 
-void SPC::execute20() { addTrack(Type::Surface, TrackMode::Auto);}
-void SPC::execute21() { addTrack(Type::Surface, TrackMode::RAM);}
-void SPC::execute22() { addTrack(Type::Surface, TrackMode::DR);}
-void SPC::execute23() {}
-void SPC::execute24() {}
-void SPC::execute25() {}
-void SPC::execute26() {}
-void SPC::execute27() {}
-void SPC::execute30() { assignTrackMode(TrackMode::Auto);}
-void SPC::execute31() { assignTrackMode(TrackMode::RAM);}
-void SPC::execute32() { assignTrackMode(TrackMode::DR);}
-void SPC::execute33() { assignTrackMode(TrackMode::Lost);}
-void SPC::execute34() { assignTrackMode(TrackMode::AutomaticLost);}
-void SPC::execute35() { nextTrack(); }
-void SPC::execute36() { correct(); }
-void SPC::execute37() { closeControl(); }
-void SPC::execute40() { changeIdentity(Identity::Pending);}
-void SPC::execute41() { changeIdentity(Identity::PossHostile);}
-void SPC::execute42() { changeIdentity(Identity::PossFriend);}
-void SPC::execute43() { changeIdentity(Identity::ConfHostile);}
-void SPC::execute44() { changeIdentity(Identity::ConfFriend);}
-void SPC::execute45() { changeIdentity(Identity::EvalUnknown);}
-void SPC::execute46() { changeIdentity(Identity::Heli);}
+void SPC::execute20() { addTrack(Type::SPC, TrackMode::Auto); }
+void SPC::execute21() { addTrack(Type::SPC, TrackMode::RAM); }
+void SPC::execute22() { addTrack(Type::SPC, TrackMode::DR); }
+void SPC::execute23() { addTrack(Type::SPC, TrackMode::Auto); }
+void SPC::execute24() { addTrack(Type::SPC, TrackMode::Auto); }
+void SPC::execute25() { addTrack(Type::SPC, TrackMode::Auto); }
+void SPC::execute26() { addTrack(Type::SPC, TrackMode::Auto); }
+void SPC::execute27() { addTrack(Type::SPC, TrackMode::Auto); }
+void SPC::execute30() {}
+void SPC::execute31() {}
+void SPC::execute32() {}
+void SPC::execute33() {}
+void SPC::execute34() {}
+void SPC::execute35() {}
+void SPC::execute36() {}
+void SPC::execute37() {}
+void SPC::execute40() { addTrackWithIdentity(Type::SPC, TrackMode::Auto, Identity::Pending); }
+void SPC::execute41() { addTrackWithIdentity(Type::SPC, TrackMode::Auto, Identity::PossHostile); }
+void SPC::execute42() { addTrackWithIdentity(Type::SPC, TrackMode::Auto, Identity::PossFriend); }
+void SPC::execute43() { addTrackWithIdentity(Type::SPC, TrackMode::Auto, Identity::ConfHostile); }
+void SPC::execute44() { addTrackWithIdentity(Type::SPC, TrackMode::Auto, Identity::ConfFriend); }
+void SPC::execute45() { addTrackWithIdentity(Type::SPC, TrackMode::Auto, Identity::EvalUnknown); }
+void SPC::execute46() { addTrackWithIdentity(Type::SPC, TrackMode::Auto, Identity::Heli); }
 void SPC::execute47() {}
 void SPC::execute50() {}
 void SPC::execute51() {}

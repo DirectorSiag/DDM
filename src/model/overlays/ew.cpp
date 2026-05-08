@@ -2,13 +2,13 @@
 #include "ew.h"
 #include <QDebug>
 
-void EW::execute20() { addTrack(Type::Air, TrackMode::Auto);}
-void EW::execute21() { addTrack(Type::Air, TrackMode::RAM);}
-void EW::execute22() { addTrack(Type::Air, TrackMode::DR);}
+void EW::execute20() { addTrack(Type::EW, TrackMode::Auto);}
+void EW::execute21() { addTrack(Type::EW, TrackMode::RAM);}
+void EW::execute22() { addTrack(Type::EW, TrackMode::DR);}
 void EW::execute23() {}
-void EW::execute24() { addTrack(Type::Surface, TrackMode::Auto);}
-void EW::execute25() { addTrack(Type::Surface, TrackMode::Auto);}
-void EW::execute26() { addTrack(Type::Surface, TrackMode::Auto);}
+void EW::execute24() { addTrack(Type::EW, TrackMode::Auto);}
+void EW::execute25() { addTrack(Type::EW, TrackMode::Auto);}
+void EW::execute26() { addTrack(Type::EW, TrackMode::Auto);}
 void EW::execute27() {}
 void EW::execute30() { assignTrackMode(TrackMode::Auto);}
 void EW::execute31() { assignTrackMode(TrackMode::RAM);}

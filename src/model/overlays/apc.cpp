@@ -2,13 +2,13 @@
 #include "apc.h"
 #include <QDebug>
 
-void APC::execute20() { addTrack(Type::Air, TrackMode::Auto);}
-void APC::execute21() { addTrack(Type::Air, TrackMode::RAM);}
-void APC::execute22() { addTrack(Type::Air, TrackMode::DR);}
+void APC::execute20() { addTrack(Type::APC, TrackMode::Auto);}
+void APC::execute21() { addTrack(Type::APC, TrackMode::RAM);}
+void APC::execute22() { addTrack(Type::APC, TrackMode::DR);}
 void APC::execute23() {}
-void APC::execute24() { addTrack(Type::Surface, TrackMode::Auto);}
-void APC::execute25() { addTrack(Type::Surface, TrackMode::Auto);}
-void APC::execute26() { addTrack(Type::Surface, TrackMode::Auto);}
+void APC::execute24() { addTrack(Type::APC, TrackMode::Auto);}
+void APC::execute25() { addTrack(Type::APC, TrackMode::Auto);}
+void APC::execute26() { addTrack(Type::APC, TrackMode::Auto);}
 void APC::execute27() {}
 void APC::execute30() { assignTrackMode(TrackMode::Auto);}
 void APC::execute31() { assignTrackMode(TrackMode::RAM);}

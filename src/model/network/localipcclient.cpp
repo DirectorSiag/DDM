@@ -66,7 +66,7 @@ bool LocalIpcClient::send(const QByteArray& data) {
     qint64 w = sock_->write(frame);
     
     if (w != frame.size()) {
-        qWarning() << "[LocalIpcClient] Error al escribir datos: escritos" << w << "de" << frame.size() << "bytes";
+        // qWarning() << "[LocalIpcClient] Error al escribir datos: escritos" << w << "de" << frame.size() << "bytes";
         return false;
     }
     

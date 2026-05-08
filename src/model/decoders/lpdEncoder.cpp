@@ -4,6 +4,86 @@
 #include <QtEndian>
 #include <QtGlobal>
 
+namespace {
+
+enum class SymbolFamily {
+    Surface,
+    Air,
+    Subsurface,
+};
+
+SymbolFamily symbolFamilyForType(Type type)
+{
+    switch (type) {
+    case Type::ASW:
+        return SymbolFamily::Subsurface;
+    case Type::HECO:
+    case Type::APC:
+    case Type::AAW:
+        return SymbolFamily::Air;
+    case Type::SPC:
+    case Type::LINCO:
+    case Type::OPS:
+    case Type::EW:
+    default:
+        return SymbolFamily::Surface;
+    }
+}
+
+QPair<uint8_t, uint8_t> symbolBytesFor(Identity identity, SymbolFamily family)
+{
+    switch (identity) {
+    case Identity::Pending:
+        switch (family) {
+        case SymbolFamily::Surface:    return {0x1D, 0x60};
+        case SymbolFamily::Air:        return {0x01, 0x60};
+        case SymbolFamily::Subsurface: return {0x1A, 0x60};
+        }
+        break;
+    case Identity::PossFriend:
+        switch (family) {
+        case SymbolFamily::Surface:    return {0x1D, 0x64};
+        case SymbolFamily::Air:        return {0x01, 0x64};
+        case SymbolFamily::Subsurface: return {0x1A, 0x64};
+        }
+        break;
+    case Identity::PossHostile:
+        switch (family) {
+        case SymbolFamily::Surface:    return {0x1D, 0x7C};
+        case SymbolFamily::Air:        return {0x01, 0x7C};
+        case SymbolFamily::Subsurface: return {0x1A, 0x7C};
+        }
+        break;
+    case Identity::ConfFriend:
+        switch (family) {
+        case SymbolFamily::Surface:    return {0x1E, 0x00};
+        case SymbolFamily::Air:        return {0x02, 0x00};
+        case SymbolFamily::Subsurface: return {0x1A, 0x00};
+        }
+        break;
+    case Identity::ConfHostile:
+        switch (family) {
+        case SymbolFamily::Surface:    return {0x1F, 0x00};
+        case SymbolFamily::Air:        return {0x03, 0x00};
+        case SymbolFamily::Subsurface: return {0x1B, 0x00};
+        }
+        break;
+    case Identity::EvalUnknown:
+        switch (family) {
+        case SymbolFamily::Surface:    return {0x1D, 0x00};
+        case SymbolFamily::Air:        return {0x01, 0x00};
+        case SymbolFamily::Subsurface: return {0x19, 0x00};
+        }
+        break;
+    case Identity::Heli:
+        return {0x0A, 0x00};
+    }
+
+    return {0x1D, 0xE0};
+}
+
+} // namespace
+
 QByteArray encoderLPD::buildFullMessage(const CommandContext &ctx) {
     QByteArray bigBuffer;
 
@@ -29,6 +109,20 @@ QByteArray encoderLPD::buildFullMessage(const CommandContext &ctx) {
         appendAB2Message(bigBuffer, track);
     }
 
+    // CPA MARKERS (C3F07) - graficados como mensajes AB2 con simbolo dedicado.
+    for (const auto &marker : ctx.cpaMarkers) {
+        if (!marker.visible) {
+            continue;
+        }
+        appendCpaMarkerMessage(bigBuffer, marker);
+    }
+
+    // STATIONING SESSIONS (EST_n) - marcador AB2 (en prueba usando simbolo 0x26).
+    for (const auto &entry : ctx.stationingSessions) {
+        const CommandContext::StationingSession& session = entry.second;
+        appendStationingMarkerMessage(bigBuffer, session);
+    }
+
     // CURSORES
     for (const auto &cursor : ctx.cursors){
         appendAB3Message(bigBuffer, cursor);
@@ -41,67 +135,7 @@ QByteArray encoderLPD::buildFullMessage(const CommandContext &ctx) {
 
 QPair<uint8_t, uint8_t> encoderLPD::symbolFor(const Track& track) const
 {
-    const Type t = track.getType();
-    const Identity id = track.getIdentity();
-
-    static const QHash<Identity, QHash<Type, QPair<uint8_t,uint8_t>>> LUT = {
-        {
-            Identity::Pending, QHash<Type, QPair<uint8_t,uint8_t>>{
-                { Type::Surface,     {0x1D, 0x60} },
-                { Type::Air,         {0x01, 0x60} },
-                { Type::Subsurface,  {0x1A, 0x60} },
-            }
-        },{
-            Identity::PossFriend, QHash<Type, QPair<uint8_t,uint8_t>>{
-                { Type::Surface,     {0x1D, 0x64} },
-                { Type::Air,         {0x01, 0x64} },
-                { Type::Subsurface,  {0x1A, 0x64} },
-            }
-        },{
-            Identity::PossHostile, QHash<Type, QPair<uint8_t,uint8_t>>{
-                { Type::Surface,     {0x1D, 0x7C} },
-                { Type::Air,         {0x01, 0x7C} },
-                { Type::Subsurface,  {0x1A, 0x7C} },
-            }
-        },{
-            Identity::ConfFriend, QHash<Type, QPair<uint8_t,uint8_t>>{
-                { Type::Surface,     {0x1E, 0x00} },
-                { Type::Air,         {0x02, 0x00} },
-                { Type::Subsurface,  {0x1A, 0x00} },
-            }
-        },{
-            Identity::ConfHostile, QHash<Type, QPair<uint8_t,uint8_t>>{
-                { Type::Surface,     {0x1F, 0x00} },
-                { Type::Air,         {0x03, 0x00} },
-                { Type::Subsurface,  {0x1B, 0x00} },
-            }
-        },{
-            Identity::EvalUnknown, QHash<Type, QPair<uint8_t,uint8_t>>{
-                { Type::Surface,     {0x1D, 0x00} },
-                { Type::Air,         {0x01, 0x00} },
-                { Type::Subsurface,  {0x19, 0x00} },
-            }
-        },{
-            Identity::Heli, QHash<Type, QPair<uint8_t,uint8_t>>{
-                { Type::Surface,     {0x0A, 0x00} },
-                { Type::Air,         {0x0A, 0x00} },
-                { Type::Subsurface,  {0x0A, 0x00} },
-                }
-        },
-    };
-
-    // Lookup
-    const auto itId = LUT.find(id);
-    if (itId != LUT.end()) {
-        const auto& byType = itId.value();
-        const auto itT = byType.find(t);
-        if (itT != byType.end()) {
-            return itT.value();
-        }
-    }
-
-    // Fallback: "Evaluated unknown – Surface" (era tu default {0x1D,0xE0})
-    return {0x1D, 0xE0};
+    return symbolBytesFor(track.getIdentity(), symbolFamilyForType(track.getType()));
 }
 
 uint8_t encoderLPD::trackModeFor(const Track &track) const {
@@ -130,7 +164,7 @@ uint8_t encoderLPD::trackModeFor(const Track &track) const {
 }
 
 //tengo que guardar todos los booleanos en el Cursor entity porque son muchos parametros
-void encoderLPD::appendCoordinate(QByteArray& dst, double value, uint8_t idBits, bool AP, bool PV, bool LS) {
+void encoderLPD::appendCoordinate(QByteArray& dst, double value, uint8_t idBits, bool, bool PV, bool LS) {
     int32_t scaled = static_cast<int32_t>(qRound(value * 256.0));
 
     constexpr int bitCount = 17;
@@ -231,6 +265,58 @@ void encoderLPD::appendAB2Message(QByteArray& dst, const Track &track) {
     appendCoordinate(dst, track.getX(), AB2_ID_X);
     appendCoordinate(dst, track.getY(), AB2_ID_Y);
     appendSymbolBytes(dst, track);
+}
+
+void encoderLPD::appendCpaMarkerMessage(QByteArray& dst, const CommandContext::CpaMarkerState& marker)
+{
+    appendCoordinate(dst, marker.xDm, AB2_ID_X);
+    appendCoordinate(dst, marker.yDm, AB2_ID_Y);
+
+    // 0x26 -> LPDWidget::drawMarkerMS() -> ContactRenderer::drawSymbolC3F07()
+    dst.append(static_cast<char>(0x26));
+    dst.append(static_cast<char>(0x00));
+    dst.append(static_cast<char>(0x00));
+    dst.append(static_cast<char>(0x00));
+    dst.append(static_cast<char>(0x00));
+
+    // Numero de track simbolico para marcador CPA (4 digitos octales ASCII)
+    const int syntheticId = qBound(0, marker.trackAId, 4095);
+    dst.append(static_cast<char>('0' + ((syntheticId >> 9) & 0x7)));
+    dst.append(static_cast<char>('0' + ((syntheticId >> 6) & 0x7)));
+    dst.append(static_cast<char>('0' + ((syntheticId >> 3) & 0x7)));
+    dst.append(static_cast<char>('0' + (syntheticId & 0x7)));
+
+    dst.append(static_cast<char>(0x00));
+    dst.append(static_cast<char>(0x00));
+    dst.append(static_cast<char>(EOMM));
+}
+
+void encoderLPD::appendStationingMarkerMessage(QByteArray& dst, const CommandContext::StationingSession& session)
+{
+    // Estructura calcada de appendCpaMarkerMessage.
+    // Palabra 1 (AB2_X): BIT_V=1 y BIT_PV=0 por defecto de appendCoordinate para AB2_ID_X.
+    appendCoordinate(dst, session.posicionEstacionX, AB2_ID_X);
+    // Palabra 2 (AB2_Y): mismo orden de bits/bytes que CPA.
+    appendCoordinate(dst, session.posicionEstacionY, AB2_ID_Y);
+
+    // Simbolo fijo 0x26 para prueba de canal/render (igual a CPA). //cambiar aca
+    dst.append(static_cast<char>(0x24));
+    dst.append(static_cast<char>(0x00));
+    dst.append(static_cast<char>(0x00));
+    dst.append(static_cast<char>(0x00));
+    dst.append(static_cast<char>(0x00));
+
+    // Numero sintetico en 4 digitos octales ASCII (igual formato CPA).
+    const int syntheticId = qBound(0, session.slotIndex, 4095);
+    dst.append(static_cast<char>('0' + ((syntheticId >> 9) & 0x7)));
+    dst.append(static_cast<char>('0' + ((syntheticId >> 6) & 0x7)));
+    dst.append(static_cast<char>('0' + ((syntheticId >> 3) & 0x7)));
+    dst.append(static_cast<char>('0' + (syntheticId & 0x7)));
+
+    // Padding + cierre exacto.
+    dst.append(static_cast<char>(0x00));
+    dst.append(static_cast<char>(0x00));
+    dst.append(static_cast<char>(EOMM));
 }
 
 void encoderLPD::appendAB3Message(QByteArray& dst, const CursorEntity &cursor)

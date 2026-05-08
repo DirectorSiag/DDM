@@ -19,11 +19,15 @@ void OBMHandler::updatePosition(QPair<float, float> newPosition)
     obmPosition.xPosition += deltaPositionX;
     obmPosition.yPosition += deltaPositionY;
 
+    emit newOBMPosition();
+
 }
 
 void OBMHandler::setPosition(QPair<float,float> newPosition){
     obmPosition.xPosition = newPosition.first;
     obmPosition.yPosition = newPosition.second;
+
+    emit newOBMPosition();
 }
 
 QPair<float, float> OBMHandler::getPosition()
