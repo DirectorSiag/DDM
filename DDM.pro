@@ -33,6 +33,8 @@ HEADERS += \
     src/controller/commands/addCursor.h \
     src/controller/commands/addareacommand.h \
     src/controller/commands/addCircleCommand.h \
+    src/controller/commands/addSectorCommand.h \
+    src/controller/commands/deleteSectorCommand.h \
     src/controller/commands/addpolygonocommand.h \
     src/controller/commands/centerCommand.h \
     src/controller/commands/deleteAreaCommand.h \
@@ -79,6 +81,7 @@ HEADERS += \
     src/model/entities/cursorEntity.h \
     src/model/entities/areaEntity.h \
     src/model/entities/circleEntity.h \
+    src/model/entities/sectorEntity.h \
     src/model/entities/polygonoentity.h \
     src/model/enums/enums.h \
     src/model/network/clientSocket.h \
@@ -114,6 +117,8 @@ SOURCES += \
     src/controller/commands/addCursor.cpp \
     src/controller/commands/addareacommand.cpp \
     src/controller/commands/addCircleCommand.cpp \
+    src/controller/commands/addSectorCommand.cpp \
+    src/controller/commands/deleteSectorCommand.cpp \
     src/controller/commands/addpolygonocommand.cpp \
     src/controller/commands/centerCommand.cpp \
     src/controller/commands/cpaCommand.cpp \
@@ -158,6 +163,7 @@ SOURCES += \
     src/model/entities/cursorEntity.cpp \
     src/model/entities/areaEntity.cpp \
     src/model/entities/circleEntity.cpp \
+    src/model/entities/sectorEntity.cpp \
     src/model/entities/polygonoentity.cpp \
     src/model/network/clientSocket.cpp \
     src/model/network/localipcclient.cpp \

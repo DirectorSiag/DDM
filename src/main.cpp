@@ -42,6 +42,8 @@
 #include "addCircleCommand.h"
 #include "deleteAreaCommand.h"
 #include "deleteCircleCommand.h"
+#include "addSectorCommand.h"
+#include "deleteSectorCommand.h"
 
 static void enableAnsiColorsOnWindows() {
   DWORD mode = 0;
@@ -89,6 +91,8 @@ int main(int argc, char *argv[]) {
     registry->registerCommand(QSharedPointer<ICommand>(new AddCircleCommand()));
     registry->registerCommand(QSharedPointer<ICommand>(new DeleteAreaCommand()));
     registry->registerCommand(QSharedPointer<ICommand>(new DeleteCircleCommand()));
+    registry->registerCommand(QSharedPointer<ICommand>(new AddSectorCommand()));
+    registry->registerCommand(QSharedPointer<ICommand>(new DeleteSectorCommand()));
 
   CommandDispatcher dispatcher(registry, parser, *ctx);
 

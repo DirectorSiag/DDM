@@ -5,7 +5,19 @@
 #include <QJsonObject>
 #include <vector>
 
+#include "model/entities/sectorEntity.h"
+
 class CommandContext;
+
+struct SectorCreateRequest {
+    double      az_izq   = 0.0;
+    double      az_der   = 0.0;
+    double      rad_int  = 0.0;
+    double      rad_ext  = 0.0;
+    SectorColor color    = SectorColor::RGB1;
+    QPointF     origen;
+    int         id_track = 0;
+};
 
 /**
  * @brief Resultado de operación sobre figuras geométricas
@@ -86,9 +98,24 @@ public:
     GeometryResult deletePolygon(int polygonId);
 
     /**
+     * @brief Crea un sector anular en el contexto
+     * @param req Parámetros del sector (azimuts, radios, color, origen, id_track)
+     * @return GeometryResult con estado, ID asignado y mensaje de error si aplica
+     * @note Valida: rad_ext > rad_int >= 0, rad_ext > 0, azimuts en [0, 360)
+     */
+    GeometryResult createSector(const SectorCreateRequest& req);
+
+    /**
+     * @brief Elimina un sector por ID
+     * @param sectorId ID del sector a eliminar
+     * @return GeometryResult indicando éxito o error (sector no encontrado)
+     */
+    GeometryResult deleteSector(int sectorId);
+
+    /**
      * @brief Serializa todas las figuras geométricas actuales
-     * @return QJsonObject con listas de áreas, círculos y polígonos
-     * @note Formato: { "areas": [...], "circles": [...], "polygons": [...] }
+     * @return QJsonObject con listas de áreas, círculos, polígonos y sectores
+     * @note Formato: { "areas": [...], "circles": [...], "polygons": [...], "sectors": [...] }
      */
     QJsonObject listShapes() const;
 
