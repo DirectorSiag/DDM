@@ -118,3 +118,4 @@ SOURCES += \
     src/model/utils/configuration.cpp \
     src/view/stdinreader.cpp
 
+
