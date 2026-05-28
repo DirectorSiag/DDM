@@ -1,0 +1,18 @@
+
+
+===== PAGE 1 =====
+Estructura  del  Informe   1.  Resumen  del  trabajo  a  realizar  (lo  mismo  pero  más  expandido  que  pusiste  en  la  
+propuesta)
+ 2.  Descripción  del  sistema,  qué  hace,  para  qué  se  usa.  Esto  sirve  para  entender  
+después
+ 
+qué
+ 
+se
+ 
+va
+ 
+a
+ 
+testear.
+ 3.  Descripción  detallada  de  los  objetivos  del  testing  (ver  GitHub  Actions)  4.  Planificación  del  testing  5.  Ejecución  y  resultados  del  testing  6.  Conclusiones  

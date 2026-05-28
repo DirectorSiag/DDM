@@ -3,26 +3,24 @@ QT += core testlib
 CONFIG += console c++17 warn_on testcase
 
 TEMPLATE = app
-TARGET = testingModules
+TARGET = testingDclConcController
 
 INCLUDEPATH += \
         ../../src \
         ../../src/controller \
-        ../../src/controller/commands \
-        ../../src/controller/handlers \
-        ../../src/controller/json \
-        ../../src/model/network \
         ../../src/model \
         ../../src/model/decoders \
-        ../../src/model/entities \
-        ../../src/view
+        ../../src/model/network
 
 RESOURCES += ../../resources.qrc
 
 SOURCES += \
-        tst_decoder.cpp \
+        tst_dclconccontroller.cpp \
+        ../../src/controller/dclConcController.cpp \
         ../../src/model/decoders/concDecoder.cpp
 
 HEADERS += \
+        ../../src/controller/dclConcController.h \
         ../../src/model/decoders/concDecoder.h \
-        ../../src/model/decoders/iDecoder.h
+        ../../src/model/decoders/iDecoder.h \
+        ../../src/model/network/iTransport.h
