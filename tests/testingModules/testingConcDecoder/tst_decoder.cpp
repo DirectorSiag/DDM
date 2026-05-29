@@ -78,16 +78,17 @@ void TestDecoder::decode_frame_ranges_data()
     QTest::addColumn<int>("expectedRange");
 
     // Formato de inyección: buildDynamicFrame(Word1, Word2, QEK, Overlay, dx, dy)
+    // Word1 se interpreta por los 3 bits más significativos del primer byte.
 
     // Escenarios Nominales de Escala (Bits 24, 23, 22 del manual)
     QTest::newRow("Escala Mínima - 2 DM") << buildDynamicFrame(0x00, 0xFF, 0x10, 0x01, 0, 0) << 2;
-    QTest::newRow("Escala Intermedia - 4 DM") << buildDynamicFrame(0x01, 0xFF, 0x10, 0x01, 0, 0) << 4;
-    QTest::newRow("Escala Táctica - 16 DM") << buildDynamicFrame(0x05, 0xFF, 0x10, 0x01, 0, 0) << 16;
-    QTest::newRow("Escala Máxima - 256 DM") << buildDynamicFrame(0x07, 0xFF, 0x10, 0x01, 0, 0) << 256;
+    QTest::newRow("Escala Intermedia - 4 DM") << buildDynamicFrame(0x20, 0xFF, 0x10, 0x01, 0, 0) << 4;
+    QTest::newRow("Escala Táctica - 16 DM") << buildDynamicFrame(0x60, 0xFF, 0x10, 0x01, 0, 0) << 16;
+    QTest::newRow("Escala Máxima - 256 DM") << buildDynamicFrame(0xE0, 0xFF, 0x10, 0x01, 0, 0) << 256;
 
     // Escenarios de estrés: Ruido en la derecha e infiltración de comandos
     QTest::newRow("Escala 16 DM con datos basura en canal derecho/esclavo")
-        << buildDynamicFrame(0x05, 0x00, 0x00, 0x00, -5, 12) << 16;
+        << buildDynamicFrame(0x60, 0x00, 0x00, 0x00, -5, 12) << 16;
 
     QTest::newRow("Escala 2 DM con movimiento brusco simultáneo de Rolling Ball")
         << buildDynamicFrame(0x00, 0xFF, 0x10, 0x01, 127, -128) << 2;
