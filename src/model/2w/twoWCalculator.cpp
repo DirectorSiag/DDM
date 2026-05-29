@@ -1,4 +1,5 @@
 #include "twoWCalculator.h"
+#include "2w/twoWStationTable.h"
 #include "RadarMath.h"
 #include <cmath>
 
