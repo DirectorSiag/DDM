@@ -60,6 +60,9 @@ qrc_*
 
 # Ignorar archivos temporales de Qt Creator
 *.pro.user
+
+# Informe
+docs/fuentes_informe_extraidas/
 *.autosave
 *.qmlc
 *.jsc
