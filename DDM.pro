@@ -29,6 +29,7 @@ INCLUDEPATH += \
 HEADERS += \
     src/controller/commandRegistry.h \
     src/controller/commanddispatcher.h \
+    src/controller/commands/TwoWCommand.h \
     src/controller/commands/addCommand.h \
     src/controller/commands/addCursor.h \
     src/controller/commands/addareacommand.h \
@@ -53,6 +54,7 @@ HEADERS += \
     src/controller/json/jsonserializer.h \
     src/controller/handlers/cursorcommandhandler.h \
     src/controller/handlers/ownshipcommandhandler.h \
+    src/controller/services/TwoWService.h \
     src/controller/services/centerservice.h \
     src/controller/handlers/geometrycommandhandler.h \
     src/controller/services/cursorservice.h \
@@ -69,6 +71,9 @@ HEADERS += \
     src/controller/messagerouter.h \
     src/controller/overlayHandler.h \
     src/controller/json/validators/jsonvalidator.h \
+    src/model/2w/twoWCalculator.h \
+    src/model/2w/twoWSessionState.h \
+    src/model/2w/twoWStationTable.h \
     src/model/commandContext.h \
     src/model/cpa.h \
     src/model/pppcalculator.h \
@@ -110,6 +115,7 @@ HEADERS += \
 
 SOURCES += \
     src/controller/commandDispatcher.cpp \
+    src/controller/commands/TwoWCommand.cpp \
     src/controller/commands/addCommand.cpp \
     src/controller/commands/addCursor.cpp \
     src/controller/commands/addareacommand.cpp \
@@ -121,6 +127,7 @@ SOURCES += \
     src/controller/commands/estacionamientocommand.cpp \
     src/controller/commands/delete_area_command.cpp \
     src/controller/commands/ownshipcommand.cpp \
+    src/controller/services/TwoWService.cpp \
     src/controller/services/centerservice.cpp \
     src/controller/commands/deleteCircleCommand.cpp \
     src/controller/commands/deleteCommand.cpp \
@@ -150,6 +157,7 @@ SOURCES += \
     src/controller/overlayHandler.cpp \
     src/controller/json/validators/jsonvalidator.cpp \
     src/main.cpp \
+    src/model/2w/twoWCalculator.cpp \
     src/model/cpa.cpp \
     src/model/pppcalculator.cpp \
     src/model/estacionamientocalculator.cpp \
