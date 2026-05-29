@@ -8,14 +8,15 @@
 static QByteArray buildDynamicFrame(uint8_t rawWord1, uint8_t rawWord2, uint8_t qekByte, uint8_t overlayByte, int8_t dx, int8_t dy, int totalSize = 27)
 {
     // Simula un datagrama UDP truncado o cortado por error de socket
-    if (totalSize < 27) {
+    if (totalSize < 27)
+    {
         return QByteArray(totalSize, 0);
     }
 
     QByteArray frame(27, 0);
 
-    // El Concentrador transmite en lógica invertida (Bitwise NOT)
-    // Aplicamos la inversión aquí para emular el estímulo real de red
+    // ConcDecoder interpreta los bits tal como llegan (MSB-first), sin aplicar NOT.
+    // Por eso escribimos el valor crudo del test directamente.
     frame[0] = static_cast<char>(rawWord1);
     frame[3] = static_cast<char>(rawWord2);
 
@@ -39,7 +40,8 @@ static QByteArray buildDynamicFrame(uint8_t rawWord1, uint8_t rawWord2, uint8_t 
     frame[19] = static_cast<char>(dy);
 
     // Rellenado adicional en la derecha: bytes 20..26 con secuencia
-    for (int i = 20; i <= 26; ++i) {
+    for (int i = 20; i <= 26; ++i)
+    {
         frame[i] = static_cast<char>(rightBase + (i - 20));
     }
 
@@ -56,6 +58,9 @@ private slots:
     // Suite de Pruebas Guiadas por Datos (Data-Driven)
     void decode_frame_ranges_data();
     void decode_frame_ranges();
+
+    void decode_rolling_signed_values_data();
+    void decode_rolling_signed_values();
 
     void decode_corrupt_frame_is_ignored_data();
     void decode_corrupt_frame_is_ignored();
@@ -75,10 +80,10 @@ void TestDecoder::decode_frame_ranges_data()
     // Formato de inyección: buildDynamicFrame(Word1, Word2, QEK, Overlay, dx, dy)
 
     // Escenarios Nominales de Escala (Bits 24, 23, 22 del manual)
-    QTest::newRow("Escala Mínima - 2 DM")    << buildDynamicFrame(0x00, 0xFF, 0x10, 0x01, 0, 0) << 2;
+    QTest::newRow("Escala Mínima - 2 DM") << buildDynamicFrame(0x00, 0xFF, 0x10, 0x01, 0, 0) << 2;
     QTest::newRow("Escala Intermedia - 4 DM") << buildDynamicFrame(0x01, 0xFF, 0x10, 0x01, 0, 0) << 4;
-    QTest::newRow("Escala Táctica - 16 DM")   << buildDynamicFrame(0x05, 0xFF, 0x10, 0x01, 0, 0) << 16;
-    QTest::newRow("Escala Máxima - 256 DM")   << buildDynamicFrame(0x07, 0xFF, 0x10, 0x01, 0, 0) << 256;
+    QTest::newRow("Escala Táctica - 16 DM") << buildDynamicFrame(0x05, 0xFF, 0x10, 0x01, 0, 0) << 16;
+    QTest::newRow("Escala Máxima - 256 DM") << buildDynamicFrame(0x07, 0xFF, 0x10, 0x01, 0, 0) << 256;
 
     // Escenarios de estrés: Ruido en la derecha e infiltración de comandos
     QTest::newRow("Escala 16 DM con datos basura en canal derecho/esclavo")
@@ -117,6 +122,42 @@ void TestDecoder::decode_corrupt_frame_is_ignored_data()
 
     QTest::newRow("Trama huérfana de red completamente vacía")
         << QByteArray();
+}
+
+void TestDecoder::decode_rolling_signed_values_data()
+{
+    QTest::addColumn<QByteArray>("frame");
+    QTest::addColumn<float>("expectedDx");
+    QTest::addColumn<float>("expectedDy");
+
+    QTest::newRow("Rolling max/min signed")
+        << buildDynamicFrame(0x00, 0xFF, 0x10, 0x01, 127, -128)
+        << 127.0f
+        << -128.0f;
+
+    QTest::newRow("Rolling negative/positive signed")
+        << buildDynamicFrame(0x00, 0xFF, 0x10, 0x01, -2, 3)
+        << -2.0f
+        << 3.0f;
+}
+
+void TestDecoder::decode_rolling_signed_values()
+{
+    QFETCH(QByteArray, frame);
+    QFETCH(float, expectedDx);
+    QFETCH(float, expectedDy);
+
+    ConcDecoder decoder;
+    QSignalSpy rollingSpy(&decoder, &ConcDecoder::newRollingBall);
+
+    decoder.decode(frame);
+
+    QCOMPARE(rollingSpy.count(), 1);
+    const QList<QVariant> rollingArguments = rollingSpy.takeFirst();
+    const QPair<float, float> rolling =
+        rollingArguments.at(0).value<QPair<float, float>>();
+    QCOMPARE(rolling.first, expectedDx);
+    QCOMPARE(rolling.second, expectedDy);
 }
 
 void TestDecoder::decode_corrupt_frame_is_ignored()
