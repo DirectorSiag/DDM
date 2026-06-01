@@ -5,6 +5,22 @@
 #include "dclConcController.h"
 #include "iTransport.h"
 
+namespace {
+
+QByteArray buildDclConcDatagram(quint16 sequence,
+                                const QByteArray& payload = QByteArray(27, char(0x00)))
+{
+    QByteArray datagram;
+    datagram.reserve(3 + payload.size());
+    datagram.append(char(0x04));
+    datagram.append(char((sequence >> 8) & 0x7F));
+    datagram.append(char(sequence & 0xFF));
+    datagram.append(payload);
+    return datagram;
+}
+
+}
+
 class FakeTransport : public ITransport
 {
     Q_OBJECT
@@ -49,9 +65,11 @@ private slots:
     void negateData_invierte_todos_los_bytes();
     void onDatagram_ignora_datagrama_menor_a_tres_bytes_data();
     void onDatagram_ignora_datagrama_menor_a_tres_bytes();
+    void onDatagram_ignora_mensaje_and1();
+    void onDatagram_ignora_ack();
     void onDatagram_envia_ack_con_secuencia_correcta_data();
     void onDatagram_envia_ack_con_secuencia_correcta();
-    void onDatagram_con_solo_header_envia_ack_y_no_emite_eventos_del_decoder();
+    void onDatagram_ignora_datagrama_con_solo_header();
     void onDatagram_con_payload_entrega_al_decoder_el_payload_invertido();
     void onDatagram_envia_ack_antes_de_decodificar_payload();
 };
@@ -103,18 +121,46 @@ void TestDclConcController::onDatagram_ignora_datagrama_menor_a_tres_bytes()
     QCOMPARE(transport.sentMessages.count(), 0);
 }
 
+void TestDclConcController::onDatagram_ignora_mensaje_and1()
+{
+    FakeTransport transport;
+    RecordingDecoder decoder;
+    DclConcController controller(&transport, &decoder);
+
+    // AND1 usa Device Address 0x02 y una longitud total de 51 bytes.
+    const QByteArray datagram = QByteArray::fromHex("020001")
+                                + QByteArray(48, char(0x00));
+
+    controller.onDatagram(datagram);
+
+    QCOMPARE(transport.sentMessages.count(), 0);
+    QCOMPARE(decoder.decodedMessages.count(), 0);
+}
+
+void TestDclConcController::onDatagram_ignora_ack()
+{
+    FakeTransport transport;
+    RecordingDecoder decoder;
+    DclConcController controller(&transport, &decoder);
+
+    const QByteArray datagram = QByteArray::fromHex("048001");
+
+    controller.onDatagram(datagram);
+
+    QCOMPARE(transport.sentMessages.count(), 0);
+    QCOMPARE(decoder.decodedMessages.count(), 0);
+}
+
 void TestDclConcController::onDatagram_envia_ack_con_secuencia_correcta_data()
 {
     QTest::addColumn<QByteArray>("datagram");
     QTest::addColumn<QByteArray>("expectedAck");
 
-    QTest::newRow("secuencia media") << QByteArray::fromHex("001234")
+    QTest::newRow("secuencia media") << buildDclConcDatagram(0x1234)
                                       << QByteArray::fromHex("049234");
-    QTest::newRow("secuencia cero") << QByteArray::fromHex("000000")
+    QTest::newRow("secuencia cero") << buildDclConcDatagram(0x0000)
                                      << QByteArray::fromHex("048000");
-    QTest::newRow("secuencia maxima") << QByteArray::fromHex("007FFF")
-                                       << QByteArray::fromHex("04FFFF");
-    QTest::newRow("mascara bit alto") << QByteArray::fromHex("00FFFF")
+    QTest::newRow("secuencia maxima") << buildDclConcDatagram(0x7FFF)
                                        << QByteArray::fromHex("04FFFF");
 }
 
@@ -124,7 +170,7 @@ void TestDclConcController::onDatagram_envia_ack_con_secuencia_correcta()
     QFETCH(QByteArray, expectedAck);
 
     FakeTransport transport;
-    ConcDecoder decoder;
+    RecordingDecoder decoder;
     DclConcController controller(&transport, &decoder);
 
     controller.onDatagram(datagram);
@@ -133,7 +179,7 @@ void TestDclConcController::onDatagram_envia_ack_con_secuencia_correcta()
     QCOMPARE(transport.sentMessages.first(), expectedAck);
 }
 
-void TestDclConcController::onDatagram_con_solo_header_envia_ack_y_no_emite_eventos_del_decoder()
+void TestDclConcController::onDatagram_ignora_datagrama_con_solo_header()
 {
     FakeTransport transport;
     ConcDecoder decoder;
@@ -153,13 +199,11 @@ void TestDclConcController::onDatagram_con_solo_header_envia_ack_y_no_emite_even
     QSignalSpy trueMotionSpy(&decoder, &ConcDecoder::trueMotion);
     QSignalSpy ownCursSpy(&decoder, &ConcDecoder::ownCurs);
 
-    const QByteArray datagram = QByteArray::fromHex("000001");
-    const QByteArray expectedAck = QByteArray::fromHex("048001");
+    const QByteArray datagram = QByteArray::fromHex("040001");
 
     controller.onDatagram(datagram);
 
-    QCOMPARE(transport.sentMessages.count(), 1);
-    QCOMPARE(transport.sentMessages.first(), expectedAck);
+    QCOMPARE(transport.sentMessages.count(), 0);
     QCOMPARE(obmSpy.count(), 0);
     QCOMPARE(rangeSpy.count(), 0);
     QCOMPARE(qekSpy.count(), 0);
@@ -182,9 +226,12 @@ void TestDclConcController::onDatagram_con_payload_entrega_al_decoder_el_payload
     RecordingDecoder decoder;
     DclConcController controller(&transport, &decoder);
 
-    const QByteArray datagram = QByteArray::fromHex("00123400FFAA55");
+    const QByteArray payload = QByteArray::fromHex("00FFAA55")
+                               + QByteArray(23, char(0x00));
+    const QByteArray datagram = buildDclConcDatagram(0x1234, payload);
     const QByteArray expectedAck = QByteArray::fromHex("049234");
-    const QByteArray expectedPayload = QByteArray::fromHex("FF0055AA");
+    const QByteArray expectedPayload = QByteArray::fromHex("FF0055AA")
+                                       + QByteArray(23, char(0xFF));
 
     controller.onDatagram(datagram);
 
@@ -203,7 +250,7 @@ void TestDclConcController::onDatagram_envia_ack_antes_de_decodificar_payload()
     decoder.eventLog = &eventLog;
     DclConcController controller(&transport, &decoder);
 
-    const QByteArray datagram = QByteArray::fromHex("00123400FFAA55");
+    const QByteArray datagram = buildDclConcDatagram(0x1234);
 
     controller.onDatagram(datagram);
 

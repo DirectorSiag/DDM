@@ -9,6 +9,22 @@
 #include "messagerouter.h"
 #include "network/iTransport.h"
 
+namespace {
+
+QByteArray buildDclConcDatagram(quint16 sequence,
+                                const QByteArray& payload = QByteArray(27, char(0x00)))
+{
+    QByteArray datagram;
+    datagram.reserve(3 + payload.size());
+    datagram.append(char(0x04));
+    datagram.append(char((sequence >> 8) & 0x7F));
+    datagram.append(char(sequence & 0xFF));
+    datagram.append(payload);
+    return datagram;
+}
+
+}
+
 class FakeTransport : public ITransport
 {
     Q_OBJECT
@@ -61,12 +77,16 @@ void TestMessageRouter::onMessageReceived_rutea_datagrama_binario_al_controlador
     JsonCommandHandler jsonHandler(&context, &transport);
     MessageRouter router(&dclController, &jsonHandler);
 
-    router.onMessageReceived(QByteArray::fromHex("00123400FFAA55"));
+    const QByteArray payload = QByteArray::fromHex("00FFAA55")
+                               + QByteArray(23, char(0x00));
+
+    router.onMessageReceived(buildDclConcDatagram(0x1234, payload));
 
     QCOMPARE(transport.sentMessages.count(), 1);
     QCOMPARE(transport.sentMessages.first(), QByteArray::fromHex("049234"));
     QCOMPARE(decoder.decodedMessages.count(), 1);
-    QCOMPARE(decoder.decodedMessages.first(), QByteArray::fromHex("FF0055AA"));
+    QCOMPARE(decoder.decodedMessages.first(),
+             QByteArray::fromHex("FF0055AA") + QByteArray(23, char(0xFF)));
 }
 
 void TestMessageRouter::onMessageReceived_rutea_json_al_handler_json()
