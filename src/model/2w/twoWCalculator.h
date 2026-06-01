@@ -19,7 +19,7 @@ public:
         QPointF&            out_guideCenter,
         QPointF&            out_ownCenter,
         QList<QPointF>&     out_allyCenters,
-        bool&               out_kinematicsValid,
+        bool&               out_etaValid,
         double&             out_courseDeg,
         double&             out_etaMin,
         double&             out_currentAzDeg,
