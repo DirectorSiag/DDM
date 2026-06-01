@@ -7,6 +7,9 @@
 #include <QTime>
 #include <QtGlobal>
 #include <QRandomGenerator>
+#include <QCoreApplication>
+#include <QProcess>
+#include <QDebug>
 
 #include "concDecoder.h"
 
@@ -75,8 +78,8 @@ private slots:
     void decode_rolling_signed_values_data();
     void decode_rolling_signed_values();
 
-    //void decode_truncated_frames_data();
-    //void decode_truncated_frames();
+    void decode_truncated_frames_data();
+    void decode_truncated_frames();
 
     void decode_qek_data();
     void decode_qek();
@@ -194,7 +197,7 @@ void TestDecoder::decode_rolling_signed_values()
     QCOMPARE(rolling.second, expectedDy);
 }
 
-/**void TestDecoder::decode_truncated_frames_data()
+void TestDecoder::decode_truncated_frames_data()
 {
     QTest::addColumn<int>("totalSize");
 
@@ -203,39 +206,25 @@ void TestDecoder::decode_rolling_signed_values()
         const QByteArray rowName = QString("truncated-%1").arg(totalSize).toUtf8();
         QTest::newRow(rowName.constData()) << totalSize;
     }
-}*/
+}
 
-/** void TestDecoder::decode_truncated_frames()
+void TestDecoder::decode_truncated_frames()
 {
     QFETCH(int, totalSize);
 
     QByteArray frame = buildDynamicFrame(0x60, 0x00, 0x00, 0x00, 0, 0, totalSize);
 
-    ConcDecoder decoder;
-    QSignalSpy rangeSpy(&decoder, &ConcDecoder::newRange);
-    QSignalSpy rollingSpy(&decoder, &ConcDecoder::newRollingBall);
-    QSignalSpy qekSpy(&decoder, &ConcDecoder::newQEK);
-    QSignalSpy overlaySpy(&decoder, &ConcDecoder::newOverlay);
-    QSignalSpy handwheelSpy(&decoder, &ConcDecoder::newHandWheel);
+    const QString exe = QCoreApplication::applicationFilePath();
+    QByteArray hex = frame.toHex();
+    QProcess proc;
+    proc.start(exe, QStringList() << "--subproc-decode" << QString::fromUtf8(hex));
+    bool finished = proc.waitForFinished(2000);
+    QVERIFY2(finished, "subprocess did not finish in time");
 
-    decoder.decode(frame);
-
-    QCOMPARE(rangeSpy.count(), 1);
-    QCOMPARE(rangeSpy.takeFirst().at(0).toInt(), 2);
-
-    QCOMPARE(rollingSpy.count(), 1);
-    const QPair<float, float> rolling = rollingSpy.takeFirst().at(0).value<QPair<float, float>>();
-    QCOMPARE(rolling.first, 0.0f);
-    QCOMPARE(rolling.second, 0.0f);
-
-    QCOMPARE(qekSpy.count(), 0);
-    QCOMPARE(overlaySpy.count(), 0);
-
-    QCOMPARE(handwheelSpy.count(), 1);
-    const QPair<float, float> handwheel = handwheelSpy.takeFirst().at(0).value<QPair<float, float>>();
-    QCOMPARE(handwheel.first, 0.0f);
-    QCOMPARE(handwheel.second, 0.0f);
-} */
+    // NormalExit and code 0 means child ran decode() without aborting.
+    QCOMPARE(proc.exitStatus(), QProcess::NormalExit);
+    QCOMPARE(proc.exitCode(), 0);
+}
 
 // ----- QEK -----
 void TestDecoder::decode_qek_data()
@@ -803,6 +792,24 @@ void TestDecoder::decode_fuzzing_random()
     QVERIFY(rangeSpy.count() >= 1);
 }
 
-QTEST_APPLESS_MAIN(TestDecoder)
+int main(int argc, char **argv)
+{
+    // Special helper mode: run ConcDecoder::decode() in a subprocess to
+    // protect the test runner from ASSERT/abort inside the decoder.
+    if (argc >= 3 && QString(argv[1]) == "--subproc-decode")
+    {
+        QCoreApplication app(argc, argv);
+        QByteArray hex = QString::fromLocal8Bit(argv[2]).toUtf8();
+        QByteArray frame = QByteArray::fromHex(hex);
+        ConcDecoder decoder;
+        // Run decode once; if it ASSERTs the child will crash and parent
+        // will observe a non-zero exit code / crash status.
+        decoder.decode(frame);
+        return 0;
+    }
+
+    TestDecoder tc;
+    return QTest::qExec(&tc, argc, argv);
+}
 
 #include "tst_decoder.moc"
