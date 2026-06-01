@@ -185,7 +185,14 @@ SOURCES += \
     src/model/sitrep/sitrep.cpp \
     src/model/utils/RadarMath.cpp \
     src/model/utils/configuration.cpp \
-    src/view/stdinreader.cpp
+    src/view/stdinreader.cpp \
+    tests/2w/command/test_twowcommand.cpp
+
+SUBDIRS += \
+    tests/2w/command/test_twowcommand.pro
+
+DISTFILES += \
+    tests/2w/command/json/twowcommand_cases.json
 
 
 
