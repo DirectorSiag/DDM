@@ -12,7 +12,9 @@ void TwoWCalculator::calculate(
     double& out_currentAzDeg, double& out_currentDistNm,
     double& out_expectedAzDeg, double& out_expectedDistNm)
 {
-    const double kNmToDm = 185.2;
+    // FACTOR DE CONVERSIÓN TÁCTICO: de Millas Náuticas (NM) a Data Miles (DM)
+    // 1 NM = 6076.1154 pies / 1 DM = 6000 pies -> Relación exacta: 1.012685
+    const double kNmToDm = 1.012685;
 
     // 1. Centro del Guía
     out_guideCenter = guidePos;
@@ -39,7 +41,6 @@ void TwoWCalculator::calculate(
     double dxEstacion     = out_ownCenter.x() - ownPos.x();
     double dyEstacion     = out_ownCenter.y() - ownPos.y();
     double distEstacionDm = std::sqrt(dxEstacion*dxEstacion + dyEstacion*dyEstacion);
-    double distEstacionNm = distEstacionDm / kNmToDm;
 
     out_courseDeg = RadarMath::normalizeAngle360(RadarMath::calculateAngle(ownPos, out_ownCenter));
 
