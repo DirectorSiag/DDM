@@ -12,8 +12,8 @@ struct TwoWStationEntry {
 // Acceder siempre mediante TwoWStationTable::stationAt(int stationNumber)
 // para mantener la conversión 1-based -> 0-based en un único lugar.
 static constexpr std::array<TwoWStationEntry, 68> TWOW_TABLA_A = {{
-    // Est  Az      Dist
-    {   0.0,  2.0 },   //  1
+    //Az      Dist      //Estacion
+    {   30.0,  2.0 },   //  1
     { 330.0,  2.0 },   //  2
     {  90.0,  2.0 },   //  3
     { 270.0,  2.0 },   //  4
