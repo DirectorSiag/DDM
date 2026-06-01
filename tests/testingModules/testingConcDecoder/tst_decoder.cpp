@@ -10,7 +10,6 @@
 
 #include "concDecoder.h"
 
-// Fábrica Parametrizada: Genera tramas tácticas a medida
 static QByteArray buildDynamicFrame(uint8_t rawWord1, uint8_t rawWord2, uint8_t qekByte, uint8_t overlayByte, int8_t dx, int8_t dy, int totalSize = 27)
 {
     // Simula un datagrama UDP truncado o cortado por error de socket
@@ -54,6 +53,15 @@ static QByteArray buildDynamicFrame(uint8_t rawWord1, uint8_t rawWord2, uint8_t 
     return frame;
 }
 
+static void setHandWheelBytes(QByteArray &frame, uint8_t phiByte, uint8_t rhoByte)
+{
+    if (frame.size() >= 17)
+    {
+        frame[15] = static_cast<char>(phiByte);
+        frame[16] = static_cast<char>(rhoByte);
+    }
+}
+
 class TestDecoder : public QObject
 {
     Q_OBJECT
@@ -61,16 +69,20 @@ class TestDecoder : public QObject
 private slots:
     void initTestCase();
 
-    // Suite de Pruebas Guiadas por Datos (Data-Driven)
     void decode_frame_ranges_data();
     void decode_frame_ranges();
 
     void decode_rolling_signed_values_data();
     void decode_rolling_signed_values();
 
-    // Nuevos tests propuestos
+    //void decode_truncated_frames_data();
+    //void decode_truncated_frames();
+
     void decode_qek_data();
     void decode_qek();
+
+    void decode_handwheel_data();
+    void decode_handwheel();
 
     void decode_overlay_data();
     void decode_overlay();
@@ -80,9 +92,10 @@ private slots:
     void decode_malformed_header_data();
     void decode_malformed_header();
 
-    // Tests adicionales implementados
     void decode_word2_flags_data();
     void decode_word2_flags();
+
+    void decode_word2_owncurs_transition();
 
     void decode_reserved_corrupt();
 
@@ -91,6 +104,7 @@ private slots:
 
     void decode_burst_sequence();
     void decode_repeated_identical();
+    void decode_mixed_valid_and_corrupt_sequence();
 
     void decode_endianness();
 
@@ -103,7 +117,6 @@ private slots:
 
 void TestDecoder::initTestCase()
 {
-    // Registramos el tipo compuesto QPair para que QSignalSpy pueda operar en frío
     qRegisterMetaType<QPair<float, float>>("QPair<float,float>");
 }
 
@@ -137,13 +150,10 @@ void TestDecoder::decode_frame_ranges()
     ConcDecoder decoder;
     QSignalSpy rangeSpy(&decoder, &ConcDecoder::newRange);
 
-    // Se dispara el procesamiento de la trama dinámica
     decoder.decode(frame);
 
-    // El Spy cuenta cuántas veces se emitió. Debe ser exactamente UNA
     QCOMPARE(rangeSpy.count(), 1);
 
-    // Abrimos la notificación capturada y validamos el entero extraído
     const QList<QVariant> rangeArguments = rangeSpy.takeFirst();
     QCOMPARE(rangeArguments.at(0).toInt(), expectedRange);
 }
@@ -184,20 +194,67 @@ void TestDecoder::decode_rolling_signed_values()
     QCOMPARE(rolling.second, expectedDy);
 }
 
-// ----- Tests añadidos: QEK -----
+/**void TestDecoder::decode_truncated_frames_data()
+{
+    QTest::addColumn<int>("totalSize");
+
+    for (int totalSize = 0; totalSize < 27; ++totalSize)
+    {
+        const QByteArray rowName = QString("truncated-%1").arg(totalSize).toUtf8();
+        QTest::newRow(rowName.constData()) << totalSize;
+    }
+}*/
+
+/** void TestDecoder::decode_truncated_frames()
+{
+    QFETCH(int, totalSize);
+
+    QByteArray frame = buildDynamicFrame(0x60, 0x00, 0x00, 0x00, 0, 0, totalSize);
+
+    ConcDecoder decoder;
+    QSignalSpy rangeSpy(&decoder, &ConcDecoder::newRange);
+    QSignalSpy rollingSpy(&decoder, &ConcDecoder::newRollingBall);
+    QSignalSpy qekSpy(&decoder, &ConcDecoder::newQEK);
+    QSignalSpy overlaySpy(&decoder, &ConcDecoder::newOverlay);
+    QSignalSpy handwheelSpy(&decoder, &ConcDecoder::newHandWheel);
+
+    decoder.decode(frame);
+
+    QCOMPARE(rangeSpy.count(), 1);
+    QCOMPARE(rangeSpy.takeFirst().at(0).toInt(), 2);
+
+    QCOMPARE(rollingSpy.count(), 1);
+    const QPair<float, float> rolling = rollingSpy.takeFirst().at(0).value<QPair<float, float>>();
+    QCOMPARE(rolling.first, 0.0f);
+    QCOMPARE(rolling.second, 0.0f);
+
+    QCOMPARE(qekSpy.count(), 0);
+    QCOMPARE(overlaySpy.count(), 0);
+
+    QCOMPARE(handwheelSpy.count(), 1);
+    const QPair<float, float> handwheel = handwheelSpy.takeFirst().at(0).value<QPair<float, float>>();
+    QCOMPARE(handwheel.first, 0.0f);
+    QCOMPARE(handwheel.second, 0.0f);
+} */
+
+// ----- QEK -----
 void TestDecoder::decode_qek_data()
 {
     QTest::addColumn<QByteArray>("frame");
+    QTest::addColumn<int>("expectedCount");
     QTest::addColumn<QString>("expectedQek");
 
-    QTest::newRow("QEK example 0x10") << buildDynamicFrame(0x20, 0xFF, 0x10, 0x01, 0, 0) << QString("QEK_20");
-    QTest::newRow("QEK example 0x11") << buildDynamicFrame(0x20, 0xFF, 0x11, 0x01, 0, 0) << QString("QEK_21");
-    QTest::newRow("QEK example 0x20") << buildDynamicFrame(0x20, 0xFF, 0x20, 0x01, 0, 0) << QString("QEK_40");
+    QTest::newRow("QEK example 0x10") << buildDynamicFrame(0x20, 0xFF, 0x10, 0x01, 0, 0) << 1 << QString("QEK_20");
+    QTest::newRow("QEK example 0x11") << buildDynamicFrame(0x20, 0xFF, 0x11, 0x01, 0, 0) << 1 << QString("QEK_21");
+    QTest::newRow("QEK example 0x20") << buildDynamicFrame(0x20, 0xFF, 0x20, 0x01, 0, 0) << 1 << QString("QEK_40");
+    QTest::newRow("QEK none") << buildDynamicFrame(0x20, 0xFF, 0x00, 0x01, 0, 0) << 0 << QString();
+    QTest::newRow("QEK unknown") << buildDynamicFrame(0x20, 0xFF, 0x30, 0x01, 0, 0) << 0 << QString();
 }
 
 void TestDecoder::decode_qek()
 {
     QFETCH(QByteArray, frame);
+    QFETCH(int, expectedCount);
     QFETCH(QString, expectedQek);
 
     ConcDecoder decoder;
@@ -205,12 +262,56 @@ void TestDecoder::decode_qek()
 
     decoder.decode(frame);
 
-    QCOMPARE(qekSpy.count(), 1);
-    const QList<QVariant> args = qekSpy.takeFirst();
-    QCOMPARE(args.at(0).toString(), expectedQek);
+    QCOMPARE(qekSpy.count(), expectedCount);
+    if (expectedCount == 1)
+    {
+        const QList<QVariant> args = qekSpy.takeFirst();
+        QCOMPARE(args.at(0).toString(), expectedQek);
+    }
 }
 
-// ----- Tests añadidos: Overlay -----
+void TestDecoder::decode_handwheel_data()
+{
+    QTest::addColumn<QByteArray>("frame");
+    QTest::addColumn<float>("expectedPhi");
+    QTest::addColumn<float>("expectedRho");
+
+    QByteArray positive = buildDynamicFrame(0x20, 0x00, 0x10, 0x01, 0, 0);
+    setHandWheelBytes(positive, 0x7F, 0x80);
+    QTest::newRow("Handwheel positive-negative") << positive << 127.0f << -128.0f;
+
+    QByteArray negativePositive = buildDynamicFrame(0x20, 0x00, 0x10, 0x01, 0, 0);
+    setHandWheelBytes(negativePositive, 0xFE, 0x03);
+    QTest::newRow("Handwheel negative-positive") << negativePositive << -2.0f << 3.0f;
+
+    QByteArray zeroes = buildDynamicFrame(0x20, 0x00, 0x10, 0x01, 0, 0);
+    setHandWheelBytes(zeroes, 0x00, 0x00);
+    QTest::newRow("Handwheel zeroes") << zeroes << 0.0f << 0.0f;
+
+    QByteArray extremes = buildDynamicFrame(0x20, 0x00, 0x10, 0x01, 0, 0);
+    setHandWheelBytes(extremes, 0x80, 0x7F);
+    QTest::newRow("Handwheel extremes") << extremes << -128.0f << 127.0f;
+}
+
+void TestDecoder::decode_handwheel()
+{
+    QFETCH(QByteArray, frame);
+    QFETCH(float, expectedPhi);
+    QFETCH(float, expectedRho);
+
+    ConcDecoder decoder;
+    QSignalSpy handwheelSpy(&decoder, &ConcDecoder::newHandWheel);
+
+    decoder.decode(frame);
+
+    QCOMPARE(handwheelSpy.count(), 1);
+    const QList<QVariant> args = handwheelSpy.takeFirst();
+    const QPair<float, float> handwheel = args.at(0).value<QPair<float, float>>();
+    QCOMPARE(handwheel.first, expectedPhi);
+    QCOMPARE(handwheel.second, expectedRho);
+}
+
+// ----- Overlay -----
 void TestDecoder::decode_overlay_data()
 {
     QTest::addColumn<QByteArray>("frame");
@@ -241,7 +342,6 @@ void TestDecoder::decode_overlay()
     }
 }
 
-// ----- Test multi-señal en una sola trama -----
 void TestDecoder::decode_multi_signal()
 {
     // Construimos una trama que contiene range, rolling y qek/overlay válidos
@@ -251,15 +351,17 @@ void TestDecoder::decode_multi_signal()
     QSignalSpy rangeSpy(&decoder, &ConcDecoder::newRange);
     QSignalSpy rollingSpy(&decoder, &ConcDecoder::newRollingBall);
     QSignalSpy qekSpy(&decoder, &ConcDecoder::newQEK);
+    QSignalSpy overlaySpy(&decoder, &ConcDecoder::newOverlay);
 
     decoder.decode(frame);
 
     QCOMPARE(rangeSpy.count(), 1);
     QCOMPARE(rollingSpy.count(), 1);
     QCOMPARE(qekSpy.count(), 1);
+    QCOMPARE(overlaySpy.count(), 1);
+    QCOMPARE(overlaySpy.takeFirst().at(0).toString(), QString("LINCO"));
 }
 
-// ----- Tests para encabezado malformado -----
 void TestDecoder::decode_malformed_header_data()
 {
     QTest::addColumn<QByteArray>("frame");
@@ -325,22 +427,199 @@ void TestDecoder::decode_malformed_header()
         QCOMPARE(overlaySpy.takeFirst().at(0).toString(), expectedOverlay);
     }
 
-    // El decoder actual también emite rolling una vez por trama.
     QCOMPARE(rollingSpy.count(), 1);
 }
 
-// ----- Word2 flags: asegurar que no rompe la decodificación de range -----
 void TestDecoder::decode_word2_flags_data()
+{
+    QTest::addColumn<QByteArray>("frame");
+    QTest::addColumn<QString>("expectedSignal");
+
+    QTest::newRow("cuOrOffCentLeft") << buildDynamicFrame(0x00, 0x80, 0x00, 0x00, 0, 0) << QString("cuOrOffCentLeft");
+    QTest::newRow("cuOrCentLeft") << buildDynamicFrame(0x00, 0x40, 0x00, 0x00, 0, 0) << QString("cuOrCentLeft");
+    QTest::newRow("offCentLeft") << buildDynamicFrame(0x00, 0x20, 0x00, 0x00, 0, 0) << QString("offCentLeft");
+    QTest::newRow("centLeft") << buildDynamicFrame(0x00, 0x10, 0x00, 0x00, 0, 0) << QString("centLeft");
+    QTest::newRow("resetObmLeft") << buildDynamicFrame(0x00, 0x08, 0x00, 0x00, 0, 0) << QString("resetObmLeft");
+    QTest::newRow("dataReqLeft") << buildDynamicFrame(0x00, 0x04, 0x00, 0x00, 0, 0) << QString("dataReqLeft");
+    QTest::newRow("trueMotion") << buildDynamicFrame(0x00, 0x02, 0x00, 0x00, 0, 0) << QString("trueMotion");
+    QTest::newRow("ownCursTrue") << buildDynamicFrame(0x00, 0x01, 0x00, 0x00, 0, 0) << QString("ownCursTrue");
+}
+
+void TestDecoder::decode_word2_flags()
+{
+    QFETCH(QByteArray, frame);
+    QFETCH(QString, expectedSignal);
+
+    ConcDecoder decoder;
+    QSignalSpy cuOrOffSpy(&decoder, &ConcDecoder::cuOrOffCentLeft);
+    QSignalSpy cuOrCentSpy(&decoder, &ConcDecoder::cuOrCentLeft);
+    QSignalSpy offCentSpy(&decoder, &ConcDecoder::offCentLeft);
+    QSignalSpy centSpy(&decoder, &ConcDecoder::centLeft);
+    QSignalSpy resetObmSpy(&decoder, &ConcDecoder::resetObmLeft);
+    QSignalSpy dataReqSpy(&decoder, &ConcDecoder::dataReqLeft);
+    QSignalSpy trueMotionSpy(&decoder, &ConcDecoder::trueMotion);
+    QSignalSpy ownCursSpy(&decoder, &ConcDecoder::ownCurs);
+
+    decoder.decode(frame);
+
+    if (expectedSignal == QString("cuOrOffCentLeft"))
+    {
+        QCOMPARE(cuOrOffSpy.count(), 1);
+        QCOMPARE(cuOrCentSpy.count(), 0);
+        QCOMPARE(offCentSpy.count(), 0);
+        QCOMPARE(centSpy.count(), 0);
+        QCOMPARE(resetObmSpy.count(), 0);
+        QCOMPARE(dataReqSpy.count(), 0);
+        QCOMPARE(trueMotionSpy.count(), 0);
+        QCOMPARE(ownCursSpy.count(), 0);
+    }
+    else if (expectedSignal == QString("cuOrCentLeft"))
+    {
+        QCOMPARE(cuOrOffSpy.count(), 0);
+        QCOMPARE(cuOrCentSpy.count(), 1);
+        QCOMPARE(offCentSpy.count(), 0);
+        QCOMPARE(centSpy.count(), 0);
+        QCOMPARE(resetObmSpy.count(), 0);
+        QCOMPARE(dataReqSpy.count(), 0);
+        QCOMPARE(trueMotionSpy.count(), 0);
+        QCOMPARE(ownCursSpy.count(), 0);
+    }
+    else if (expectedSignal == QString("offCentLeft"))
+    {
+        QCOMPARE(cuOrOffSpy.count(), 0);
+        QCOMPARE(cuOrCentSpy.count(), 0);
+        QCOMPARE(offCentSpy.count(), 1);
+        QCOMPARE(centSpy.count(), 0);
+        QCOMPARE(resetObmSpy.count(), 0);
+        QCOMPARE(dataReqSpy.count(), 0);
+        QCOMPARE(trueMotionSpy.count(), 0);
+        QCOMPARE(ownCursSpy.count(), 0);
+    }
+    else if (expectedSignal == QString("centLeft"))
+    {
+        QCOMPARE(cuOrOffSpy.count(), 0);
+        QCOMPARE(cuOrCentSpy.count(), 0);
+        QCOMPARE(offCentSpy.count(), 0);
+        QCOMPARE(centSpy.count(), 1);
+        QCOMPARE(resetObmSpy.count(), 0);
+        QCOMPARE(dataReqSpy.count(), 0);
+        QCOMPARE(trueMotionSpy.count(), 0);
+        QCOMPARE(ownCursSpy.count(), 0);
+    }
+    else if (expectedSignal == QString("resetObmLeft"))
+    {
+        QCOMPARE(cuOrOffSpy.count(), 0);
+        QCOMPARE(cuOrCentSpy.count(), 0);
+        QCOMPARE(offCentSpy.count(), 0);
+        QCOMPARE(centSpy.count(), 0);
+        QCOMPARE(resetObmSpy.count(), 1);
+        QCOMPARE(dataReqSpy.count(), 0);
+        QCOMPARE(trueMotionSpy.count(), 0);
+        QCOMPARE(ownCursSpy.count(), 0);
+    }
+    else if (expectedSignal == QString("dataReqLeft"))
+    {
+        QCOMPARE(cuOrOffSpy.count(), 0);
+        QCOMPARE(cuOrCentSpy.count(), 0);
+        QCOMPARE(offCentSpy.count(), 0);
+        QCOMPARE(centSpy.count(), 0);
+        QCOMPARE(resetObmSpy.count(), 0);
+        QCOMPARE(dataReqSpy.count(), 1);
+        QCOMPARE(trueMotionSpy.count(), 0);
+        QCOMPARE(ownCursSpy.count(), 0);
+    }
+    else if (expectedSignal == QString("trueMotion"))
+    {
+        QCOMPARE(cuOrOffSpy.count(), 0);
+        QCOMPARE(cuOrCentSpy.count(), 0);
+        QCOMPARE(offCentSpy.count(), 0);
+        QCOMPARE(centSpy.count(), 0);
+        QCOMPARE(resetObmSpy.count(), 0);
+        QCOMPARE(dataReqSpy.count(), 0);
+        QCOMPARE(trueMotionSpy.count(), 1);
+        QCOMPARE(ownCursSpy.count(), 0);
+    }
+    else
+    {
+        QCOMPARE(ownCursSpy.count(), 1);
+        const QList<QVariant> args = ownCursSpy.takeFirst();
+        QCOMPARE(args.at(0).toBool(), true);
+        QCOMPARE(cuOrOffSpy.count(), 0);
+        QCOMPARE(cuOrCentSpy.count(), 0);
+        QCOMPARE(offCentSpy.count(), 0);
+        QCOMPARE(centSpy.count(), 0);
+        QCOMPARE(resetObmSpy.count(), 0);
+        QCOMPARE(dataReqSpy.count(), 0);
+        QCOMPARE(trueMotionSpy.count(), 0);
+    }
+}
+
+void TestDecoder::decode_word2_owncurs_transition()
+{
+    ConcDecoder decoder;
+    QSignalSpy ownCursSpy(&decoder, &ConcDecoder::ownCurs);
+
+    QByteArray activate = buildDynamicFrame(0x00, 0x01, 0x00, 0x00, 0, 0);
+    QByteArray deactivate = buildDynamicFrame(0x00, 0x00, 0x00, 0x00, 0, 0);
+
+    decoder.decode(activate);
+    decoder.decode(deactivate);
+
+    QCOMPARE(ownCursSpy.count(), 2);
+    QCOMPARE(ownCursSpy.takeFirst().at(0).toBool(), true);
+    QCOMPARE(ownCursSpy.takeFirst().at(0).toBool(), false);
+}
+
+void TestDecoder::decode_reserved_corrupt()
+{
+    QByteArray frame = buildDynamicFrame(0x20, 0x00, 0x10, 0x03, 2, -2);
+    setHandWheelBytes(frame, 0x00, 0x00);
+
+    // Introducimos basura en offsets que el decoder actual no interpreta (20..26)
+    for (int i = 20; i <= 26; ++i)
+        frame[i] = static_cast<char>(0xFF);
+
+    ConcDecoder decoder;
+    QSignalSpy rangeSpy(&decoder, &ConcDecoder::newRange);
+    QSignalSpy qekSpy(&decoder, &ConcDecoder::newQEK);
+    QSignalSpy overlaySpy(&decoder, &ConcDecoder::newOverlay);
+    QSignalSpy handwheelSpy(&decoder, &ConcDecoder::newHandWheel);
+    QSignalSpy rollingSpy(&decoder, &ConcDecoder::newRollingBall);
+
+    decoder.decode(frame);
+
+    QCOMPARE(rangeSpy.count(), 1);
+    QCOMPARE(rangeSpy.takeFirst().at(0).toInt(), 4);
+    QCOMPARE(qekSpy.count(), 1);
+    QCOMPARE(qekSpy.takeFirst().at(0).toString(), QString("QEK_20"));
+    QCOMPARE(overlaySpy.count(), 1);
+    QCOMPARE(overlaySpy.takeFirst().at(0).toString(), QString("ASW"));
+    QCOMPARE(handwheelSpy.count(), 1);
+    const QPair<float, float> handwheel = handwheelSpy.takeFirst().at(0).value<QPair<float, float>>();
+    QCOMPARE(handwheel.first, 0.0f);
+    QCOMPARE(handwheel.second, 0.0f);
+    QCOMPARE(rollingSpy.count(), 1);
+    const QPair<float, float> rolling = rollingSpy.takeFirst().at(0).value<QPair<float, float>>();
+    QCOMPARE(rolling.first, 2.0f);
+    QCOMPARE(rolling.second, -2.0f);
+}
+
+void TestDecoder::decode_range_limits_data()
 {
     QTest::addColumn<QByteArray>("frame");
     QTest::addColumn<int>("expectedRange");
 
-    // Usamos los mismos valores de Word1 que mapean a 2 y 16
-    QTest::newRow("Word2 flags off") << buildDynamicFrame(0x00, 0x00, 0x10, 0x01, 0, 0) << 2;
-    QTest::newRow("Word2 flag bit7 set") << buildDynamicFrame(0x60, 0x80, 0x10, 0x01, 0, 0) << 16;
+    QTest::newRow("Range 2") << buildDynamicFrame(0x00, 0x00, 0x00, 0x00, 0, 0) << 2;
+    QTest::newRow("Range 4") << buildDynamicFrame(0x20, 0x00, 0x00, 0x00, 0, 0) << 4;
+    QTest::newRow("Range 8") << buildDynamicFrame(0x40, 0x00, 0x00, 0x00, 0, 0) << 8;
+    QTest::newRow("Range 16") << buildDynamicFrame(0x60, 0x00, 0x00, 0x00, 0, 0) << 16;
+    QTest::newRow("Range 32") << buildDynamicFrame(0x80, 0x00, 0x00, 0x00, 0, 0) << 32;
+    QTest::newRow("Range 64") << buildDynamicFrame(0xA0, 0x00, 0x00, 0x00, 0, 0) << 64;
+    QTest::newRow("Range 128") << buildDynamicFrame(0xC0, 0x00, 0x00, 0x00, 0, 0) << 128;
+    QTest::newRow("Range 256") << buildDynamicFrame(0xE0, 0x00, 0x00, 0x00, 0, 0) << 256;
 }
 
-void TestDecoder::decode_word2_flags()
+void TestDecoder::decode_range_limits()
 {
     QFETCH(QByteArray, frame);
     QFETCH(int, expectedRange);
@@ -355,58 +634,6 @@ void TestDecoder::decode_word2_flags()
     QCOMPARE(args.at(0).toInt(), expectedRange);
 }
 
-// ----- Campo reservado corrupto: trama válida con bytes basura en secciones no críticas -----
-void TestDecoder::decode_reserved_corrupt()
-{
-    QByteArray frame = buildDynamicFrame(0x20, 0xFF, 0x05, 0x03, 2, -2);
-
-    // Introducimos basura en offsets no críticos (10..14)
-    for (int i = 10; i <= 14; ++i)
-        frame[i] = static_cast<char>(0xFF);
-
-    ConcDecoder decoder;
-    QSignalSpy rangeSpy(&decoder, &ConcDecoder::newRange);
-    QSignalSpy rollingSpy(&decoder, &ConcDecoder::newRollingBall);
-
-    decoder.decode(frame);
-
-    // Debe seguir entregando la señal de rango y rolling correctamente
-    QCOMPARE(rangeSpy.count(), 1);
-    QCOMPARE(rollingSpy.count(), 1);
-}
-
-// ----- Límites de rango: valores extremos para Word1 -----
-void TestDecoder::decode_range_limits_data()
-{
-    QTest::addColumn<QByteArray>("frame");
-    QTest::addColumn<int>("expectedRange");
-
-    // Valores límite ya conocidos (mínimo y máximo válidos)
-    QTest::newRow("Min range") << buildDynamicFrame(0x00, 0xFF, 0x00, 0x00, 0, 0) << 2;
-    QTest::newRow("Max range") << buildDynamicFrame(0xE0, 0xFF, 0x00, 0x00, 0, 0) << 256;
-
-    // Valor no estándar: comprobamos que no falle (aceptamos emisión o no según implementación)
-    QTest::newRow("Nonstandard") << buildDynamicFrame(0xFF, 0xFF, 0x00, 0x00, 0, 0) << 256;
-}
-
-void TestDecoder::decode_range_limits()
-{
-    QFETCH(QByteArray, frame);
-    QFETCH(int, expectedRange);
-
-    ConcDecoder decoder;
-    QSignalSpy rangeSpy(&decoder, &ConcDecoder::newRange);
-
-    decoder.decode(frame);
-
-    // Aceptamos que la implementación pueda mapear nonstandard a un valor extremo,
-    // comprobamos que la señal se emite y el valor está en el rango esperado como mínimo.
-    QCOMPARE(rangeSpy.count(), 1);
-    const QList<QVariant> args = rangeSpy.takeFirst();
-    QVERIFY(args.at(0).toInt() == expectedRange || args.at(0).toInt() > 0);
-}
-
-// ----- Burst: muchas tramas consecutivas -----
 void TestDecoder::decode_burst_sequence()
 {
     const int N = 50;
@@ -424,7 +651,6 @@ void TestDecoder::decode_burst_sequence()
     QCOMPARE(rangeSpy.count(), 1);
 }
 
-// ----- Repeated identical frames -----
 void TestDecoder::decode_repeated_identical()
 {
     ConcDecoder decoder;
@@ -436,11 +662,54 @@ void TestDecoder::decode_repeated_identical()
     decoder.decode(frame);
     decoder.decode(frame);
 
-    // Contrato actual: QEK emite en cada trama válida aunque el valor no cambie.
+    // QEK emite en cada trama válida aunque el valor no cambie.
     QCOMPARE(qekSpy.count(), 3);
 }
 
-// ----- Endianness: intercambio de bytes en rolling ball -----
+void TestDecoder::decode_mixed_valid_and_corrupt_sequence()
+{
+    ConcDecoder decoder;
+    QSignalSpy rangeSpy(&decoder, &ConcDecoder::newRange);
+    QSignalSpy qekSpy(&decoder, &ConcDecoder::newQEK);
+    QSignalSpy overlaySpy(&decoder, &ConcDecoder::newOverlay);
+    QSignalSpy rollingSpy(&decoder, &ConcDecoder::newRollingBall);
+    QSignalSpy handwheelSpy(&decoder, &ConcDecoder::newHandWheel);
+
+    QByteArray valid1 = buildDynamicFrame(0x20, 0xFF, 0x10, 0x01, 1, 2);
+    QByteArray corrupt = QByteArray(10, 0);
+    QByteArray valid2 = buildDynamicFrame(0x60, 0xFF, 0x11, 0x02, -1, -2);
+
+    decoder.decode(valid1);
+    decoder.decode(corrupt);
+    decoder.decode(valid2);
+
+    QCOMPARE(rangeSpy.count(), 3);
+    QCOMPARE(rangeSpy.takeFirst().at(0).toInt(), 4);
+    QCOMPARE(rangeSpy.takeFirst().at(0).toInt(), 2);
+    QCOMPARE(rangeSpy.takeFirst().at(0).toInt(), 16);
+
+    QCOMPARE(qekSpy.count(), 2);
+    QCOMPARE(qekSpy.takeFirst().at(0).toString(), QString("QEK_20"));
+    QCOMPARE(qekSpy.takeFirst().at(0).toString(), QString("QEK_21"));
+
+    QCOMPARE(overlaySpy.count(), 2);
+    QCOMPARE(overlaySpy.takeFirst().at(0).toString(), QString("SPC"));
+    QCOMPARE(overlaySpy.takeFirst().at(0).toString(), QString("LINCO"));
+
+    QCOMPARE(rollingSpy.count(), 3);
+    QPair<float, float> rolling1 = rollingSpy.takeFirst().at(0).value<QPair<float, float>>();
+    QPair<float, float> rolling2 = rollingSpy.takeFirst().at(0).value<QPair<float, float>>();
+    QPair<float, float> rolling3 = rollingSpy.takeFirst().at(0).value<QPair<float, float>>();
+    QCOMPARE(rolling1.first, 1.0f);
+    QCOMPARE(rolling1.second, 2.0f);
+    QCOMPARE(rolling2.first, 0.0f);
+    QCOMPARE(rolling2.second, 0.0f);
+    QCOMPARE(rolling3.first, -1.0f);
+    QCOMPARE(rolling3.second, -2.0f);
+
+    QCOMPARE(handwheelSpy.count(), 3);
+}
+
 void TestDecoder::decode_endianness()
 {
     // dx=5, dy=10 -> salida esperada (5,10)
@@ -468,29 +737,35 @@ void TestDecoder::decode_endianness()
     QCOMPARE(rB.second, 5.0f);
 }
 
-// ----- Orden de emisión de señales dentro de una trama -----
 void TestDecoder::decode_signal_order()
 {
-    QByteArray frame = buildDynamicFrame(0x60, 0xFF, 0x11, 0x02, 7, -7);
+    QByteArray frame = buildDynamicFrame(0x60, 0x00, 0x11, 0x02, 7, -7);
+    setHandWheelBytes(frame, 0x01, 0x02);
 
     ConcDecoder decoder;
     QVector<QString> seq;
 
     QObject::connect(&decoder, &ConcDecoder::newRange, [&seq](int)
                      { seq.append("range"); });
-    QObject::connect(&decoder, &ConcDecoder::newRollingBall, [&seq](const QPair<float, float> &)
-                     { seq.append("rolling"); });
     QObject::connect(&decoder, &ConcDecoder::newQEK, [&seq](const QString &)
                      { seq.append("qek"); });
+    QObject::connect(&decoder, &ConcDecoder::newOverlay, [&seq](const QString &)
+                     { seq.append("overlay"); });
+    QObject::connect(&decoder, &ConcDecoder::newHandWheel, [&seq](const QPair<float, float> &)
+                     { seq.append("handwheel"); });
+    QObject::connect(&decoder, &ConcDecoder::newRollingBall, [&seq](const QPair<float, float> &)
+                     { seq.append("rolling"); });
 
     decoder.decode(frame);
 
-    // Esperamos que newRange venga antes que newRollingBall y newQEK (según contrato interno)
-    QVERIFY(seq.size() >= 3);
+    QVERIFY(seq.size() >= 5);
     QCOMPARE(seq.at(0), QString("range"));
+    QCOMPARE(seq.at(1), QString("qek"));
+    QCOMPARE(seq.at(2), QString("overlay"));
+    QCOMPARE(seq.at(3), QString("handwheel"));
+    QCOMPARE(seq.at(4), QString("rolling"));
 }
 
-// ----- Overlay change detection (dos tramas consecutivas con distinto overlay) -----
 void TestDecoder::decode_overlay_change()
 {
     ConcDecoder decoder;
@@ -512,17 +787,20 @@ void TestDecoder::decode_fuzzing_random()
 {
     ConcDecoder decoder;
     QSignalSpy rangeSpy(&decoder, &ConcDecoder::newRange);
+    QSignalSpy rollingSpy(&decoder, &ConcDecoder::newRollingBall);
+
+    QRandomGenerator rng(0xC0FFEE);
 
     for (int i = 0; i < 100; ++i)
     {
         QByteArray f(27, 0);
         for (int b = 0; b < 27; ++b)
-            f[b] = static_cast<char>(QRandomGenerator::global()->bounded(256));
+            f[b] = static_cast<char>(rng.bounded(256));
         decoder.decode(f);
     }
 
-    // No hay una verificación fuerte aquí: la prueba pasa si no hay crash
-    QVERIFY(true);
+    QCOMPARE(rollingSpy.count(), 100);
+    QVERIFY(rangeSpy.count() >= 1);
 }
 
 QTEST_APPLESS_MAIN(TestDecoder)
