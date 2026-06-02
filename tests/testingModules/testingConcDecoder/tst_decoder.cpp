@@ -4,7 +4,6 @@
 
 #include <QVector>
 #include <QString>
-#include <QTime>
 #include <QtGlobal>
 #include <QRandomGenerator>
 #include <QCoreApplication>
@@ -15,12 +14,6 @@
 
 static QByteArray buildDynamicFrame(uint8_t rawWord1, uint8_t rawWord2, uint8_t qekByte, uint8_t overlayByte, int8_t dx, int8_t dy, int totalSize = 27)
 {
-    // Simula un datagrama UDP truncado o cortado por error de socket
-    if (totalSize < 27)
-    {
-        return QByteArray(totalSize, 0);
-    }
-
     QByteArray frame(27, 0);
 
     // ConcDecoder interpreta los bits tal como llegan (MSB-first), sin aplicar NOT.
@@ -51,6 +44,12 @@ static QByteArray buildDynamicFrame(uint8_t rawWord1, uint8_t rawWord2, uint8_t 
     for (int i = 20; i <= 26; ++i)
     {
         frame[i] = static_cast<char>(rightBase + (i - 20));
+    }
+
+    // Simula un datagrama UDP truncado o cortado por error de socket.
+    if (totalSize < frame.size())
+    {
+        frame.truncate(qMax(0, totalSize));
     }
 
     return frame;
@@ -222,8 +221,9 @@ void TestDecoder::decode_truncated_frames()
     QVERIFY2(finished, "subprocess did not finish in time");
 
     // NormalExit and code 0 means child ran decode() without aborting.
-    QCOMPARE(proc.exitStatus(), QProcess::NormalExit);
-    QCOMPARE(proc.exitCode(), 0);
+    const QByteArray stderrOutput = proc.readAllStandardError();
+    QVERIFY2(proc.exitStatus() == QProcess::NormalExit, stderrOutput.constData());
+    QVERIFY2(proc.exitCode() == 0, stderrOutput.constData());
 }
 
 // ----- QEK -----
@@ -360,22 +360,22 @@ void TestDecoder::decode_malformed_header_data()
     QTest::addColumn<QString>("expectedQek");
     QTest::addColumn<QString>("expectedOverlay");
 
-    // Trama con header corrupto, pero campos útiles intactos.
-    // El contrato actual del decoder es seguir procesando la trama.
-    QByteArray badHeader = buildDynamicFrame(0xAA, 0xBB, 0x10, 0x01, 0, 0);
+    // Trama completa con campos alterados. El decoder actual no expone una
+    // validación de encabezado y sigue procesando las palabras disponibles.
+    QByteArray alteredFields = buildDynamicFrame(0xAA, 0xBB, 0x10, 0x01, 0, 0);
 
     // Trama completamente en cero: sigue siendo procesada por el decoder actual.
     QByteArray allZero = QByteArray(27, 0);
 
-    QTest::newRow("Header corrupt")
-        << badHeader
+    QTest::newRow("Complete frame with altered fields")
+        << alteredFields
         << 64
         << 1
         << 1
         << QString("QEK_20")
         << QString("SPC");
 
-    QTest::newRow("All zeroes header")
+    QTest::newRow("All-zero complete frame")
         << allZero
         << 2
         << 0
@@ -657,46 +657,13 @@ void TestDecoder::decode_repeated_identical()
 
 void TestDecoder::decode_mixed_valid_and_corrupt_sequence()
 {
-    ConcDecoder decoder;
-    QSignalSpy rangeSpy(&decoder, &ConcDecoder::newRange);
-    QSignalSpy qekSpy(&decoder, &ConcDecoder::newQEK);
-    QSignalSpy overlaySpy(&decoder, &ConcDecoder::newOverlay);
-    QSignalSpy rollingSpy(&decoder, &ConcDecoder::newRollingBall);
-    QSignalSpy handwheelSpy(&decoder, &ConcDecoder::newHandWheel);
+    QProcess proc;
+    proc.start(QCoreApplication::applicationFilePath(), QStringList() << "--subproc-mixed-sequence");
+    QVERIFY2(proc.waitForFinished(2000), qPrintable(proc.errorString()));
 
-    QByteArray valid1 = buildDynamicFrame(0x20, 0xFF, 0x10, 0x01, 1, 2);
-    QByteArray corrupt = QByteArray(10, 0);
-    QByteArray valid2 = buildDynamicFrame(0x60, 0xFF, 0x11, 0x02, -1, -2);
-
-    decoder.decode(valid1);
-    decoder.decode(corrupt);
-    decoder.decode(valid2);
-
-    QCOMPARE(rangeSpy.count(), 3);
-    QCOMPARE(rangeSpy.takeFirst().at(0).toInt(), 4);
-    QCOMPARE(rangeSpy.takeFirst().at(0).toInt(), 2);
-    QCOMPARE(rangeSpy.takeFirst().at(0).toInt(), 16);
-
-    QCOMPARE(qekSpy.count(), 2);
-    QCOMPARE(qekSpy.takeFirst().at(0).toString(), QString("QEK_20"));
-    QCOMPARE(qekSpy.takeFirst().at(0).toString(), QString("QEK_21"));
-
-    QCOMPARE(overlaySpy.count(), 2);
-    QCOMPARE(overlaySpy.takeFirst().at(0).toString(), QString("SPC"));
-    QCOMPARE(overlaySpy.takeFirst().at(0).toString(), QString("LINCO"));
-
-    QCOMPARE(rollingSpy.count(), 3);
-    QPair<float, float> rolling1 = rollingSpy.takeFirst().at(0).value<QPair<float, float>>();
-    QPair<float, float> rolling2 = rollingSpy.takeFirst().at(0).value<QPair<float, float>>();
-    QPair<float, float> rolling3 = rollingSpy.takeFirst().at(0).value<QPair<float, float>>();
-    QCOMPARE(rolling1.first, 1.0f);
-    QCOMPARE(rolling1.second, 2.0f);
-    QCOMPARE(rolling2.first, 0.0f);
-    QCOMPARE(rolling2.second, 0.0f);
-    QCOMPARE(rolling3.first, -1.0f);
-    QCOMPARE(rolling3.second, -2.0f);
-
-    QCOMPARE(handwheelSpy.count(), 3);
+    const QByteArray stderrOutput = proc.readAllStandardError();
+    QVERIFY2(proc.exitStatus() == QProcess::NormalExit, stderrOutput.constData());
+    QVERIFY2(proc.exitCode() == 0, stderrOutput.constData());
 }
 
 void TestDecoder::decode_endianness()
@@ -792,13 +759,76 @@ void TestDecoder::decode_fuzzing_random()
     QVERIFY(rangeSpy.count() >= 1);
 }
 
+static int checkMixedValidAndCorruptSequence()
+{
+    qRegisterMetaType<QPair<float, float>>("QPair<float,float>");
+
+    ConcDecoder decoder;
+    QSignalSpy rangeSpy(&decoder, &ConcDecoder::newRange);
+    QSignalSpy qekSpy(&decoder, &ConcDecoder::newQEK);
+    QSignalSpy overlaySpy(&decoder, &ConcDecoder::newOverlay);
+    QSignalSpy rollingSpy(&decoder, &ConcDecoder::newRollingBall);
+    QSignalSpy handwheelSpy(&decoder, &ConcDecoder::newHandWheel);
+
+    const QByteArray valid1 = buildDynamicFrame(0x20, 0xFF, 0x10, 0x01, 1, 2);
+    const QByteArray corrupt(10, 0);
+    const QByteArray valid2 = buildDynamicFrame(0x60, 0xFF, 0x11, 0x02, -1, -2);
+
+    // Una trama truncada no debe emitir señales ni alterar el estado.
+    decoder.decode(valid1);
+    decoder.decode(corrupt);
+    decoder.decode(valid2);
+
+    if (rangeSpy.count() != 2 ||
+        qekSpy.count() != 2 ||
+        overlaySpy.count() != 2 ||
+        rollingSpy.count() != 2 ||
+        handwheelSpy.count() != 2)
+    {
+        qCritical() << "Unexpected signal counts after mixed sequence:"
+                    << "range" << rangeSpy.count()
+                    << "qek" << qekSpy.count()
+                    << "overlay" << overlaySpy.count()
+                    << "rolling" << rollingSpy.count()
+                    << "handwheel" << handwheelSpy.count();
+        return 1;
+    }
+
+    const int firstRange = rangeSpy.takeFirst().at(0).toInt();
+    const int secondRange = rangeSpy.takeFirst().at(0).toInt();
+    const QString firstQek = qekSpy.takeFirst().at(0).toString();
+    const QString secondQek = qekSpy.takeFirst().at(0).toString();
+    const QString firstOverlay = overlaySpy.takeFirst().at(0).toString();
+    const QString secondOverlay = overlaySpy.takeFirst().at(0).toString();
+    const QPair<float, float> firstRolling =
+        rollingSpy.takeFirst().at(0).value<QPair<float, float>>();
+    const QPair<float, float> secondRolling =
+        rollingSpy.takeFirst().at(0).value<QPair<float, float>>();
+
+    if (firstRange != 4 ||
+        secondRange != 16 ||
+        firstQek != QString("QEK_20") ||
+        secondQek != QString("QEK_21") ||
+        firstOverlay != QString("SPC") ||
+        secondOverlay != QString("LINCO") ||
+        firstRolling != QPair<float, float>(1.0f, 2.0f) ||
+        secondRolling != QPair<float, float>(-1.0f, -2.0f))
+    {
+        qCritical() << "Unexpected decoded values after mixed sequence";
+        return 2;
+    }
+
+    return 0;
+}
+
 int main(int argc, char **argv)
 {
+    QCoreApplication app(argc, argv);
+
     // Special helper mode: run ConcDecoder::decode() in a subprocess to
     // protect the test runner from ASSERT/abort inside the decoder.
     if (argc >= 3 && QString(argv[1]) == "--subproc-decode")
     {
-        QCoreApplication app(argc, argv);
         QByteArray hex = QString::fromLocal8Bit(argv[2]).toUtf8();
         QByteArray frame = QByteArray::fromHex(hex);
         ConcDecoder decoder;
@@ -806,6 +836,11 @@ int main(int argc, char **argv)
         // will observe a non-zero exit code / crash status.
         decoder.decode(frame);
         return 0;
+    }
+
+    if (argc >= 2 && QString(argv[1]) == "--subproc-mixed-sequence")
+    {
+        return checkMixedValidAndCorruptSequence();
     }
 
     TestDecoder tc;
