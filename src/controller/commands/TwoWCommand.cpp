@@ -42,19 +42,26 @@ CommandResult TwoWCommand::execute(const CommandInvocation& inv, CommandContext&
 
         response += QStringLiteral("------------------------------------------------------\n");
 
-        if (s.kinematicsValid) {
-            response += QStringLiteral("Marcacion Real al Guia: %1 grados | Tabla A: %2 grados\n")
-            .arg(s.currentAzimuthDeg, 0, 'f', 1)
-                .arg(s.expectedAzimuthDeg, 0, 'f', 1);
-            response += QStringLiteral("Distancia Real al Guia: %1 MN | Tabla A: %2 MN\n")
-                            .arg(s.currentDistanceNm, 0, 'f', 2)
-                            .arg(s.expectedDistanceNm, 0, 'f', 2);
-            response += QStringLiteral("\n--> RUMBO RECOMENDADO (INTERCEPCION DIRECTA): %1 grados\n")
-                            .arg(s.courseToStationDeg, 0, 'f', 1);
+        // Esta información geométrica se muestra SIEMPRE (el track es válido)
+        response += QStringLiteral("Marcacion Real al Guia: %1 grados | Tabla A: %2 grados\n")
+                        .arg(s.currentAzimuthDeg, 0, 'f', 1)
+                        .arg(s.expectedAzimuthDeg, 0, 'f', 1);
+
+        response += QStringLiteral("Distancia Real al Guia: %1 MN | Tabla A: %2 MN\n")
+                        .arg(s.currentDistanceNm, 0, 'f', 2)
+                        .arg(s.expectedDistanceNm, 0, 'f', 2);
+
+        response += QStringLiteral("\n--> RUMBO RECOMENDADO (INTERCEPCION DIRECTA): %1 grados\n")
+                        .arg(s.courseToStationDeg, 0, 'f', 1);
+
+        response += QStringLiteral("------------------------------------------------------\n");
+
+        // El ETA depende exclusivamente de si el cálculo del tiempo es válido (buque en movimiento)
+        if (s.etaValid) {
             response += QStringLiteral("--> ETA: %1 minutos\n")
-                            .arg(s.timeToStationMin, 0, 'f', 1);
+            .arg(s.timeToStationMin, 0, 'f', 1);
         } else {
-            response += QStringLiteral("Velocidades en 0\n");
+            response += QStringLiteral("--> ETA: Indeterminado (Buque Propio detenido o sin velocidad)\n");
         }
 
         response += QStringLiteral("======================================================\n\n");

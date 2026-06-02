@@ -1,4 +1,5 @@
 #include "twoWCalculator.h"
+#include "2w/twoWStationTable.h"
 #include "RadarMath.h"
 #include <cmath>
 
@@ -7,11 +8,13 @@ void TwoWCalculator::calculate(
     QPointF ownPos, double ownSpeed,
     int bpStation, double circleRadiusNm, const QList<int>& selectedStations,
     QPointF& out_guideCenter, QPointF& out_ownCenter, QList<QPointF>& out_allyCenters,
-    bool& out_kinematicsValid, double& out_courseDeg, double& out_etaMin,
+    bool& out_etaValid, double& out_courseDeg, double& out_etaMin,
     double& out_currentAzDeg, double& out_currentDistNm,
     double& out_expectedAzDeg, double& out_expectedDistNm)
 {
-    const double kNmToDm = 185.2;
+    // FACTOR DE CONVERSIÓN TÁCTICO: de Millas Náuticas (NM) a Data Miles (DM)
+    // 1 NM = 6076.1154 pies / 1 DM = 6000 pies -> Relación exacta: 1.012685
+    const double kNmToDm = 1.012685;
 
     // 1. Centro del Guía
     out_guideCenter = guidePos;
@@ -38,18 +41,16 @@ void TwoWCalculator::calculate(
     double dxEstacion     = out_ownCenter.x() - ownPos.x();
     double dyEstacion     = out_ownCenter.y() - ownPos.y();
     double distEstacionDm = std::sqrt(dxEstacion*dxEstacion + dyEstacion*dyEstacion);
-    double distEstacionNm = distEstacionDm / kNmToDm;
 
     out_courseDeg = RadarMath::normalizeAngle360(RadarMath::calculateAngle(ownPos, out_ownCenter));
 
     if (ownSpeed > 0.0 && distEstacionDm > 0.0) {
-        // Usamos distEstacionDm (Decámetros) dividido ownSpeed (Decámetros/hora)
         double tiempoHoras = distEstacionDm / ownSpeed;
         out_etaMin = tiempoHoras * 60.0;
-        out_kinematicsValid = true;
+        out_etaValid = true;
     } else {
         out_etaMin = 0.0;
-        out_kinematicsValid = false;
+        out_etaValid = false;
     }
 
     // 6. Estaciones aliadas

@@ -34,9 +34,11 @@ void TwoWService::update()
 
     const Track* guideTrack = m_ctx->findTrackById(s.guideTrackId);
     if (!guideTrack) {
+        s.trackValid = false;
         stopSession();
         return;
     }
+    s.trackValid = true;
 
     const QPointF guidePos(guideTrack->getX(), guideTrack->getY());
 
@@ -55,7 +57,7 @@ void TwoWService::update()
         ownPos,   ownSpeed,
         s.bpStation, s.circleRadiusNm, s.selectedStations,
         s.guideCircleCenter, s.ownCircleCenter, s.allyCircleCenters,
-        s.kinematicsValid,   s.courseToStationDeg, s.timeToStationMin,
+        s.etaValid,   s.courseToStationDeg, s.timeToStationMin,
         s.currentAzimuthDeg, s.currentDistanceNm,
         s.expectedAzimuthDeg, s.expectedDistanceNm
         );

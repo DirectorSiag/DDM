@@ -10,6 +10,7 @@ struct TwoWSessionState {
     int     bpStation       = -1;     // Estación asignada al Buque Propio (1–68; -1 = sin asignar)
     double  circleRadiusNm  = 1.0;   // Radio de los círculos en millas náuticas
     QList<int> selectedStations;      // Estaciones aliadas activas
+    bool trackValid      = false; // true si el track del guía existe actualmente en el radar
 
     // Centros de círculos para el radar
     QPointF         guideCircleCenter;      // Círculo verde  (posición del Guía)
@@ -17,7 +18,8 @@ struct TwoWSessionState {
     QList<QPointF>  allyCircleCenters;      // Círculos ámbar (estaciones aliadas)
 
     // Asesoramiento cinemático para la Botonera
-    bool    kinematicsValid       = false;  // false si velocidad = 0 o track inválido
+
+    bool etaValid        = false; // true SOLO si velocidad > 0 y se puede calcular el ETA
     double  courseToStationDeg    = 0.0;   // Rumbo recomendado para alcanzar la estación [°]
     double  timeToStationMin      = 0.0;   // ETA a la estación [minutos]
 
