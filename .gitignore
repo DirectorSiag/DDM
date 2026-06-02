@@ -11,6 +11,7 @@ Desktop_Qt_*/
 *.zip
 *.lib
 *.exp
+*.claude
 *.pdb
 *.ilk
 /build/*
@@ -46,6 +47,7 @@ Thumbs.db
 /bin/
 /lib/
 /dist/
+/.claude
 
 # Ignorar archivos de compilación
 *.o
