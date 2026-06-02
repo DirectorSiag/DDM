@@ -1,0 +1,40 @@
+{
+  "twoWCommandTestCases": [
+    {
+      "id": "CMD_01_Camino_Feliz_Iniciacion_Valida",
+      "commandLine": "2w --guia=10 --bp=5 --radio=2.5",
+      "expectedSuccess": true,
+      "expectedMessageContains": "Disposicion 2W iniciada."
+    },
+    {
+      "id": "CMD_02_Error_Estacion_Fuera_De_Rango_Maximo",
+      "commandLine": "2w --guia=10 --bp=69",
+      "expectedSuccess": false,
+      "expectedMessageContains": "--bp debe estar entre 1 y 68."
+    },
+    {
+      "id": "CMD_03_Error_Radio_Invalido_Negativo",
+      "commandLine": "2w --guia=10 --bp=5 --radio=-1.5",
+      "expectedSuccess": false,
+      "expectedMessageContains": "--radio debe ser un numero positivo."
+    },
+    {
+      "id": "CMD_04_Error_Estacion_Fuera_De_Rango_Minimo",
+      "commandLine": "2w --guia=10 --bp=0",
+      "expectedSuccess": false,
+      "expectedMessageContains": "--bp debe estar entre 1 y 68."
+    },
+    {
+      "id": "CMD_05_Error_Faltan_Parametros_Requeridos",
+      "commandLine": "2w --guia=10",
+      "expectedSuccess": false,
+      "expectedMessageContains": "Faltan --guia y --bp"
+    },
+    {
+      "id": "CMD_06_Camino_Feliz_Detener_Formacion",
+      "commandLine": "2w --stop",
+      "expectedSuccess": true,
+      "expectedMessageContains": "finalizada"
+    }
+  ]
+}

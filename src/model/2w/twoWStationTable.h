@@ -38,7 +38,7 @@ static constexpr std::array<TwoWStationEntry, 68> TWOW_TABLA_A = {{
     {  50.0,  5.3 },   // 23
     { 310.0,  5.3 },   // 24
     {  70.0,  5.3 },   // 25
-    {   0.0,  0.0 },   // 26 (no presente)
+    { -1.0,  -1.0 },   // 26 (no presente)
     {  90.0,  6.0 },   // 27
     { 270.0,  6.0 },   // 28
     { 110.0,  5.3 },   // 29
@@ -58,12 +58,12 @@ static constexpr std::array<TwoWStationEntry, 68> TWOW_TABLA_A = {{
     {  45.0,  7.2 },   // 43
     { 300.0,  7.0 },   // 44
     {  60.0,  7.0 },   // 45
-    {   0.0,  0.0 },   // 46 (no presente)
-    {   0.0,  0.0 },   // 47 (no presente)
-    {   0.0,  0.0 },   // 48 (no presente)
-    {   0.0,  0.0 },   // 49 (no presente)
-    {   0.0,  0.0 },   // 50 (no presente)
-    {   0.0,  0.0 },   // 51 (no presente)
+    { -1.0,  -1.0 },   // 46 (no presente)
+    { -1.0,  -1.0 },   // 47 (no presente)
+    { -1.0,  -1.0 },   // 48 (no presente)
+    { -1.0,  -1.0 },   // 49 (no presente)
+    { -1.0,  -1.0 },   // 50 (no presente)
+    { -1.0,  -1.0 },   // 51 (no presente)
     { 240.0,  7.0 },   // 52
     { 120.0,  7.0 },   // 53
     { 225.0,  7.2 },   // 54
@@ -73,12 +73,12 @@ static constexpr std::array<TwoWStationEntry, 68> TWOW_TABLA_A = {{
     { 195.0,  7.2 },   // 58
     { 165.0,  7.2 },   // 59
     { 180.0,  7.0 },   // 60
-    {   0.0,  0.0 },   // 61 (no presente)
-    {   0.0,  0.0 },   // 62 (no presente)
-    {   0.0,  0.0 },   // 63 (no presente)
-    {   0.0,  0.0 },   // 64 (no presente)
-    {   0.0,  0.0 },   // 65 (no presente)
-    {   0.0,  0.0 },   // 66 (no presente)
+    { -1.0,  -1.0 },   // 61 (no presente)
+    { -1.0,  -1.0 },   // 62 (no presente)
+    { -1.0,  -1.0 },   // 63 (no presente)
+    { -1.0,  -1.0 },   // 64 (no presente)
+    { -1.0,  -1.0 },   // 65 (no presente)
+    { -1.0,  -1.0 },   // 66 (no presente)
     {  40.0,  9.0 },   // 67
     { 320.0,  9.5 },   // 68
 }};
@@ -92,7 +92,7 @@ public:
         if (stationNumber >= 1 && stationNumber <= 68) {
             return TWOW_TABLA_A[static_cast<size_t>(stationNumber - 1)];
         }
-        static const TwoWStationEntry invalidStation{ 0.0, 0.0 };
+        static const TwoWStationEntry invalidStation{ -1.0,  -1.0 };
         return invalidStation;
     }
 
