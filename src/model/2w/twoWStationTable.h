@@ -12,8 +12,8 @@ struct TwoWStationEntry {
 // Acceder siempre mediante TwoWStationTable::stationAt(int stationNumber)
 // para mantener la conversión 1-based -> 0-based en un único lugar.
 static constexpr std::array<TwoWStationEntry, 68> TWOW_TABLA_A = {{
-    // Est  Az      Dist
-    {   0.0,  2.0 },   //  1
+    //Az      Dist      //Estacion
+    {   30.0,  2.0 },   //  1
     { 330.0,  2.0 },   //  2
     {  90.0,  2.0 },   //  3
     { 270.0,  2.0 },   //  4
@@ -87,9 +87,13 @@ class TwoWStationTable {
 public:
     // Retorna la entrada para la estación indicada (1-based).
     // Precondición: stationNumber en [1, 68].
+    // Si la estación solicitada no está entre 1 y 68 devuelve una entrada inválida (0.0, 0.0)
     static const TwoWStationEntry& stationAt(int stationNumber) {
-        Q_ASSERT(stationNumber >= 1 && stationNumber <= 68);
-        return TWOW_TABLA_A[static_cast<size_t>(stationNumber - 1)];
+        if (stationNumber >= 1 && stationNumber <= 68) {
+            return TWOW_TABLA_A[static_cast<size_t>(stationNumber - 1)];
+        }
+        static const TwoWStationEntry invalidStation{ 0.0, 0.0 };
+        return invalidStation;
     }
 
     static constexpr int stationCount() { return 68; }
