@@ -53,7 +53,7 @@ void TwoWService::update()
 
     // Hacer refactor
     TwoWCalculator::calculate(
-        guidePos, guideTrack->getCourseDeg(), guideTrack->getVelocidadDmPerHour(),
+        guidePos,
         ownPos,   ownSpeed,
         s.bpStation, s.circleRadiusNm, s.selectedStations,
         s.guideCircleCenter, s.ownCircleCenter, s.allyCircleCenters,

@@ -1,4 +1,5 @@
 #include "twoWCommand.h"
+#include "2w/twoWStationTable.h"
 #include "../services/twoWService.h"
 
 CommandResult TwoWCommand::execute(const CommandInvocation& inv, CommandContext& ctx) const
@@ -89,6 +90,11 @@ CommandResult TwoWCommand::execute(const CommandInvocation& inv, CommandContext&
     }
     if (bpEst < 1 || bpEst > 68) {
         return { false, QStringLiteral("--bp debe estar entre 1 y 68.") };
+    }
+
+    const TwoWStationEntry& stationData = TwoWStationTable::stationAt(bpEst);
+    if (stationData.distanceNm < 0.0) {
+        return { false, QStringLiteral("La estacion %1 no esta presente en la tabla.").arg(bpEst) };
     }
 
     double radio = 1.0;
