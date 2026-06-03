@@ -1,7 +1,7 @@
 {
   "twoWCommandTestCases": [
     {
-      "id": "CMD_01_Camino_Feliz_Iniciacion_Valida",
+      "id": "CMD_01_Camino_Exitoso_Iniciacion_Valida",
       "commandLine": "2w --guia=10 --bp=5 --radio=2.5",
       "expectedSuccess": true,
       "expectedMessageContains": "Disposicion 2W iniciada."
@@ -31,10 +31,16 @@
       "expectedMessageContains": "Faltan --guia y --bp"
     },
     {
-      "id": "CMD_06_Camino_Feliz_Detener_Formacion",
+      "id": "CMD_06_Camino_Exitoso_Detener_Formacion",
       "commandLine": "2w --stop",
       "expectedSuccess": true,
       "expectedMessageContains": "finalizada"
+    },
+    {
+      "id": "CMD_07_Error_Estacion_No_Presente",
+      "commandLine": "2w --guia=10 --bp=26",
+      "expectedSuccess": false,
+      "expectedMessageContains": "La estacion 26 no esta presente en la tabla."
     }
   ]
 }
