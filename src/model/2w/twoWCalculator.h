@@ -8,8 +8,6 @@ public:
     static void calculate(
         // -- Entradas --
         QPointF             guidePos,
-        double              guideCourse,
-        double              guideSpeed,
         QPointF             ownPos,
         double              ownSpeed,
         int                 bpStation,

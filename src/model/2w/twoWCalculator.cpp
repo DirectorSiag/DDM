@@ -4,7 +4,7 @@
 #include <cmath>
 
 void TwoWCalculator::calculate(
-    QPointF guidePos, double guideCourse, double guideSpeed,
+    QPointF guidePos,
     QPointF ownPos, double ownSpeed,
     int bpStation, double circleRadiusNm, const QList<int>& selectedStations,
     QPointF& out_guideCenter, QPointF& out_ownCenter, QList<QPointF>& out_allyCenters,
