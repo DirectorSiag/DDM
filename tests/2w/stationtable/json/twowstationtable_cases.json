@@ -1,0 +1,63 @@
+{
+  "twoWStationTableTestCases": [
+    {
+      "id": "TBL_01_Estacion1_ValoresCorrectos",
+      "description": "Estación 1 debe tener Az=30° y Dist=2.0 NM",
+      "stationNumber": 1,
+      "expected": { "azimuthDeg": 30.0, "distanceNm": 2.0 }
+    },
+    {
+      "id": "TBL_02_Estacion7_ValoresCorrectos",
+      "description": "Estación 7 debe tener Az=0° y Dist=3.5 NM",
+      "stationNumber": 7,
+      "expected": { "azimuthDeg": 0.0, "distanceNm": 3.5 }
+    },
+    {
+      "id": "TBL_03_Estacion12_ValoresCorrectos",
+      "description": "Estación 12 debe tener Az=270° y Dist=4.0 NM",
+      "stationNumber": 12,
+      "expected": { "azimuthDeg": 270.0, "distanceNm": 4.0 }
+    },
+    {
+      "id": "TBL_04_Estacion68_ValoresCorrectos",
+      "description": "Estación 68 (última) debe tener Az=320° y Dist=9.5 NM",
+      "stationNumber": 68,
+      "expected": { "azimuthDeg": 320.0, "distanceNm": 9.5 }
+    },
+    {
+      "id": "TBL_05_Estacion26_NoPresente",
+      "description": "Estación 26 no está presente en la formación — distancia debe ser -1",
+      "stationNumber": 26,
+      "expected": { "azimuthDeg": -1.0, "distanceNm": -1.0 }
+    },
+    {
+      "id": "TBL_06_Estacion46_NoPresente",
+      "description": "Estación 46 no está presente en la formación — distancia debe ser -1",
+      "stationNumber": 46,
+      "expected": { "azimuthDeg": -1.0, "distanceNm": -1.0 }
+    },
+    {
+      "id": "TBL_07_Estacion67_ValoresCorrectos",
+      "description": "Estación 67 debe tener Az=40° y Dist=9.0 NM",
+      "stationNumber": 67,
+      "expected": { "azimuthDeg": 40.0, "distanceNm": 9.0 }
+    },
+    {
+      "id": "TBL_08_StationCount_Es68",
+      "description": "La tabla debe tener exactamente 68 estaciones",
+      "expected": { "stationCount": 68 }
+    },
+    {
+      "id": "TBL_09_Estacion3_AlEste",
+      "description": "Estación 3 debe tener Az=90° (Este) y Dist=2.0 NM",
+      "stationNumber": 3,
+      "expected": { "azimuthDeg": 90.0, "distanceNm": 2.0 }
+    },
+    {
+      "id": "TBL_10_Estacion6_AlSurOeste",
+      "description": "Estación 6 debe tener Az=210° y Dist=2.0 NM",
+      "stationNumber": 6,
+      "expected": { "azimuthDeg": 210.0, "distanceNm": 2.0 }
+    }
+  ]
+}

@@ -87,7 +87,7 @@ class TwoWStationTable {
 public:
     // Retorna la entrada para la estación indicada (1-based).
     // Precondición: stationNumber en [1, 68].
-    // Si la estación solicitada no está entre 1 y 68 devuelve una entrada inválida (0.0, 0.0)
+    // Si la estación solicitada no está entre 1 y 68 devuelve una entrada inválida (-1.0, -1.0)
     static const TwoWStationEntry& stationAt(int stationNumber) {
         if (stationNumber >= 1 && stationNumber <= 68) {
             return TWOW_TABLA_A[static_cast<size_t>(stationNumber - 1)];
