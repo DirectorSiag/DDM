@@ -187,6 +187,23 @@
         "expectedAzDeg": 270.0,
         "expectedDistNm": 4.0
       }
+    },
+    {
+      "id": "CALC_13_CentroAliado_CorrectamenteProyectado",
+      "description": "El centro de la estación aliada 3 (Az=90, Dist=2.0) debe proyectarse al Este del Guía",
+      "guideX": 100.0,
+      "guideY": 100.0,
+      "ownX": 0.0,
+      "ownY": 0.0,
+      "ownSpeed": 10.0,
+      "bpStation": 12,
+      "circleRadiusNm": 1.0,
+      "selectedStations": [3],
+      "expected": {
+        "allyCenterX": 102.02537,
+        "allyCenterY": 100.0,
+        "tolerance": 0.001
+      }
     }
   ]
 }

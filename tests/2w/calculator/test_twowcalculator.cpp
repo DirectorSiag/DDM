@@ -244,6 +244,28 @@ private slots:
         QCOMPARE(out.expectedAzDeg,  exp["expectedAzDeg"].toDouble());
         QCOMPARE(out.expectedDistNm, exp["expectedDistNm"].toDouble());
     }
+    // ── CALC_13 ──────────────────────────────────────────────────────────────
+    void test_CALC_13_CentroAliado_CorrectamenteProyectado() {
+        QJsonObject tc  = findCase("CALC_13_CentroAliado_CorrectamenteProyectado");
+        QJsonObject exp = tc["expected"].toObject();
+        CalcOutputs out = runCalculator(tc);
+
+        // Verificamos que realmente se haya proyectado un aliado
+        QVERIFY2(out.allyCenters.size() == 1, "La lista de aliados no tiene exactamente 1 elemento");
+
+        double expectedX = exp["allyCenterX"].toDouble();
+        double expectedY = exp["allyCenterY"].toDouble();
+        double tolerance = exp["tolerance"].toDouble();
+
+        // Verificamos la precisión trigonométrica y la conversión a DM
+        QVERIFY2(std::abs(out.allyCenters[0].x() - expectedX) < tolerance,
+                 qPrintable(QString("El X del aliado (%1) no coincide con el esperado (%2)")
+                                .arg(out.allyCenters[0].x()).arg(expectedX)));
+
+        QVERIFY2(std::abs(out.allyCenters[0].y() - expectedY) < tolerance,
+                 qPrintable(QString("El Y del aliado (%1) no coincide con el esperado (%2)")
+                                .arg(out.allyCenters[0].y()).arg(expectedY)));
+    }
 };
 
 QTEST_APPLESS_MAIN(TestTwoWCalculator)
