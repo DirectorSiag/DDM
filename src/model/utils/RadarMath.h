@@ -20,6 +20,11 @@ public:
     // Normaliza angulos al rango [0, 360).
     static double normalizeAngle360(double deg);
 
+    // Conversión de unidades
+    static constexpr double kYardsPerDm = 2000.0;
+    static double dmToYards(double dm) { return dm * kYardsPerDm; }
+    static double yardsToDm(double yards) { return yards / kYardsPerDm; }
+
 private:
     // Helper interno
     static double normalizeDeg360(double deg);
