@@ -76,6 +76,7 @@ HEADERS += \
     src/model/2w/twoWStationTable.h \
     src/model/commandContext.h \
     src/model/cpa.h \
+    src/model/ha/haSessionState.h \
     src/model/pppcalculator.h \
     src/model/estacionamientocalculator.h \
     src/model/decoders/concDecoder.h \
