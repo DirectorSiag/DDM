@@ -76,20 +76,20 @@ CommandResult TwoWCommand::execute(const CommandInvocation& inv, CommandContext&
         return { true, QStringLiteral("Disposicion 2W finalizada.") };
     }
 
-    // 2w --guia=<id> --bp=<estacion> [--radio=<mn>]
-    if (!opts.contains(QStringLiteral("guia")) || !opts.contains(QStringLiteral("bp"))) {
-        return { false, QStringLiteral("Faltan --guia y --bp.\n%1").arg(usage()) };
+    // 2w --guia=<id> --est=<estacion> [--radio=<mn>]
+    if (!opts.contains(QStringLiteral("guia")) || !opts.contains(QStringLiteral("est"))) {
+        return { false, QStringLiteral("Faltan --guia y --est.\n%1").arg(usage()) };
     }
 
     bool okGuia = false, okBp = false;
     const int guiaId = opts.value("guia").toInt(&okGuia);
-    const int bpEst  = opts.value("bp").toInt(&okBp);
+    const int bpEst  = opts.value("est").toInt(&okBp);
 
     if (!okGuia || !okBp) {
-        return { false, QStringLiteral("--guia y --bp deben ser enteros.") };
+        return { false, QStringLiteral("--guia y --est deben ser enteros.") };
     }
     if (bpEst < 1 || bpEst > 68) {
-        return { false, QStringLiteral("--bp debe estar entre 1 y 68.") };
+        return { false, QStringLiteral("--est debe estar entre 1 y 68.") };
     }
 
     const TwoWStationEntry& stationData = TwoWStationTable::stationAt(bpEst);
