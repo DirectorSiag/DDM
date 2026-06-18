@@ -41,6 +41,7 @@ HEADERS += \
     src/controller/commands/cpaCommand.h \
     src/controller/commands/displaymodecommand.h \
     src/controller/commands/estacionamientocommand.h \
+    src/controller/commands/haCommand.h \
     src/controller/commands/ownshipcommand.h \
     src/controller/commands/deleteCommand.h \
     src/controller/commands/deletecursorscommand.h \
@@ -130,6 +131,7 @@ SOURCES += \
     src/controller/commands/displaymodecommand.cpp \
     src/controller/commands/estacionamientocommand.cpp \
     src/controller/commands/delete_area_command.cpp \
+    src/controller/commands/haCommand.cpp \
     src/controller/commands/ownshipcommand.cpp \
     src/controller/services/TwoWService.cpp \
     src/controller/services/centerservice.cpp \

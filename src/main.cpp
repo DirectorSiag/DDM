@@ -38,7 +38,8 @@
 #include "displaymodecommand.h"
 #include "twoWCommand.h"
 #include "TwoWService.h"
-
+#include "haCommand.h"
+#include "haService.h"
 #include "addareacommand.h"
 #include "addpolygonocommand.h"
 #include "addCircleCommand.h"
@@ -73,6 +74,7 @@ int main(int argc, char *argv[]) {
   auto *registry = new CommandRegistry();
   auto *parser = new CommandParser();
   auto *twoWService = new TwoWService(ctx);
+  auto *haService = new HaService(ctx);
 
   // registrar comandos
   registry->registerCommand(QSharedPointer<ICommand>(new AddCommand()));
@@ -93,6 +95,7 @@ int main(int argc, char *argv[]) {
     registry->registerCommand(QSharedPointer<ICommand>(new DeleteAreaCommand()));
     registry->registerCommand(QSharedPointer<ICommand>(new DeleteCircleCommand()));
     registry->registerCommand(QSharedPointer<ICommand>(new TwoWCommand()));
+    registry->registerCommand(QSharedPointer<ICommand>(new HaCommand()));
 
   CommandDispatcher dispatcher(registry, parser, *ctx);
 
@@ -137,10 +140,11 @@ int main(int argc, char *argv[]) {
   QTimer timer;
   QTimer updatePositionTimer;
   QObject::connect(&updatePositionTimer, &QTimer::timeout,
-                   [ctx, twoWService, &updatePositionTimer]() {
+                   [ctx, twoWService, haService, &updatePositionTimer]() {
                      double deltaTime = updatePositionTimer.interval() / 1000.0;
                      ctx->updateTracks(deltaTime);
                      twoWService->update();
+                     haService->update();
                    });
 
   QObject::connect(&timer, &QTimer::timeout, &timer,
