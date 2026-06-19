@@ -25,6 +25,17 @@ HaOperationResult HaService::startSessionAtCursor(double cursorXDm, double curso
     return { true, QStringLiteral("[HA] Emergencia iniciada sobre el cursor.") };
 }
 
+HaOperationResult HaService::startSessionAtLatLonDms(
+    int latDeg, int latMin, double latSec,
+    int lonDeg, int lonMin, double lonSec)
+{
+    const double lat = RadarMath::dmsToDecimal(latDeg, latMin, latSec);
+    const double lon = RadarMath::dmsToDecimal(lonDeg, lonMin, lonSec);
+
+    return startSessionAtLatLon(lat, lon);  // reusa la validación y lógica existente
+}
+
+// Este queda privado, sin cambios en su cuerpo:
 HaOperationResult HaService::startSessionAtLatLon(double lat, double lon) {
     if (lat < -90.0 || lat > 90.0) {
         return { false, QStringLiteral("--lat debe estar en el rango [-90, 90].") };
@@ -53,7 +64,6 @@ HaOperationResult HaService::startSessionAtLatLon(double lat, double lon) {
     initSession(xDm, yDm);
     return { true, QStringLiteral("[HA] Emergencia iniciada por Lat/Lon.") };
 }
-
 HaOperationResult HaService::startSessionAtBearing(double azimuthDeg, double distanceYards) {
     if (azimuthDeg < 0.0 || azimuthDeg >= 360.0) {
         return { false, QStringLiteral("--az debe estar en el rango [0, 360).") };

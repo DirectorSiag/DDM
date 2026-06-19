@@ -31,7 +31,8 @@ public:
         double targetLat, double targetLon,
         double& outXDm,   double& outYDm
         );
-
+    // Convierte coordenada en formato GMS a grados decimales.
+    static double dmsToDecimal(int degrees, int minutes, double seconds);
 private:
     // Helper interno
     static double normalizeDeg360(double deg);

@@ -13,7 +13,7 @@ public:
         return QStringLiteral(
             "ha --popa\n"
             "ha --cursor=<xDm>,<yDm>\n"
-            "ha --latlon --lat=<grados> --lon=<grados>\n"
+            "ha --latlon --lat=<deg>,<min>,<sec> --lon=<deg>,<min>,<sec>\n"
             "ha --az=<azimut> --d=<distancia_yardas>\n"
             "ha --stop\n"
             "ha --info\n"

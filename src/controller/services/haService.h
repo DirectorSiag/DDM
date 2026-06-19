@@ -12,11 +12,17 @@ class HaService {
 public:
     explicit HaService(CommandContext* ctx);
 
-
-    HaOperationResult startSessionAtOwnShip(); // Disp 1: a popa de BP
-    HaOperationResult startSessionAtCursor(double cursorXDm, double cursorYDm); // Disp 2: sobre cursor
-    HaOperationResult startSessionAtLatLon(double lat, double lon); // Disp 3: por lat y long
-    HaOperationResult startSessionAtBearing(double azimuthDeg, double distanceYards); // Disp 4: por azimut verdadero y dist en yardas desde el BP
+    // Disparador 1: a popa de BP
+    HaOperationResult startSessionAtOwnShip();
+     // Disparador 2: sobre cursor
+    HaOperationResult startSessionAtCursor(double cursorXDm, double cursorYDm);
+    // Disparador 3: por latitud y longitud en formato GMS
+    HaOperationResult startSessionAtLatLonDms(
+        int latDeg, int latMin, double latSec,
+        int lonDeg, int lonMin, double lonSec
+    );
+    // Disparador 4: por azimut verdadero y dist en yardas desde el BP
+    HaOperationResult startSessionAtBearing(double azimuthDeg, double distanceYards);
 
     HaOperationResult stopSession();
 
@@ -26,6 +32,9 @@ public:
 
 private:
     void initSession(double xDm, double yDm);
+
+    // Reutilizado por startSessionAtLatLonDms() una vez que ya convirtió GMS a decimal.
+    HaOperationResult startSessionAtLatLon(double lat, double lon);
 
     CommandContext* m_ctx;
     HaSessionTimer  m_timer;

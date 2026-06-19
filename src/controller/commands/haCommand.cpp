@@ -59,19 +59,40 @@ CommandResult HaCommand::execute(const CommandInvocation& inv, CommandContext& c
         return { r.ok, r.message };
     }
 
-    // ha --latlon --lat=<grados> --lon=<grados>
+    // ha --latlon --lat=<deg>,<min>,<sec> --lon=<deg>,<min>,<sec>
     if (opts.contains(QStringLiteral("latlon"))) {
         if (!opts.contains(QStringLiteral("lat")) || !opts.contains(QStringLiteral("lon"))) {
-            return { false, QStringLiteral("--latlon requiere --lat=<grados> y --lon=<grados>.\n%1").arg(usage()) };
-        }
-        bool okLat = false, okLon = false;
-        const double lat = opts.value(QStringLiteral("lat")).toDouble(&okLat);
-        const double lon = opts.value(QStringLiteral("lon")).toDouble(&okLon);
-        if (!okLat || !okLon) {
-            return { false, QStringLiteral("--lat y --lon deben ser valores numericos.") };
+            return { false, QStringLiteral("--latlon requiere --lat=<g,m,s> y --lon=<g,m,s>.\n%1").arg(usage()) };
         }
 
-        const HaOperationResult r = service.startSessionAtLatLon(lat, lon);
+        const QStringList latParts = opts.value(QStringLiteral("lat")).split(',');
+        const QStringList lonParts = opts.value(QStringLiteral("lon")).split(',');
+
+        if (latParts.size() != 3 || lonParts.size() != 3) {
+            return { false, QStringLiteral("--lat y --lon deben tener formato <grados>,<minutos>,<segundos>.") };
+        }
+
+        bool ok = true;
+        bool okTmp;
+
+        const int    latDeg = latParts[0].trimmed().toInt(&okTmp); ok &= okTmp;
+        const int    latMin = latParts[1].trimmed().toInt(&okTmp); ok &= okTmp;
+        const double latSec = latParts[2].trimmed().toDouble(&okTmp); ok &= okTmp;
+
+        const int    lonDeg = lonParts[0].trimmed().toInt(&okTmp); ok &= okTmp;
+        const int    lonMin = lonParts[1].trimmed().toInt(&okTmp); ok &= okTmp;
+        const double lonSec = lonParts[2].trimmed().toDouble(&okTmp); ok &= okTmp;
+
+        if (!ok) {
+            return { false, QStringLiteral("--lat y --lon: todos los valores deben ser numericos.") };
+        }
+
+        // El parsing termina acá. La conversión GMS→decimal es regla de dominio,
+        // se delega al Service.
+        const HaOperationResult r = service.startSessionAtLatLonDms(
+            latDeg, latMin, latSec,
+            lonDeg, lonMin, lonSec
+            );
         return { r.ok, r.message };
     }
 
