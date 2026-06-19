@@ -25,6 +25,13 @@ public:
     static double dmToYards(double dm) { return dm * kYardsPerDm; }
     static double yardsToDm(double yards) { return yards / kYardsPerDm; }
 
+    // Convierte diferencia lat/lon a coordenadas DM relativas al origen (BP).
+    static void latLonToDm(
+        double originLat, double originLon,
+        double targetLat, double targetLon,
+        double& outXDm,   double& outYDm
+        );
+
 private:
     // Helper interno
     static double normalizeDeg360(double deg);

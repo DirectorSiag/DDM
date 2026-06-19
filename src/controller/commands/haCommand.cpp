@@ -7,7 +7,6 @@ CommandResult HaCommand::execute(const CommandInvocation& inv, CommandContext& c
         return { false, QStringLiteral("Faltan argumentos.\n%1").arg(usage()) };
     }
 
-    // Parsear tokens en mapa de opciones
     QMap<QString, QString> opts;
     for (const QString& token : inv.args) {
         const int eq = token.indexOf('=');
@@ -26,49 +25,20 @@ CommandResult HaCommand::execute(const CommandInvocation& inv, CommandContext& c
 
     // ha --stop
     if (opts.contains(QStringLiteral("stop"))) {
-        if (!ctx.haSession.active) {
-            return { false, QStringLiteral("[HA] No hay ninguna emergencia activa en este momento.\n") };
-        }
-        service.stopSession();
-        return { true, QStringLiteral("[HA] Emergencia finalizada.") };
+        const HaOperationResult r = service.stopSession();
+        return { r.ok, r.message };
     }
 
     // ha --info
     if (opts.contains(QStringLiteral("info"))) {
-        if (!ctx.haSession.active) {
-            return { false, QStringLiteral("[HA] No hay ninguna emergencia activa en este momento.\n") };
-        }
-        const HaSessionState& s = ctx.haSession;
-        QString response;
-        response += QStringLiteral("\n======================================================\n");
-        response += QStringLiteral("               HOMBRE AL AGUA\n");
-        response += QStringLiteral("======================================================\n");
-        response += QStringLiteral("Hora de Caida (Local): %1  |  UTC: %2\n")
-                        .arg(s.fallTimeLocal)
-                        .arg(s.fallTimeUtc);
-        response += QStringLiteral("Tiempo Transcurrido:   %1\n").arg(s.elapsedTime);
-        response += QStringLiteral("------------------------------------------------------\n");
-        response += QStringLiteral("Azimut Verdadero:      %1 grados\n")
-                        .arg(s.trueAzimuthDeg, 0, 'f', 1);
-        response += QStringLiteral("Marcacion Relativa:    %1 grados  (%2)\n")
-                        .arg(s.relativeBearingDeg, 0, 'f', 1)
-                        .arg(s.banda);
-        response += QStringLiteral("Distancia:             %1 yardas\n")
-                        .arg(s.distanceYards, 0, 'f', 0);
-        if (s.etaValid) {
-            response += QStringLiteral("\n--> TIEMPO DE ARRIBO: %1 minutos\n")
-            .arg(s.timeToArrivalMin, 0, 'f', 1);
-        } else {
-            response += QStringLiteral("\n--> TIEMPO DE ARRIBO: N/D (velocidad en 0)\n");
-        }
-        response += QStringLiteral("======================================================\n\n");
-        return { true, response };
+        const HaOperationResult r = service.infoReport();
+        return { r.ok, r.message };
     }
 
     // ha --popa
     if (opts.contains(QStringLiteral("popa"))) {
-        service.startSessionAtOwnShip();
-        return { true, QString() };
+        const HaOperationResult r = service.startSessionAtOwnShip();
+        return { r.ok, r.message };
     }
 
     // ha --cursor=<xDm>,<yDm>
@@ -84,8 +54,9 @@ CommandResult HaCommand::execute(const CommandInvocation& inv, CommandContext& c
         if (!okX || !okY) {
             return { false, QStringLiteral("--cursor: los valores deben ser numericos.") };
         }
-        service.startSessionAtCursor(xDm, yDm);
-        return { true, QString() };
+
+        const HaOperationResult r = service.startSessionAtCursor(xDm, yDm);
+        return { r.ok, r.message };
     }
 
     // ha --latlon --lat=<grados> --lon=<grados>
@@ -99,14 +70,9 @@ CommandResult HaCommand::execute(const CommandInvocation& inv, CommandContext& c
         if (!okLat || !okLon) {
             return { false, QStringLiteral("--lat y --lon deben ser valores numericos.") };
         }
-        if (lat < -90.0 || lat > 90.0) {
-            return { false, QStringLiteral("--lat debe estar en el rango [-90, 90].") };
-        }
-        if (lon < -180.0 || lon > 180.0) {
-            return { false, QStringLiteral("--lon debe estar en el rango [-180, 180].") };
-        }
-        service.startSessionAtLatLon(lat, lon);
-        return { true, QString() };
+
+        const HaOperationResult r = service.startSessionAtLatLon(lat, lon);
+        return { r.ok, r.message };
     }
 
     // ha --az=<azimut> --d=<distancia_yardas>
@@ -120,14 +86,9 @@ CommandResult HaCommand::execute(const CommandInvocation& inv, CommandContext& c
         if (!okAz || !okD) {
             return { false, QStringLiteral("--az y --d deben ser valores numericos.") };
         }
-        if (az < 0.0 || az >= 360.0) {
-            return { false, QStringLiteral("--az debe estar en el rango [0, 360).") };
-        }
-        if (d <= 0.0) {
-            return { false, QStringLiteral("--d debe ser un numero positivo (en yardas).") };
-        }
-        service.startSessionAtBearing(az, d);
-        return { true, QString() };
+
+        const HaOperationResult r = service.startSessionAtBearing(az, d);
+        return { r.ok, r.message };
     }
 
     return { false, QStringLiteral("Flag no reconocido.\n%1").arg(usage()) };
