@@ -25,12 +25,13 @@ El sistema admite cuatro disparadores de inicio mutuamente excluyentes: posició
 
 ### HaCommand
 
-- **Rol**: Wrapper CLI encargado del análisis sintáctico de tokens y de la validación de las reglas de negocio de entrada.
+- **Rol**: Wrapper CLI encargado del análisis sintáctico de tokens y de la validación de las reglas de negocio de entrada. No contiene reglas de negocio: delega toda validación y ejecución a `HaService`, devolviendo directamente el `HaOperationResult` recibido.
+
 - **Métodos clave**:
 
 | Método | Firma | Descripción |
 |---|---|---|
-| Ejecutar | `CommandResult execute(const CommandInvocation& inv, CommandContext& ctx) const` | Modula entre los modos operativos (`--info`, `--stop`, o los cuatro disparadores de inicio). |
+| Ejecutar | `CommandResult execute(const CommandInvocation& inv, CommandContext& ctx) const` | Parsea tokens, determina el modo invocado (`--info`, `--stop`, o los cuatro disparadores) e invoca el método correspondiente de `HaService`. |
 
 - **Reglas de Validación CLI**:
   - `--az` (disparador 4) requiere el parámetro adicional `--d` (distancia en yardas, estrictamente `> 0.0`).
@@ -40,20 +41,32 @@ El sistema admite cuatro disparadores de inicio mutuamente excluyentes: posició
 
 ### HaService
 
-- **Rol**: Interfaz de control operativo que resuelve la coordenada del punto de caída según el disparador activo y administra el ciclo de vida de la sesión.
+- **Rol**: Interfaz de control operativo. Centraliza las reglas de validación de negocio (rangos numéricos, existencia de Track 0, disponibilidad de datos geográficos), resuelve la coordenada del punto de caída según el disparador activo, y administra el ciclo de vida de la sesión. Todos los métodos públicos de operación devuelven un `HaOperationResult` uniforme.
+
+- **Struct de resultado**:
+
+```cpp
+struct HaOperationResult {
+    bool    ok = false;
+    QString message;
+};
+```
 - **Métodos clave**:
 
 | Método | Firma | Descripción |
 |---|---|---|
-| Disparador 1 | `void startSessionAtOwnShip()` | Fija el punto en la posición actual del Buque Propio (Track 0). |
-| Disparador 2 | `void startSessionAtCursor(double cursorXDm, double cursorYDm)` | Fija el punto en las coordenadas del cursor OBM. |
-| Disparador 3 | `void startSessionAtLatLon(double lat, double lon)` | Fija el punto a partir de una posición geográfica ingresada manualmente. |
-| Disparador 4 | `void startSessionAtBearing(double azimuthDeg, double distanceYards)` | Proyecta el punto desde el Buque Propio por azimut verdadero y distancia en yardas. |
-| Finalizar | `void stopSession()` | Llama al método `reset()` de la estructura de datos y detiene el cronómetro. |
+| Disparador 1 | `HaOperationResult startSessionAtOwnShip()` | Fija el punto en la posición actual del Buque Propio (Track 0). Falla si el Track 0 no existe. |
+| Disparador 2 | `HaOperationResult startSessionAtCursor(double cursorXDm, double cursorYDm)` | Fija el punto en las coordenadas del cursor OBM. |
+| Disparador 3 | `HaOperationResult startSessionAtLatLonDms(int latDeg, int latMin, double latSec, int lonDeg, int lonMin, double lonSec)` | Convierte GMS a grados decimales vía `RadarMath::dmsToDecimal` y delega en el método privado `startSessionAtLatLon(double, double)`, que valida rangos, valida geo-posición real del BP, convierte a DM vía `RadarMath::latLonToDm` y fija el punto. |
+| Disparador 4 | `HaOperationResult startSessionAtBearing(double azimuthDeg, double distanceYards)` | Valida rangos, proyecta el punto desde el Buque Propio por azimut verdadero y distancia en yardas. |
+| Finalizar | `HaOperationResult stopSession()` | Llama al método `reset()` de la estructura de datos y del cronómetro. Falla si no hay sesión activa. |
+| Reporte | `HaOperationResult infoReport() const` | Construye el reporte de asesoramiento de la sesión activa. Falla si no hay sesión activa. |
 | Actualización | `void update()` | Extrae la posición cinemática actual del Buque Propio e invoca el recálculo. |
 
-- **Método interno**:
+- **Métodos internos**:
   - `void initSession(double xDm, double yDm)`: método privado común a todos los disparadores. Una vez resuelta la coordenada, fija el punto, inicia el `HaSessionTimer` y congela las horas de caída (local y UTC).
+
+  - `HaOperationResult startSessionAtLatLon(double lat, double lon)` : método privado. Conserva toda la lógica de validación de rangos y conversión geográfica; es reutilizado exclusivamente por `startSessionAtLatLonDms`.
 
 ### HaCalculator
 
@@ -69,6 +82,15 @@ El sistema admite cuatro disparadores de inicio mutuamente excluyentes: posició
   - **Restricción de marcación relativa**: La marcación relativa se fuerza siempre al rango $[0°, 180°]$, devolviendo el valor angular menor hacia el punto.
   - **Tiempo de arribo**: Reutiliza `EstacionamientoCalculator` inyectando como destino el azimut `000°` y distancia `0.0 MN` desde el punto de caída (intercepción directa, distancia cero).
   - **Determinación de banda**: Se calcula según el ángulo relativo del punto respecto a la proa: `ESTRIBOR` `[0°, 180°)`, `BABOR` `(180°, 360°)`, `PROA` en `≈0°` y `POPA` en `≈180°`.
+
+### RadarMath::latLonToDm (conversión geográfica)
+
+- **Rol**: Función utilitaria que resuelve el disparador 3, proyectando una coordenada geográfica (Lat/Lon) al plano cartesiano DM del radar.
+- **Firma**: `static void latLonToDm(double originLat, double originLon, double targetLat, double targetLon, double& outXDm, double& outYDm)`
+- **Método**: proyección equirectangular simple (válida para distancias cortas), usando como origen la latitud/longitud actual del Buque Propio (`ctx->ownShip.latitudeDeg/longitudeDeg`) y como factor de escala 111.320 m/grado y 1.828,8 m/DM.
+- **Dependencia crítica de modo de operación**: esta solución es matemáticamente válida únicamente porque, en `CommandContext::updateTracks`, cuando `motionMode == RELATIVE`, el Track 0 se fuerza explícitamente a la coordenada `(0.0, 0.0)` en cada ciclo (`OwnShip stays anchored at center`). Esto hace que la posición geográfica real del BP coincida siempre con el origen `(0,0)` del plano DM, permitiendo usarla como referencia de conversión sin necesidad de una variable de origen fija del radar. **Si el sistema opera en modo `TRUE_MOTION`, esta suposición deja de ser válida** y la conversión quedaría desalineada.
+- **Precondición de uso**: `HaService::startSessionAtLatLon` solo invoca la conversión si `ctx->ownShip.valid` es `true` y la geo-posición del BP no es `(0.0, 0.0)` (lo cual indicaría datos no inicializados). Si esta condición no se cumple, el disparador falla con un `HaOperationResult` negativo sin iniciar la sesión.
+- **Conversión de formato GMS**: el disparador 3 recibe la coordenada en formato Grados-Minutos-Segundos. `RadarMath::dmsToDecimal(int degrees, int minutes, double seconds)` convierte cada componente (latitud y longitud por separado) a grados decimales antes de invocar `latLonToDm`. El signo del resultado se toma del signo de `degrees`.
 
 ### HaSessionTimer
 
@@ -89,12 +111,20 @@ El sistema admite cuatro disparadores de inicio mutuamente excluyentes: posició
 
 ```mermaid
 flowchart TD
-    A([Inicio: Comando ha recibido]) --> B{"¿Flag detectado?"}
+    A([Inicio: Comando de 
+    Hombre al Agua 
+    recibido]) --> B{"¿Flag detectado?"}
 
     B -->|"--popa"| D1[HaService::startSessionAtOwnShip]
     B -->|"--cursor=x,y"| D2[HaService::startSessionAtCursor]
-    B -->|"--latlon --lat=X --lon=Y"| D3[HaService::startSessionAtLatLon]
+    B -->|"--latlon --lat=X --lon=Y"| V0["Validar: lat ∈ [-90,90], lon ∈ [-180,180]"]
     B -->|"--az=X --d=Y"| V1["Validar: az ∈ [0,360) y d > 0"]
+
+    V0 --> VR0{"¿Rangos válidos?"}
+    VR0 -->|No| E0[Retornar Error CLI] --> FE0([Fin con error])
+    VR0 -->|Sí| GEO{"¿BP tiene geo-posición real?"}
+    GEO -->|No| E4[Error: BP sin coordenadas geográficas] --> FE4([Fin con error])
+    GEO -->|Sí| D3[RadarMath::latLonToDm + HaService::startSessionAtLatLon]
 
     V1 --> VR{"¿Datos válidos?"}
     VR -->|No| E1[Retornar Error CLI] --> FE1([Fin con error])
@@ -105,8 +135,7 @@ flowchart TD
     BP -->|Sí| INIT
 
     D2 --> INIT[HaService::initSession xDm, yDm]
-    D3 --> PEND[⚠️ Aviso: conversión Lat/Lon pendiente — sesión NO iniciada]
-    PEND --> FE4([Fin sin emergencia activa])
+    D3 --> INIT
     D4 --> INIT
 
     INIT --> FIX[Fijar punto de caída en haSession]
@@ -122,10 +151,8 @@ flowchart TD
 
     classDef error fill:#ffcccc,stroke:#cc0000,color:#800000
     classDef ok fill:#ccffcc,stroke:#007700,color:#004400
-    classDef pending fill:#fff3cc,stroke:#cc8800,color:#665500
-    class E1,E2,I,FE1,FE2,FE3,FE4 error
+    class E0,E1,E2,E4,I,FE0,FE1,FE2,FE3,FE4 error
     class Z1,Z2,ZF ok
-    class PEND pending
 ```
 
 ### Flujo CLI (Paso a Paso)
@@ -135,21 +162,18 @@ El usuario ejecuta el comando en la consola utilizando cualquiera de las siguien
 ```bash
 ha --popa
 ha --cursor=<xDm>,<yDm>
-ha --latlon --lat=<grados> --lon=<grados>
+ha --latlon --lat=<deg>,<min>,<sec> --lon=<deg>,<min>,<sec>
 ha --az=<azimut> --d=<distancia_yardas>
 ha --stop
 ha --info
 ```
 
 1. `HaCommand::execute` intercepta los argumentos y determina cuál de los seis modos fue invocado.
-2. Para el disparador 4 (`--az`, `--d`), el comando valida los rangos antes de continuar:
-   - El azimut debe estar en `[0.0, 360.0)`.
-   - La distancia debe ser estrictamente `> 0.0` yardas.
-3. Si las validaciones fallan, el comando interrumpe la ejecución y retorna un `CommandResult` con estado `false` junto con la ayuda de uso (`usage()`).
-4. Si los parámetros son correctos, se invoca el método correspondiente de `HaService`.
-5. `HaService` resuelve la coordenada cartesiana del punto de caída (en DM) y llama a `initSession(xDm, yDm)`.
-6. `initSession` fija el punto en `CommandContext::haSession`, inicia `HaSessionTimer` y congela `fallTimeLocal` y `fallTimeUtc`.
-7. A partir de ese instante, el bucle de actualización continuo toma el control.
+2. El comando realiza únicamente validaciones de forma (presencia de parámetros obligatorios, conversión de tipos). Las validaciones de rango y de reglas de negocio se delegan a `HaService`.
+3. Se invoca el método correspondiente de `HaService`, que valida internamente (rangos, existencia de Track 0, disponibilidad geográfica), resuelve la coordenada cartesiana del punto de caída (en DM) y, si todo es correcto, llama a `initSession(xDm, yDm)`.
+4. `initSession` fija el punto en `CommandContext::haSession`, inicia `HaSessionTimer` y congela `fallTimeLocal` y `fallTimeUtc`.
+5. El resultado de cualquier operación —exitosa o fallida— se devuelve como `HaOperationResult { bool ok, QString message }`, que `HaCommand` traduce directamente a `CommandResult`.
+6. A partir del inicio exitoso de la sesión, el bucle de actualización continuo toma el control.
 
 ---
 
@@ -203,7 +227,8 @@ Mantiene la separación limpia entre datos fijos al inicio de la emergencia y m�
 - **Track 0 inexistente**: Si el disparador 1 (`--popa`) o el disparador 4 (`--az`) no encuentran el Track 0 del Buque Propio, el servicio interrumpe `initSession` y retorna un error operativo.
 - **Velocidad cero**: Si `ownSpeed == 0.0`, el sistema deshabilita de forma segura `etaValid = false` para evitar divisiones por cero en el cálculo de ETA.
 - **Punto de caída sobre el Buque Propio**: Si la distancia al punto es `0.0 DM`, el ETA se inhabilita (`etaValid = false`) y la distancia reportada es `0 yardas`.
-- **Disparador Lat/Lon (pendiente)**: Requiere conocer la latitud/longitud del origen cartesiano del radar (punto 0,0 en DM) para poder realizar la conversión geográfica. Hasta que dicho dato esté disponible en el sistema, el disparador imprime un aviso operativo y no inicia la sesión. 
+- **Disparador Lat/Lon — BP sin geo-posición**: `startSessionAtLatLon` valida que `ctx->ownShip.valid` sea verdadero y que la geo-posición del BP no sea `(0.0, 0.0)` (dato no inicializado) antes de convertir. Si esta condición no se cumple, el disparador falla con un mensaje operativo y no inicia la sesión.
+- **Disparador Lat/Lon — dependencia del modo de operación**: La conversión `RadarMath::latLonToDm` usa la geo-posición actual del Buque Propio como origen del plano DM. Esto es válido únicamente porque, en modo `RELATIVE`, `CommandContext::updateTracks` ancla el Track 0 a `(0,0)` en cada ciclo. 
 - **Sesión preexistente**: Al invocar cualquier disparador de inicio mientras hay una sesión activa, el sistema sobreescribe el estado anterior mediante `reset()` antes de fijar el nuevo punto, garantizando que no queden residuos de la emergencia anterior.
 
 ---
