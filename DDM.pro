@@ -59,7 +59,6 @@ HEADERS += \
     src/controller/handlers/geometrycommandhandler.h \
     src/controller/services/cursorservice.h \
     src/controller/services/geometryservice.h \
-    src/controller/services/haService.h \
     src/controller/services/sitrepservice.h \
     src/controller/services/trackpppservice.h \
     src/controller/services/trackservice.h \
@@ -77,9 +76,7 @@ HEADERS += \
     src/model/2w/twoWStationTable.h \
     src/model/commandContext.h \
     src/model/cpa.h \
-    src/model/ha/haCalculator.h \
     src/model/ha/haSessionState.h \
-    src/model/ha/haSessionTimer.h \
     src/model/pppcalculator.h \
     src/model/estacionamientocalculator.h \
     src/model/decoders/concDecoder.h \
@@ -148,7 +145,6 @@ SOURCES += \
     src/controller/handlers/geometrycommandhandler.cpp \
     src/controller/services/cursorservice.cpp \
     src/controller/services/geometryservice.cpp \
-    src/controller/services/haService.cpp \
     src/controller/services/sitrepservice.cpp \
     src/controller/services/trackpppservice.cpp \
     src/controller/services/trackservice.cpp \
@@ -164,8 +160,6 @@ SOURCES += \
     src/main.cpp \
     src/model/2w/twoWCalculator.cpp \
     src/model/cpa.cpp \
-    src/model/ha/haCalculator.cpp \
-    src/model/ha/haSessionTimer.cpp \
     src/model/pppcalculator.cpp \
     src/model/estacionamientocalculator.cpp \
     src/model/decoders/concDecoder.cpp \
