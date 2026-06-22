@@ -48,3 +48,10 @@ double RadarMath::normalizeAngle360(double deg)
 {
     return normalizeDeg360(deg);
 }
+
+double RadarMath::dmsToDecimal(int degrees, int minutes, double seconds) {
+    const double sign = (degrees < 0) ? -1.0 : 1.0;
+    const double absDegrees = std::abs(degrees);
+    const double decimal = absDegrees + (minutes / 60.0) + (seconds / 3600.0);
+    return sign * decimal;
+}

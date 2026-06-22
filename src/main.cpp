@@ -36,6 +36,8 @@
 #include "ownshipcommand.h"
 #include "estacionamientocommand.h"
 #include "displaymodecommand.h"
+#include "fondeoCommand.h"
+#include "fondeoService.h"
 
 #include "addareacommand.h"
 #include "addpolygonocommand.h"
@@ -70,6 +72,7 @@ int main(int argc, char *argv[]) {
   auto *ctx = new CommandContext();
   auto *registry = new CommandRegistry();
   auto *parser = new CommandParser();
+  auto *fondeoService = new FondeoService(ctx);
 
   // registrar comandos
   registry->registerCommand(QSharedPointer<ICommand>(new AddCommand()));
@@ -89,6 +92,7 @@ int main(int argc, char *argv[]) {
     registry->registerCommand(QSharedPointer<ICommand>(new AddCircleCommand()));
     registry->registerCommand(QSharedPointer<ICommand>(new DeleteAreaCommand()));
     registry->registerCommand(QSharedPointer<ICommand>(new DeleteCircleCommand()));
+    registry->registerCommand(QSharedPointer<ICommand>(new FondeoCommand()));
 
   CommandDispatcher dispatcher(registry, parser, *ctx);
 
@@ -133,9 +137,10 @@ int main(int argc, char *argv[]) {
   QTimer timer;
   QTimer updatePositionTimer;
   QObject::connect(&updatePositionTimer, &QTimer::timeout,
-                   [ctx, &updatePositionTimer]() {
+                   [ctx, fondeoService, &updatePositionTimer]() {
                      double deltaTime = updatePositionTimer.interval() / 1000.0;
                      ctx->updateTracks(deltaTime);
+                     fondeoService->update();
                    });
 
   QObject::connect(&timer, &QTimer::timeout, &timer,

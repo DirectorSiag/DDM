@@ -40,6 +40,7 @@ HEADERS += \
     src/controller/commands/cpaCommand.h \
     src/controller/commands/displaymodecommand.h \
     src/controller/commands/estacionamientocommand.h \
+    src/controller/commands/fondeoCommand.h \
     src/controller/commands/ownshipcommand.h \
     src/controller/commands/deleteCommand.h \
     src/controller/commands/deletecursorscommand.h \
@@ -56,6 +57,7 @@ HEADERS += \
     src/controller/services/centerservice.h \
     src/controller/handlers/geometrycommandhandler.h \
     src/controller/services/cursorservice.h \
+    src/controller/services/fondeoservice.h \
     src/controller/services/geometryservice.h \
     src/controller/services/sitrepservice.h \
     src/controller/services/trackpppservice.h \
@@ -71,6 +73,8 @@ HEADERS += \
     src/controller/json/validators/jsonvalidator.h \
     src/model/commandContext.h \
     src/model/cpa.h \
+    src/model/fondeo/fondeoCalculator.h \
+    src/model/fondeo/fondeoSessionState.h \
     src/model/pppcalculator.h \
     src/model/estacionamientocalculator.h \
     src/model/decoders/concDecoder.h \
@@ -120,6 +124,7 @@ SOURCES += \
     src/controller/commands/displaymodecommand.cpp \
     src/controller/commands/estacionamientocommand.cpp \
     src/controller/commands/delete_area_command.cpp \
+    src/controller/commands/fondeoCommand.cpp \
     src/controller/commands/ownshipcommand.cpp \
     src/controller/services/centerservice.cpp \
     src/controller/commands/deleteCircleCommand.cpp \
@@ -136,6 +141,7 @@ SOURCES += \
     src/controller/handlers/ownshipcommandhandler.cpp \
     src/controller/handlers/geometrycommandhandler.cpp \
     src/controller/services/cursorservice.cpp \
+    src/controller/services/fondeoservice.cpp \
     src/controller/services/geometryservice.cpp \
     src/controller/services/sitrepservice.cpp \
     src/controller/services/trackpppservice.cpp \
@@ -151,6 +157,7 @@ SOURCES += \
     src/controller/json/validators/jsonvalidator.cpp \
     src/main.cpp \
     src/model/cpa.cpp \
+    src/model/fondeo/fondeoCalculator.cpp \
     src/model/pppcalculator.cpp \
     src/model/estacionamientocalculator.cpp \
     src/model/decoders/concDecoder.cpp \
