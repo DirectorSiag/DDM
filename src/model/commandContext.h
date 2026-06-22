@@ -19,8 +19,6 @@
 #include "entities/circleEntity.h"
 #include "entities/polygonoentity.h"
 #include "model/2w/twowsessionstate.h"
-#include "ha/haSessionState.h"
-
 
 struct CommandContext {
     enum MotionMode {
@@ -106,7 +104,6 @@ struct CommandContext {
     std::map<int, StationingSession> stationingSessions;
 
     TwoWSessionState twoWSession;
-    HaSessionState   haSession;
 
     double centerX = 0.0;
     double centerY = 0.0;
