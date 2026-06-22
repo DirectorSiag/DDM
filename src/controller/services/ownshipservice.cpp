@@ -3,7 +3,7 @@
 #include "commandContext.h"
 #include "entities/track.h"
 #include "trackpppservice.h"
-
+#include "model/utils/RadarMath.h"
 #include <QtMath>
 #include <cmath>
 
@@ -108,6 +108,33 @@ OwnShipOperationResult OwnShipService::updateFromJson(const QJsonObject& args)
     TrackPppService(m_context).recalculateAllTracksAgainstOwnShip();
 
     return {true, QString(), QStringLiteral("OwnShip actualizado")};
+}
+
+OwnShipOperationResult OwnShipService::setGeoFromCli(double latDeg, double lonDeg)
+{
+    if (latDeg < -90.0 || latDeg > 90.0) {
+        return { false, "INVALID_LATITUDE", QStringLiteral("--lat debe estar en el rango [-90, 90].") };
+    }
+    if (lonDeg < -180.0 || lonDeg > 180.0) {
+        return { false, "INVALID_LONGITUDE", QStringLiteral("--lon debe estar en el rango [-180, 180].") };
+    }
+
+    m_context->ownShip.latitudeDeg  = latDeg;
+    m_context->ownShip.longitudeDeg = lonDeg;
+    m_context->ownShip.valid        = true;
+
+    return { true, QString(), QStringLiteral("[OwnShip] Geo-posicion actualizada: %1, %2.")
+                                 .arg(latDeg, 0, 'f', 4)
+                                 .arg(lonDeg, 0, 'f', 4) };
+}
+
+OwnShipOperationResult OwnShipService::setGeoFromCliDms(
+    int latDeg, int latMin, double latSec,
+    int lonDeg, int lonMin, double lonSec)
+{
+    const double latDecimal = RadarMath::dmsToDecimal(latDeg, latMin, latSec);
+    const double lonDecimal = RadarMath::dmsToDecimal(lonDeg, lonMin, lonSec);
+    return setGeoFromCli(latDecimal, lonDecimal);
 }
 
 OwnShipOperationResult OwnShipService::setFromCli(double courseDeg,

@@ -24,6 +24,46 @@ CommandResult OwnShipCommand::execute(const CommandInvocation& inv, CommandConte
     }
 
     const QString action = inv.args.first().toLower();
+
+    if (action == QStringLiteral("setgeodms")) {
+        if (inv.args.size() < 7) {
+            return {false, QStringLiteral("Faltan argumentos. Uso: ownship setgeodms <latDeg> <latMin> <latSec> <lonDeg> <lonMin> <lonSec>")};
+        }
+        bool ok = true; bool okTmp;
+        const int    latDeg = inv.args[1].toInt(&okTmp);    ok &= okTmp;
+        const int    latMin = inv.args[2].toInt(&okTmp);    ok &= okTmp;
+        const double latSec = inv.args[3].toDouble(&okTmp); ok &= okTmp;
+        const int    lonDeg = inv.args[4].toInt(&okTmp);    ok &= okTmp;
+        const int    lonMin = inv.args[5].toInt(&okTmp);    ok &= okTmp;
+        const double lonSec = inv.args[6].toDouble(&okTmp); ok &= okTmp;
+        if (!ok) {
+            return {false, QStringLiteral("Argumentos numericos invalidos.")};
+        }
+        const OwnShipOperationResult result = ownShipService.setGeoFromCliDms(
+            latDeg, latMin, latSec, lonDeg, lonMin, lonSec);
+        if (!result.success) {
+            return {false, result.message};
+        }
+        return {true, ownShipService.formatOwnShip()};
+    }
+
+    if (action == QStringLiteral("setgeo")) {
+        if (inv.args.size() < 3) {
+            return {false, QStringLiteral("Faltan argumentos. Uso: %1").arg(usage())};
+        }
+        double latDeg = 0.0;
+        double lonDeg = 0.0;
+        if (!parseDoubleArg(inv.args[1], latDeg)
+            || !parseDoubleArg(inv.args[2], lonDeg)) {
+            return {false, QStringLiteral("Argumentos numericos invalidos. Uso: %1").arg(usage())};
+        }
+        const OwnShipOperationResult result = ownShipService.setGeoFromCli(latDeg, lonDeg);
+        if (!result.success) {
+            return {false, result.message};
+        }
+        return {true, ownShipService.formatOwnShip()};
+    }
+
     if (action != QStringLiteral("set")) {
         return {false, QStringLiteral("Accion invalida. Uso: %1").arg(usage())};
     }
