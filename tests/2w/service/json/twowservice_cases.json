@@ -1,0 +1,90 @@
+{
+  "twoWServiceTestCases": [
+    {
+      "id": "SVC_01_StartSession_ActivaLaSesion",
+      "description": "startSession debe setear active=true y los parámetros en twoWSession",
+      "guideTrackId": 1,
+      "bpStation": 12,
+      "circleRadiusNm": 1.0,
+      "expected": {
+        "active": true,
+        "guideTrackId": 1,
+        "bpStation": 12,
+        "circleRadiusNm": 1.0
+      }
+    },
+    {
+      "id": "SVC_02_StopSession_DesactivaLaSesion",
+      "description": "stopSession debe resetear twoWSession a su estado inicial",
+      "guideTrackId": 1,
+      "bpStation": 12,
+      "circleRadiusNm": 1.0,
+      "expected": {
+        "active": false,
+        "guideTrackId": -1,
+        "bpStation": -1
+      }
+    },
+    {
+      "id": "SVC_03_Update_SinSesionActiva_NoCalcula",
+      "description": "update() sin sesión activa no debe modificar twoWSession",
+      "guideTrackId": -1,
+      "bpStation": -1,
+      "circleRadiusNm": 1.0,
+      "expected": {
+        "etaValid": false,
+        "kinematicsUnchanged": true
+      }
+    },
+    {
+      "id": "SVC_04_Update_SinGuia_DetieneSesion",
+      "description": "update() con guía inexistente debe llamar stopSession y desactivar",
+      "guideTrackId": 9999,
+      "bpStation": 12,
+      "circleRadiusNm": 1.0,
+      "expected": {
+        "active": false
+      }
+    },
+    {
+      "id": "SVC_05_Update_ConGuia_PopulaResultados",
+      "description": "update() con guía válido debe poblar los campos de resultado en twoWSession",
+      "guideTrackX": 100.0,
+      "guideTrackY": 100.0,
+      "guideTrackId": 1,
+      "bpStation": 12,
+      "circleRadiusNm": 1.0,
+      "ownSpeed": 10.0,
+      "expected": {
+        "guideCenterMatchesTrack": true,
+        "ownCenterNotZero": true
+      }
+    },
+    {
+      "id": "SVC_06_Update_VelocidadCero_EtaInvalida",
+      "description": "update() con ownSpeed=0 debe resultar en etaValid=false",
+      "guideTrackX": 100.0,
+      "guideTrackY": 100.0,
+      "guideTrackId": 1,
+      "bpStation": 12,
+      "circleRadiusNm": 1.0,
+      "ownSpeed": 0.0,
+      "expected": {
+        "etaValid": false
+      }
+    },
+    {
+      "id": "SVC_07_StartSession_SobreescribeSesionAnterior",
+      "description": "Llamar startSession dos veces debe sobreescribir los parámetros anteriores",
+      "guideTrackId": 2,
+      "bpStation": 5,
+      "circleRadiusNm": 2.0,
+      "expected": {
+        "active": true,
+        "guideTrackId": 2,
+        "bpStation": 5,
+        "circleRadiusNm": 2.0
+      }
+    }
+  ]
+}

@@ -1,0 +1,5 @@
+<RCC>
+    <qresource prefix="/json">
+        <file>json/twowstationtable_cases.json</file>
+    </qresource>
+</RCC>

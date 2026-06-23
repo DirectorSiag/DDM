@@ -1,0 +1,5 @@
+<RCC>
+    <qresource prefix="/json">
+        <file>json/twowcalculator_cases.json</file>
+    </qresource>
+</RCC>

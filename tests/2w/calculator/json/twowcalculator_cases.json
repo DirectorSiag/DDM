@@ -1,0 +1,209 @@
+{
+  "twoWCalculatorTestCases": [
+    {
+      "id": "CALC_01_GuideCenter_EsLaPosicionDelGuia",
+      "description": "El centro del círculo verde debe ser exactamente la posición del Guía",
+      "guideX": 100.0,
+      "guideY": 200.0,
+      "ownX": 0.0,
+      "ownY": 0.0,
+      "ownSpeed": 10.0,
+      "bpStation": 12,
+      "circleRadiusNm": 1.0,
+      "selectedStations": [],
+      "expected": {
+        "guideCenterX": 100.0,
+        "guideCenterY": 200.0
+      }
+    },
+    {
+      "id": "CALC_02_EstacionProyectada_AlOeste_Azimut270",
+      "description": "Estación 12 (Az=270°) debe proyectarse exactamente al Oeste del Guía",
+      "guideX": 0.0,
+      "guideY": 0.0,
+      "ownX": 0.0,
+      "ownY": -500.0,
+      "ownSpeed": 10.0,
+      "bpStation": 12,
+      "circleRadiusNm": 1.0,
+      "selectedStations": [],
+      "expected": {
+        "ownCenterY": 0.0,
+        "ownCenterXNegative": true
+      }
+    },
+    {
+      "id": "CALC_03_EstacionProyectada_AlNorte_Azimut0",
+      "description": "Estación 7 (Az=0°) debe proyectarse exactamente al Norte del Guía",
+      "guideX": 0.0,
+      "guideY": 0.0,
+      "ownX": 0.0,
+      "ownY": -500.0,
+      "ownSpeed": 10.0,
+      "bpStation": 7,
+      "circleRadiusNm": 1.0,
+      "selectedStations": [],
+      "expected": {
+        "ownCenterX": 0.0,
+        "ownCenterYPositive": true
+      }
+    },
+    {
+      "id": "CALC_04_Radio_Escala_Duplicado",
+      "description": "Con radio 2.0 la distancia proyectada debe ser el doble que con radio 1.0",
+      "guideX": 0.0,
+      "guideY": 0.0,
+      "ownX": 0.0,
+      "ownY": -500.0,
+      "ownSpeed": 10.0,
+      "bpStation": 12,
+      "circleRadiusNm": 2.0,
+      "selectedStations": [],
+      "expected": {
+        "distanceDoubled": true
+      }
+    },
+    {
+      "id": "CALC_05_ETA_Invalida_VelocidadCero",
+      "description": "Si ownSpeed es 0, etaValid debe ser false y etaMin debe ser 0",
+      "guideX": 100.0,
+      "guideY": 100.0,
+      "ownX": 0.0,
+      "ownY": 0.0,
+      "ownSpeed": 0.0,
+      "bpStation": 12,
+      "circleRadiusNm": 1.0,
+      "selectedStations": [],
+      "expected": {
+        "etaValid": false,
+        "etaMin": 0.0
+      }
+    },
+    {
+      "id": "CALC_06_ETA_Valida_VelocidadPositiva",
+      "description": "Si ownSpeed > 0 y hay distancia, etaValid debe ser true",
+      "guideX": 100.0,
+      "guideY": 100.0,
+      "ownX": 0.0,
+      "ownY": 0.0,
+      "ownSpeed": 10.0,
+      "bpStation": 12,
+      "circleRadiusNm": 1.0,
+      "selectedStations": [],
+      "expected": {
+        "etaValid": true
+      }
+    },
+    {
+      "id": "CALC_07_DistanciaActual_Correcta",
+      "description": "La distancia actual BP → Guía debe convertirse correctamente de DM a NM",
+      "guideX": 0.0,
+      "guideY": 1.012685,
+      "ownX": 0.0,
+      "ownY": 0.0,
+      "ownSpeed": 5.0,
+      "bpStation": 7,
+      "circleRadiusNm": 1.0,
+      "selectedStations": [],
+      "expected": {
+        "currentDistNm_approx": 1.0,
+        "tolerance": 0.05
+      }
+    },
+    {
+      "id": "CALC_08_AzimutActual_BPAlSurDelGuia",
+      "description": "Si el BP está al Sur del Guía el azimut Guía→BP debe ser ~180°",
+      "guideX": 0.0,
+      "guideY": 100.0,
+      "ownX": 0.0,
+      "ownY": 0.0,
+      "ownSpeed": 5.0,
+      "bpStation": 7,
+      "circleRadiusNm": 1.0,
+      "selectedStations": [],
+      "expected": {
+        "currentAzDeg_approx": 180.0,
+        "tolerance": 1.0
+      }
+    },
+    {
+      "id": "CALC_09_AzimutActual_BPAlNorteDelGuia",
+      "description": "Si el BP está al Norte del Guía el azimut Guía→BP debe ser ~0°",
+      "guideX": 0.0,
+      "guideY": 0.0,
+      "ownX": 0.0,
+      "ownY": 100.0,
+      "ownSpeed": 5.0,
+      "bpStation": 7,
+      "circleRadiusNm": 1.0,
+      "selectedStations": [],
+      "expected": {
+        "currentAzDeg_approx": 0.0,
+        "tolerance": 1.0
+      }
+    },
+    {
+      "id": "CALC_10_Aliados_ListaVacia",
+      "description": "Sin estaciones aliadas la lista de centros debe estar vacía",
+      "guideX": 50.0,
+      "guideY": 50.0,
+      "ownX": 0.0,
+      "ownY": 0.0,
+      "ownSpeed": 5.0,
+      "bpStation": 12,
+      "circleRadiusNm": 1.0,
+      "selectedStations": [],
+      "expected": {
+        "allyCentersCount": 0
+      }
+    },
+    {
+      "id": "CALC_11_Aliados_TresEstaciones",
+      "description": "Con 3 estaciones aliadas la lista debe tener exactamente 3 centros",
+      "guideX": 50.0,
+      "guideY": 50.0,
+      "ownX": 0.0,
+      "ownY": 0.0,
+      "ownSpeed": 5.0,
+      "bpStation": 12,
+      "circleRadiusNm": 1.0,
+      "selectedStations": [1, 2, 3],
+      "expected": {
+        "allyCentersCount": 3
+      }
+    },
+    {
+      "id": "CALC_12_ValoresEsperados_MatchTablaA",
+      "description": "Los valores esperados deben coincidir exactamente con la Tabla A para estacion 12",
+      "guideX": 0.0,
+      "guideY": 0.0,
+      "ownX": 0.0,
+      "ownY": -500.0,
+      "ownSpeed": 5.0,
+      "bpStation": 12,
+      "circleRadiusNm": 1.0,
+      "selectedStations": [],
+      "expected": {
+        "expectedAzDeg": 270.0,
+        "expectedDistNm": 4.0
+      }
+    },
+    {
+      "id": "CALC_13_CentroAliado_CorrectamenteProyectado",
+      "description": "El centro de la estación aliada 3 (Az=90, Dist=2.0) debe proyectarse al Este del Guía",
+      "guideX": 100.0,
+      "guideY": 100.0,
+      "ownX": 0.0,
+      "ownY": 0.0,
+      "ownSpeed": 10.0,
+      "bpStation": 12,
+      "circleRadiusNm": 1.0,
+      "selectedStations": [3],
+      "expected": {
+        "allyCenterX": 102.02537,
+        "allyCenterY": 100.0,
+        "tolerance": 0.001
+      }
+    }
+  ]
+}
