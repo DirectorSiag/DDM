@@ -30,9 +30,35 @@ CommandResult HaCommand::execute(const CommandInvocation& inv, CommandContext& c
     }
 
     // ha --info
+    // ha --info
     if (opts.contains(QStringLiteral("info"))) {
-        const HaOperationResult r = service.infoReport();
-        return { r.ok, r.message };
+        if (!ctx.haSession.active) {
+            return { false, QStringLiteral("[HA] No hay ninguna emergencia activa en este momento.\n") };
+        }
+        const HaSessionState& s = ctx.haSession;
+        QString response;
+        response += QStringLiteral("\n======================================================\n");
+        response += QStringLiteral("               HOMBRE AL AGUA\n");
+        response += QStringLiteral("======================================================\n");
+        response += QStringLiteral("Hora de Caida (Local): %1  |  UTC: %2\n")
+                        .arg(s.fallTimeLocal, s.fallTimeUtc);
+        response += QStringLiteral("Tiempo Transcurrido:   %1\n").arg(s.elapsedTime);
+        response += QStringLiteral("------------------------------------------------------\n");
+        response += QStringLiteral("Azimut Verdadero:      %1 grados\n")
+                        .arg(s.trueAzimuthDeg, 0, 'f', 1);
+        response += QStringLiteral("Marcacion Relativa:    %1 grados  (%2)\n")
+                        .arg(s.relativeBearingDeg, 0, 'f', 1)
+                        .arg(s.banda);
+        response += QStringLiteral("Distancia:             %1 yardas\n")
+                        .arg(s.distanceYards, 0, 'f', 0);
+        if (s.etaValid) {
+            response += QStringLiteral("\n--> TIEMPO DE ARRIBO: %1 minutos\n")
+            .arg(s.timeToArrivalMin, 0, 'f', 1);
+        } else {
+            response += QStringLiteral("\n--> TIEMPO DE ARRIBO: N/D (velocidad en 0)\n");
+        }
+        response += QStringLiteral("======================================================\n\n");
+        return { true, response };
     }
 
     // ha --popa

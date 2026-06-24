@@ -26,8 +26,6 @@ public:
 
     HaOperationResult stopSession();
 
-    HaOperationResult infoReport() const;
-
     void update();
 
 private:
