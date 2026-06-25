@@ -96,9 +96,9 @@ void FondeoService::update()
 
     FondeoCalculator::calculateDistAzPfPa(ownPos, s);
 
-    if (!s.paAlcanzado && s.distanciaPA == 0.0) // Seguramente se tenga que modificar a <= Algún valor razonable
+    if (!s.paAlcanzado && s.distanciaPA <= 50.0) // 50 Yardas, valor de prueba
         s.paAlcanzado = true;
-    if (s.paAlcanzado && s.distanciaPF == 0.0) { // Seguramente se tenga que modificar a <= Algún valor razonable
+    if (s.paAlcanzado && s.distanciaPF == 15.0) { // 15 Yardas, valor de prueba
         m_ctx->out << QStringLiteral("\n[Fondeo] Se ha alcanzado el Punto de Fondeo. Finalizando cálculo cinemático.\n");
         m_ctx->out.flush();
         stopSession();
