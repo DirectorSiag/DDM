@@ -60,7 +60,6 @@ struct HaOperationResult {
 | Disparador 3 | `HaOperationResult startSessionAtLatLonDms(int latDeg, int latMin, double latSec, int lonDeg, int lonMin, double lonSec)` | Convierte GMS a grados decimales vía `RadarMath::dmsToDecimal` y delega en el método privado `startSessionAtLatLon(double, double)`, que valida rangos, valida geo-posición real del BP, convierte a DM vía `RadarMath::latLonToDm` y fija el punto. |
 | Disparador 4 | `HaOperationResult startSessionAtBearing(double azimuthDeg, double distanceYards)` | Valida rangos, proyecta el punto desde el Buque Propio por azimut verdadero y distancia en yardas. |
 | Finalizar | `HaOperationResult stopSession()` | Llama al método `reset()` de la estructura de datos y del cronómetro. Falla si no hay sesión activa. |
-| Reporte | `HaOperationResult infoReport() const` | Construye el reporte de asesoramiento de la sesión activa. Falla si no hay sesión activa. |
 | Actualización | `void update()` | Extrae la posición cinemática actual del Buque Propio e invoca el recálculo. |
 
 - **Métodos internos**:
@@ -80,7 +79,7 @@ struct HaOperationResult {
 - **Consideraciones técnicas del motor**:
   - **Conversión de unidades**: Utiliza el factor constante $1\text{ DM} = 2000\text{ yardas}$ para expresar la distancia al operador.
   - **Restricción de marcación relativa**: La marcación relativa se fuerza siempre al rango $[0°, 180°]$, devolviendo el valor angular menor hacia el punto.
-  - **Tiempo de arribo**: Reutiliza `EstacionamientoCalculator` inyectando como destino el azimut `000°` y distancia `0.0 MN` desde el punto de caída (intercepción directa, distancia cero).
+  - **Tiempo de arribo**: Cálculo directo en `HaCalculator` — `timeToArrivalMin = (distDm / ownSpeedDm) * 60.0`. Se calcula únicamente cuando `ownSpeedDm > 0.0` y `distDm > 0.0`; en caso contrario `etaValid` se fija como `false`.
   - **Determinación de banda**: Se calcula según el ángulo relativo del punto respecto a la proa: `ESTRIBOR` `[0°, 180°)`, `BABOR` `(180°, 360°)`, `PROA` en `≈0°` y `POPA` en `≈180°`.
 
 ### RadarMath::latLonToDm (conversión geográfica)
@@ -196,7 +195,7 @@ flowchart TD
     T8 --> T9[Determinar banda: ESTRIBOR / BABOR / PROA / POPA]
 
     T9 --> T10{"¿ownSpeed > 0 y distancia > 0?"}
-    T10 -->|Sí| T11["EstacionamientoCalculator::compute() — destino az=0°, d=0.0 MN"]
+    T10 -->|Sí| T11["timeToArrivalMin = (distDm / ownSpeedDm) × 60.0"]
     T10 -->|No| T12[etaValid = false, timeToArrivalMin = 0.0]
 
     T11 --> T13[Actualizar ctx->haSession con resultados]
@@ -207,7 +206,7 @@ flowchart TD
     classDef ok fill:#ccffcc,stroke:#007700,color:#004400
     class FT ok
 ```
-
+> **Nota sobre la velocidad**: `HaService::update()` obtiene la velocidad del Buque Propio desde `ctx->ownShip.speedKnots` (convertida a DM/h dividiendo por `Track::kDmToNm`), no directamente desde el Track 0. Esto garantiza que el cálculo use la velocidad reportada por el sistema de navegación incluso si el Track 0 no tiene la velocidad sincronizada.
 ---
 
 ## Estructuras de Datos Clave
@@ -236,5 +235,4 @@ Mantiene la separación limpia entre datos fijos al inicio de la emergencia y m�
 ## Módulos Relacionados
 
 - `src/model/commandContext.h` — Estructura general de ejecución.
-- `docs/modules/estacionamiento.md` — Pipeline del motor de cálculo reutilizado para el ETA.
 - `docs/modules/2w.md` — Pipeline homólogo de formación táctica continua.
