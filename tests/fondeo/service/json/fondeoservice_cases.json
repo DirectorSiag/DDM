@@ -1,0 +1,225 @@
+{
+  "fondeoServiceTestCases": [
+
+    {
+      "id": "SVC_01_StartSession_Exitoso_ModoTrack",
+      "description": "startSession exitosa en modo Track con track existente y parámetros válidos",
+      "inputs": {
+        "useTrack": true, "useGms": false,
+        "trackId": 1, "trackX": 5.0, "trackY": 3.0,
+        "trackAz": 90.0, "trackDt": 2.0,
+        "paAz": 180.0, "paDt": 1.0,
+        "r1": 2000.0, "r2": 1500.0, "r3": 800.0, "r4": 100.0, "r5": 50.0,
+        "injectOwnShipGeo": false
+      },
+      "expected": { "success": true, "messageContains": "iniciada" }
+    },
+
+    {
+      "id": "SVC_02_StartSession_Exitoso_ModoGMS",
+      "description": "startSession exitosa en modo GMS con buque propio con coordenadas válidas",
+      "inputs": {
+        "useTrack": false, "useGms": true,
+        "pfLatDeg": -34, "pfLatMin": 30, "pfLatSec": 0.0,
+        "pfLonDeg": -58, "pfLonMin": 0,  "pfLonSec": 0.0,
+        "paAz": 270.0, "paDt": 1.0,
+        "r1": 2000.0, "r2": 1500.0, "r3": 800.0, "r4": 100.0, "r5": 50.0,
+        "injectOwnShipGeo": true, "ownShipLat": -34.6, "ownShipLon": -58.4
+      },
+      "expected": { "success": true, "messageContains": "iniciada" }
+    },
+
+    {
+      "id": "SVC_03_StartSession_Error_AmbosModos",
+      "description": "Error: useTrack=true y useGms=true simultáneamente",
+      "inputs": {
+        "useTrack": true, "useGms": true,
+        "trackId": 1, "trackX": 5.0, "trackY": 3.0,
+        "trackAz": 90.0, "trackDt": 2.0,
+        "paAz": 90.0, "paDt": 1.0,
+        "r1": 2000.0, "r2": 1500.0, "r3": 800.0, "r4": 100.0, "r5": 50.0,
+        "injectOwnShipGeo": false
+      },
+      "expected": { "success": false, "messageContains": "solo modo" }
+    },
+
+    {
+      "id": "SVC_04_StartSession_Error_NingunModo",
+      "description": "Error: useTrack=false y useGms=false",
+      "inputs": {
+        "useTrack": false, "useGms": false,
+        "paAz": 90.0, "paDt": 1.0,
+        "r1": 2000.0, "r2": 1500.0, "r3": 800.0, "r4": 100.0, "r5": 50.0,
+        "injectOwnShipGeo": false
+      },
+      "expected": { "success": false, "messageContains": "modo de operación" }
+    },
+
+    {
+      "id": "SVC_05_StartSession_Error_TrackInexistente",
+      "description": "Error: trackId=99 no existe en el contexto",
+      "inputs": {
+        "useTrack": true, "useGms": false,
+        "trackId": 99, "trackAz": 90.0, "trackDt": 2.0,
+        "paAz": 90.0, "paDt": 1.0,
+        "r1": 2000.0, "r2": 1500.0, "r3": 800.0, "r4": 100.0, "r5": 50.0,
+        "injectOwnShipGeo": false
+      },
+      "expected": { "success": false, "messageContains": "no existe" }
+    },
+
+    {
+      "id": "SVC_06_StartSession_Error_PaAz_Negativo",
+      "description": "Error: azimut del PA es negativo (fuera del rango 0-359)",
+      "inputs": {
+        "useTrack": true, "useGms": false,
+        "trackId": 1, "trackX": 5.0, "trackY": 3.0,
+        "trackAz": 90.0, "trackDt": 2.0,
+        "paAz": -10.0, "paDt": 1.0,
+        "r1": 2000.0, "r2": 1500.0, "r3": 800.0, "r4": 100.0, "r5": 50.0,
+        "injectOwnShipGeo": false
+      },
+      "expected": { "success": false, "messageContains": "azimut al Punto Auxiliar" }
+    },
+
+    {
+      "id": "SVC_07_StartSession_Error_PaAz_Mayor360",
+      "description": "Error: azimut del PA >= 360",
+      "inputs": {
+        "useTrack": true, "useGms": false,
+        "trackId": 1, "trackX": 5.0, "trackY": 3.0,
+        "trackAz": 90.0, "trackDt": 2.0,
+        "paAz": 360.0, "paDt": 1.0,
+        "r1": 2000.0, "r2": 1500.0, "r3": 800.0, "r4": 100.0, "r5": 50.0,
+        "injectOwnShipGeo": false
+      },
+      "expected": { "success": false, "messageContains": "azimut al Punto Auxiliar" }
+    },
+
+    {
+      "id": "SVC_08_StartSession_Error_PaDt_Cero",
+      "description": "Error: distancia al PA es cero",
+      "inputs": {
+        "useTrack": true, "useGms": false,
+        "trackId": 1, "trackX": 5.0, "trackY": 3.0,
+        "trackAz": 90.0, "trackDt": 2.0,
+        "paAz": 90.0, "paDt": 0.0,
+        "r1": 2000.0, "r2": 1500.0, "r3": 800.0, "r4": 100.0, "r5": 50.0,
+        "injectOwnShipGeo": false
+      },
+      "expected": { "success": false, "messageContains": "distancia al Punto Auxiliar" }
+    },
+
+    {
+      "id": "SVC_09_StartSession_Error_RadiosNoDecrecientes",
+      "description": "Error: r1 < r2 (radios no cumplen r1 > r2 > r3 > r4 > r5)",
+      "inputs": {
+        "useTrack": true, "useGms": false,
+        "trackId": 1, "trackX": 5.0, "trackY": 3.0,
+        "trackAz": 90.0, "trackDt": 2.0,
+        "paAz": 90.0, "paDt": 1.0,
+        "r1": 500.0, "r2": 1500.0, "r3": 800.0, "r4": 100.0, "r5": 50.0,
+        "injectOwnShipGeo": false
+      },
+      "expected": { "success": false, "messageContains": "estrictamente decrecientes" }
+    },
+
+    {
+      "id": "SVC_10_StartSession_Error_R5_Cero",
+      "description": "Error: r5=0 (todos los radios deben ser > 0)",
+      "inputs": {
+        "useTrack": true, "useGms": false,
+        "trackId": 1, "trackX": 5.0, "trackY": 3.0,
+        "trackAz": 90.0, "trackDt": 2.0,
+        "paAz": 90.0, "paDt": 1.0,
+        "r1": 2000.0, "r2": 1500.0, "r3": 800.0, "r4": 100.0, "r5": 0.0,
+        "injectOwnShipGeo": false
+      },
+      "expected": { "success": false, "messageContains": "estrictamente decrecientes" }
+    },
+
+    {
+      "id": "SVC_11_StartSession_Error_GMS_SinCoordenadasBP",
+      "description": "Error: modo GMS pero el buque propio no tiene coordenadas geográficas",
+      "inputs": {
+        "useTrack": false, "useGms": true,
+        "pfLatDeg": -34, "pfLatMin": 30, "pfLatSec": 0.0,
+        "pfLonDeg": -58, "pfLonMin": 0,  "pfLonSec": 0.0,
+        "paAz": 90.0, "paDt": 1.0,
+        "r1": 2000.0, "r2": 1500.0, "r3": 800.0, "r4": 100.0, "r5": 50.0,
+        "injectOwnShipGeo": false
+      },
+      "expected": { "success": false, "messageContains": "no tiene coordenadas" }
+    },
+
+    {
+      "id": "SVC_12_StartSession_ActivaLaSesion",
+      "description": "Después de startSession exitosa: active=true, paAlcanzado=false",
+      "inputs": {
+        "useTrack": true, "useGms": false,
+        "trackId": 1, "trackX": 5.0, "trackY": 3.0,
+        "trackAz": 90.0, "trackDt": 2.0,
+        "paAz": 180.0, "paDt": 1.0,
+        "r1": 2000.0, "r2": 1500.0, "r3": 800.0, "r4": 100.0, "r5": 50.0,
+        "injectOwnShipGeo": false
+      },
+      "expected": { "active": true, "paAlcanzado": false }
+    },
+
+    {
+      "id": "SVC_13_StartSession_PersisteFondeoConfig",
+      "description": "Después de startSession: el config queda guardado en el estado de sesión",
+      "inputs": {
+        "useTrack": true, "useGms": false,
+        "trackId": 2, "trackX": 0.0, "trackY": 0.0,
+        "trackAz": 0.0, "trackDt": 1.0,
+        "paAz": 45.0, "paDt": 0.5,
+        "r1": 1000.0, "r2": 700.0, "r3": 400.0, "r4": 200.0, "r5": 80.0,
+        "injectOwnShipGeo": false
+      },
+      "expected": {
+        "r1": 1000.0, "r2": 700.0, "r3": 400.0, "r4": 200.0, "r5": 80.0,
+        "paAz": 45.0, "paDt": 0.5
+      }
+    },
+
+    {
+      "id": "SVC_14_StartSession_ResetSesionPrevia",
+      "description": "Una segunda startSession resetea el estado de la sesión anterior",
+      "inputs": {
+        "useTrack": true, "useGms": false,
+        "trackId": 1, "trackX": 5.0, "trackY": 3.0,
+        "trackAz": 90.0, "trackDt": 2.0,
+        "paAz": 180.0, "paDt": 1.0,
+        "r1": 2000.0, "r2": 1500.0, "r3": 800.0, "r4": 100.0, "r5": 50.0,
+        "injectOwnShipGeo": false
+      },
+      "expected": { "active": true, "paAlcanzado": false }
+    },
+
+    {
+      "id": "SVC_15_StopSession_ConSesionActiva",
+      "description": "stopSession exitosa cuando hay una sesión activa: success=true, active=false",
+      "inputs": {},
+      "expected": { "success": true, "messageContains": "finalizada" }
+    },
+
+    {
+      "id": "SVC_16_StopSession_SinSesionActiva",
+      "description": "stopSession falla si no hay ninguna sesión activa",
+      "inputs": {},
+      "expected": { "success": false, "messageContains": "No hay ninguna" }
+    },
+
+    {
+      "id": "SVC_17_StopSession_LimpiaTodoElEstado",
+      "description": "stopSession deja el FondeoSessionState en sus valores por defecto",
+      "inputs": {},
+      "expected": {
+        "active": false, "paAlcanzado": false,
+        "distanciaPF": 0.0, "azimutPF": 0.0
+      }
+    }
+
+  ]
+}
