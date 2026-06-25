@@ -119,6 +119,11 @@ CommandResult FondeoCommand::execute(const CommandInvocation& inv, CommandContex
 
     if (!ok) return { false, QStringLiteral("Error: Todos los radios (--r1 a --r5) deben ser numeros.") };
 
+    config.paAz = opts.value("pa-az").toDouble(&ok);
+    config.paDt = opts.value("pa-dt").toDouble(&ok);
+
+    if (!ok) return { false, QStringLiteral("Error: Los parametros del Punto Auxiliar (--pa-az y --pa-dt) deben ser numeros.") };
+
     FondeoOperationResult result = service.startSession(config);
     if (!result.success) {
         return { false, result.message };
