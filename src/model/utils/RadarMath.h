@@ -1,7 +1,7 @@
 #pragma once
 #include <QPointF>
 #include <QtMath>
-#include <qmath.h> 
+#include <qmath.h>
 #include <QFloat16>
 
 class RadarMath {
@@ -23,7 +23,14 @@ public:
     // Conversión de unidades
     static constexpr double kYardsPerDm = 2000.0;
     static double dmToYards(double dm) { return dm * kYardsPerDm; }
-    static double yardsToDm(double yards) { return yards / kYardsPerDm; }   
+    static double yardsToDm(double yards) { return yards / kYardsPerDm; }
+
+    // Convierte diferencia lat/lon a coordenadas DM relativas al origen (BP).
+    static void latLonToDm(
+        double originLat, double originLon,
+        double targetLat, double targetLon,
+        double& outXDm,   double& outYDm
+        );
     // Convierte coordenada en formato GMS a grados decimales.
     static double dmsToDecimal(int degrees, int minutes, double seconds);
 private:

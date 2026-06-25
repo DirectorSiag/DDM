@@ -28,27 +28,31 @@ FondeoOperationResult FondeoService::startSession(const FondeoConfig& config)
     }
 
     QPointF trackPos(0.0, 0.0);
-    double ownLatDec = 0.0;
-    double ownLonDec = 0.0;
+    double ownLatDeg = 0.0;
+    double ownLonDeg = 0.0;
+    QPointF puntoFondeo;
 
     if (config.useTrack) {
+        // --- MODO TRACK DE REFERENCIA ---
         const Track* trackRef = m_ctx->findTrackById(config.trackId);
         if (!trackRef) {
             return { false, QStringLiteral("Error: El Track de referencia %1 no existe.").arg(config.trackId)};
         }
         trackPos = QPointF(trackRef->getX(), trackRef->getY());
+        puntoFondeo = FondeoCalculator::resolvePuntoFondeo(config, trackPos);
     } else {
-        const Track* ownTrack = m_ctx->findTrackById(0);
-        if (!ownTrack) {
-            return { false, QStringLiteral("Error: No se encontro el Track 0 (Buque Propio) para referenciar el GMS.")} ;
+        // --- MODO GMS ---
+        const bool bpHasGeo = m_ctx->ownShip.valid &&
+                              !(m_ctx->ownShip.latitudeDeg == 0.0 && m_ctx->ownShip.longitudeDeg == 0.0);
+
+        if (!bpHasGeo) {
+            return { false, QStringLiteral("Error: El Buque Propio no tiene coordenadas geográficas válidas para usar el modo GMS.") };
         }
 
-        // --- TODO: DESCOMENTAR CUANDO TRACK IMPLEMENTE GETTERS DE LAT/LON ---
-        // ownLatDec = ownTrack->getLatitudDecimal();
-        // ownLonDec = ownTrack->getLongitudDecimal();
+        ownLatDeg = m_ctx->ownShip.latitudeDeg;
+        ownLonDeg = m_ctx->ownShip.longitudeDeg;
+        puntoFondeo = FondeoCalculator::resolvePuntoFondeo(config, ownLatDeg, ownLonDeg);
     }
-
-    QPointF puntoFondeo = FondeoCalculator::resolvePuntoFondeo(config, trackPos, ownLatDec, ownLonDec);
 
     QPointF puntoAuxiliar = FondeoCalculator::resolvePuntoAuxiliar(puntoFondeo, config.paAz, config.paDt);
 

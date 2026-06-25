@@ -2,9 +2,8 @@
 #include "RadarMath.h"
 #include <cmath>
 
-QPointF FondeoCalculator::resolvePuntoFondeo(const FondeoConfig& config, const QPointF& trackPos, double ownLatDec, double ownLonDec)
+QPointF FondeoCalculator::resolvePuntoFondeo(const FondeoConfig& config, const QPointF& trackPos)
 {
-    if (config.useTrack) {
         // --- MODO TRACK ---
         const double kMnToDm = 1.012685;
         double distanceDm = config.trackDt * kMnToDm;
@@ -14,19 +13,19 @@ QPointF FondeoCalculator::resolvePuntoFondeo(const FondeoConfig& config, const Q
             trackPos.x() + distanceDm * std::sin(rad),
             trackPos.y() + distanceDm * std::cos(rad)
             );
-    } else {
-        // --- MODO GMS ---
+}
 
-        // Convertimos el GMS del PF a Decimal
-        double pfLatDec = RadarMath::dmsToDecimal(config.pfLatDeg, config.pfLatMin, config.pfLatSec);
-        double pfLonDec = RadarMath::dmsToDecimal(config.pfLonDeg, config.pfLonMin, config.pfLonSec);
+QPointF FondeoCalculator::resolvePuntoFondeo(const FondeoConfig& config, double ownLatDec, double ownLonDec)
+{
+    double pfLatDec = RadarMath::dmsToDecimal(config.pfLatDeg, config.pfLatMin, config.pfLatSec);
+    double pfLonDec = RadarMath::dmsToDecimal(config.pfLonDeg, config.pfLonMin, config.pfLonSec);
 
-        // Proyectamos usando la posición del Buque Propio (ownLatDec, ownLonDec)
-        // --- TODO: REEMPLAZAR CUANDO RADARMATH LA IMPLEMENTE ---
-        // return rm.funcion(ownLatDec, ownLonDec, pfLatDec, pfLonDec);
+    double xDm = 0.0;
+    double yDm = 0.0;
 
-        return QPointF(0.0, 0.0); // Placeholder
-    }
+    RadarMath::latLonToDm(ownLatDec, ownLonDec, pfLatDec, pfLonDec, xDm, yDm);
+
+    return QPointF(xDm, yDm);
 }
 
 QPointF FondeoCalculator::resolvePuntoAuxiliar(const QPointF& pf, double paAz, double paDt)
