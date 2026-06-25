@@ -25,7 +25,7 @@ CommandResult FondeoCommand::execute(const CommandInvocation& inv, CommandContex
 
     if (opts.contains(QStringLiteral("info"))) {
         if (!ctx.fondeoSession.active) {
-            return { true, QStringLiteral("[Fondeo] La maniobra dpero noe fondeo no se encuentra activa en este momento.\n") };
+            return { true, QStringLiteral("[Fondeo] La maniobra de fondeo no se encuentra activa en este momento.\n") };
         }
 
         const FondeoSessionState& s = ctx.fondeoSession;
