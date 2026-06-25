@@ -127,7 +127,11 @@ void HaService::update() {
         bpX      = bp->getX();
         bpY      = bp->getY();
         bpCourse = bp->getCourseDeg();
-        bpSpeed  = bp->getVelocidadDmPerHour();
+    }
+
+    // Leer velocidad desde ownShip y convertir knots → DM/h
+    if (m_ctx->ownShip.valid && m_ctx->ownShip.speedKnots > 0.0) {
+        bpSpeed = m_ctx->ownShip.speedKnots / Track::kDmToNm;
     }
 
     const QPointF ownPos(bpX, bpY);

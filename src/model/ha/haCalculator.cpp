@@ -1,6 +1,5 @@
 #include "haCalculator.h"
 #include "model/utils/RadarMath.h"
-#include "model/estacionamientocalculator.h"
 #include <cmath>
 
 void HaCalculator::calculate(
@@ -12,56 +11,31 @@ void HaCalculator::calculate(
 {
     outState.haIconCenter = fallPoint;
 
-    //Azimut verdadero BP → punto de caída
+    // Azimut verdadero BP → punto de caída (cálculo directo, sin ajuste de pantalla)
+    double dx = fallPoint.x() - ownPos.x();
+    double dy = fallPoint.y() - ownPos.y();
+    double distDm = std::sqrt(dx * dx + dy * dy);
     outState.trueAzimuthDeg = RadarMath::normalizeAngle360(
-        RadarMath::calculateAngle(ownPos, fallPoint)
+        std::atan2(dx, dy) * (180.0 / M_PI)
         );
 
-    double distDm = RadarMath::calculateLength(ownPos, fallPoint);
+    // Distancia en yardas
     outState.distanceYards = RadarMath::dmToYards(distDm);
 
+    // Marcación relativa [0–180°]
     double rel = RadarMath::normalizeAngle360(outState.trueAzimuthDeg - ownCourseDeg);
     if (rel > 180.0) rel = 360.0 - rel;
     outState.relativeBearingDeg = rel;
 
+    // Banda
     outState.banda = computeBanda(
         RadarMath::normalizeAngle360(outState.trueAzimuthDeg - ownCourseDeg)
         );
 
-    //Tiempo de arribo
-    EstacionamientoCalculator::KinematicState stateA;
-    stateA.xDm            = ownPos.x();
-    stateA.yDm            = ownPos.y();
-    stateA.speedDmPerHour = ownSpeedDm;
-    stateA.courseDeg      = ownCourseDeg;
-    stateA.valid          = (ownSpeedDm > 0.0);
-
-    EstacionamientoCalculator::KinematicState stateB;
-    stateB.xDm            = fallPoint.x();
-    stateB.yDm            = fallPoint.y();
-    stateB.speedDmPerHour = 0.0;
-    stateB.courseDeg      = 0.0;
-    stateB.valid          = true;
-
-    EstacionamientoCalculator::Input input;
-    input.trackA        = stateA;
-    input.trackB        = stateB;
-    input.azRelativeDeg = 0.0;
-    input.distanceDm    = 0.0;
-    input.useSpeedMode  = true;
-    input.vdDmPerHour   = ownSpeedDm;
-
+    // Tiempo de arribo — cálculo directo (destino estático sobre el punto)
     if (ownSpeedDm > 0.0 && distDm > 0.0) {
-        const EstacionamientoCalculator::Result result =
-            EstacionamientoCalculator::compute(input);
-
-        if (result.status == EstacionamientoCalculator::Result::Valid) {
-            outState.timeToArrivalMin = result.timeHours * 60.0;
-            outState.etaValid = true;
-        } else {
-            outState.timeToArrivalMin = 0.0;
-            outState.etaValid = false;
-        }
+        outState.timeToArrivalMin = (distDm / ownSpeedDm) * 60.0;
+        outState.etaValid = true;
     } else {
         outState.timeToArrivalMin = 0.0;
         outState.etaValid = false;
