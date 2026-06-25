@@ -50,8 +50,8 @@ CommandResult FondeoCommand::execute(const CommandInvocation& inv, CommandContex
     }
 
     if (opts.contains(QStringLiteral("stop"))) {
-        service.stopSession();
-        return { true, QStringLiteral("Maniobra de fondeo finalizada.") };
+        FondeoOperationResult result = service.stopSession();
+        return { result.success, result.message };
     }
 
     // 1. Identificar si es modo Track o modo GMS
@@ -119,10 +119,10 @@ CommandResult FondeoCommand::execute(const CommandInvocation& inv, CommandContex
 
     if (!ok) return { false, QStringLiteral("Error: Todos los radios (--r1 a --r5) deben ser numeros.") };
 
-    QString errorMsg;
-    if (!service.startSession(config, errorMsg)) {
-        return { false, errorMsg };
+    FondeoOperationResult result = service.startSession(config);
+    if (!result.success) {
+        return { false, result.message };
     }
 
-    return { true, QStringLiteral("Comando parseado con exito. Datos listos para el servicio.") };
+    return { true, result.message };
 }

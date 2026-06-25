@@ -2,12 +2,17 @@
 
 #include "commandContext.h"
 
+struct FondeoOperationResult {
+    bool success;
+    QString message;
+};
+
 class FondeoService {
 public:
     explicit FondeoService(CommandContext* ctx);
 
-    bool startSession(const FondeoConfig& config, QString& outError);
-    void stopSession();
+    FondeoOperationResult startSession(const FondeoConfig& config);
+    FondeoOperationResult stopSession();
     void update();
 
 private:

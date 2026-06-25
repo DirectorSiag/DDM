@@ -1,4 +1,5 @@
-#pragma once
+#ifndef FONDEO_SESSION_STATE_H
+#define FONDEO_SESSION_STATE_H
 
 #include <QPointF>
 #include <QString>
@@ -53,3 +54,5 @@ struct FondeoSessionState {
 
     void reset() { *this = FondeoSessionState{}; }
 };
+
+#endif // FONDEO_SESSION_STATE_H

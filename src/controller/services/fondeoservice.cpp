@@ -5,31 +5,26 @@ FondeoService::FondeoService(CommandContext* ctx)
     : m_ctx(ctx)
 {}
 
-bool FondeoService::startSession(const FondeoConfig& config, QString& outError)
+FondeoOperationResult FondeoService::startSession(const FondeoConfig& config)
 {
     if (!config.useTrack && !config.useGms) {
-        outError = QStringLiteral("Error: Se debe especificar explícitamente el modo de operación (useTrack = true o useGms = true).");
-        return false;
+        return { false,QStringLiteral("Error: Se debe especificar explícitamente el modo de operación (useTrack = true o useGms = true).")};
     }
 
     if (config.useTrack && config.useGms) {
-        outError = QStringLiteral("Error: Se debe especificar un solo modo de operación (useTrack = true o useGms = true).");
-        return false;
+        return { false,QStringLiteral("Error: Se debe especificar un solo modo de operación (useTrack = true o useGms = true).")};
     }
 
     if (config.paAz < 0.0 || config.paAz >= 360.0) {
-        outError = QStringLiteral("Error: El azimut al Punto Auxiliar debe estar entre 0 y 359 grados.");
-        return false;
+        return { false,QStringLiteral("Error: El azimut al Punto Auxiliar debe estar entre 0 y 359 grados.")};
     }
     if (config.paDt <= 0.0) {
-        outError = QStringLiteral("Error: La distancia al Punto Auxiliar debe ser mayor a cero.");
-        return false;
+        return { false,QStringLiteral("Error: La distancia al Punto Auxiliar debe ser mayor a cero.")};
     }
 
     if (!(config.r1 > config.r2 && config.r2 > config.r3 &&
           config.r3 > config.r4 && config.r4 > config.r5 && config.r5 > 0)) {
-        outError = QStringLiteral("Error: Los radios deben ser estrictamente decrecientes (R1 > R2 > R3 > R4 > R5) y mayores a cero.");
-        return false;
+        return { false,QStringLiteral("Error: Los radios deben ser estrictamente decrecientes (R1 > R2 > R3 > R4 > R5) y mayores a cero.")};
     }
 
     QPointF trackPos(0.0, 0.0);
@@ -39,15 +34,13 @@ bool FondeoService::startSession(const FondeoConfig& config, QString& outError)
     if (config.useTrack) {
         const Track* trackRef = m_ctx->findTrackById(config.trackId);
         if (!trackRef) {
-            outError = QStringLiteral("Error: El Track de referencia %1 no existe.").arg(config.trackId);
-            return false;
+            return { false, QStringLiteral("Error: El Track de referencia %1 no existe.").arg(config.trackId)};
         }
         trackPos = QPointF(trackRef->getX(), trackRef->getY());
     } else {
         const Track* ownTrack = m_ctx->findTrackById(0);
         if (!ownTrack) {
-            outError = QStringLiteral("Error: No se encontro el Track 0 (Buque Propio) para referenciar el GMS.");
-            return false;
+            return { false, QStringLiteral("Error: No se encontro el Track 0 (Buque Propio) para referenciar el GMS.")} ;
         }
 
         // --- TODO: DESCOMENTAR CUANDO TRACK IMPLEMENTE GETTERS DE LAT/LON ---
@@ -66,17 +59,16 @@ bool FondeoService::startSession(const FondeoConfig& config, QString& outError)
     m_ctx->fondeoSession.active = true;
     m_ctx->fondeoSession.paAlcanzado = false;
 
-    m_ctx->out << QStringLiteral("\n[Fondeo] Maniobra de fondeo iniciada.\n");
-    m_ctx->out.flush();
-
-    return true;
+    return { true, QStringLiteral("[Fondeo] Maniobra de fondeo iniciada con éxito.") };
 }
 
-void FondeoService::stopSession()
+FondeoOperationResult FondeoService::stopSession()
 {
+    if (!m_ctx->fondeoSession.active) {
+        return { false, QStringLiteral("[Fondeo] No hay ninguna maniobra de fondeo activa en este momento.") };
+    }
     m_ctx->fondeoSession.reset();
-    m_ctx->out << QStringLiteral("\n[Fondeo] Maniobra de fondeo finalizada.\n");
-    m_ctx->out.flush();
+    return { true, QStringLiteral("[Fondeo] Maniobra de fondeo finalizada.") };
 }
 
 void FondeoService::update()
@@ -96,9 +88,11 @@ void FondeoService::update()
 
     FondeoCalculator::calculateDistAzPfPa(ownPos, s);
 
-    if (!s.paAlcanzado && s.distanciaPA <= 50.0) // 50 Yardas, valor de prueba
+    if (!s.paAlcanzado && s.distanciaPA <= 50.0){ // 50 Yardas, valor de prueba
+        m_ctx->out << QStringLiteral("\n[Fondeo] Se ha alcanzado el Punto Auxiliar.\n");
         s.paAlcanzado = true;
-    if (s.paAlcanzado && s.distanciaPF == 15.0) { // 15 Yardas, valor de prueba
+    }
+    if (s.paAlcanzado && s.distanciaPF <= 15.0) { // 15 Yardas, valor de prueba
         m_ctx->out << QStringLiteral("\n[Fondeo] Se ha alcanzado el Punto de Fondeo. Finalizando cálculo cinemático.\n");
         m_ctx->out.flush();
         stopSession();
