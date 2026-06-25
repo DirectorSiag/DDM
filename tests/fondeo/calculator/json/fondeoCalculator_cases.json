@@ -1,0 +1,324 @@
+{
+  "fondeoCalculatorTestCases": [
+
+    {
+      "id": "CALC_01_ResolvePF_Track_Az90_Este",
+      "description": "resolvePuntoFondeo modo Track: az=90° desplaza solo en X. trackPos=(5,3), dt=2.0MN → x≈7.0254, y≈3.0",
+      "inputs": {
+        "mode": "track",
+        "trackX": 5.0,
+        "trackY": 3.0,
+        "trackAz": 90.0,
+        "trackDt": 2.0
+      },
+      "expected": {
+        "pfX": 7.0254,
+        "pfY": 3.0
+      }
+    },
+
+    {
+      "id": "CALC_02_ResolvePF_Track_Az0_Norte",
+      "description": "resolvePuntoFondeo modo Track: az=0° desplaza solo en Y. trackPos=(0,0), dt=1.0MN → x≈0, y≈1.012685",
+      "inputs": {
+        "mode": "track",
+        "trackX": 0.0,
+        "trackY": 0.0,
+        "trackAz": 0.0,
+        "trackDt": 1.0
+      },
+      "expected": {
+        "pfX": 0.0,
+        "pfY": 1.0127
+      }
+    },
+
+    {
+      "id": "CALC_03_ResolvePF_Track_Az180_Sur",
+      "description": "resolvePuntoFondeo modo Track: az=180° desplaza en -Y. trackPos=(0,0), dt=1.0MN → x≈0, y<0",
+      "inputs": {
+        "mode": "track",
+        "trackX": 0.0,
+        "trackY": 0.0,
+        "trackAz": 180.0,
+        "trackDt": 1.0
+      },
+      "expected": {
+        "pfX": 0.0,
+        "pfYIsNegative": true
+      }
+    },
+
+    {
+      "id": "CALC_04_ResolvePF_Track_DistanciaCero",
+      "description": "resolvePuntoFondeo modo Track: distancia=0 → PF coincide con trackPos",
+      "inputs": {
+        "mode": "track",
+        "trackX": 2.0,
+        "trackY": 7.0,
+        "trackAz": 45.0,
+        "trackDt": 0.0
+      },
+      "expected": {
+        "pfX": 2.0,
+        "pfY": 7.0
+      }
+    },
+
+    {
+      "id": "CALC_05_ResolvePF_GMS_MismaPosicion",
+      "description": "resolvePuntoFondeo modo GMS: PF en la misma posición que el BP → resultado (0, 0)",
+      "inputs": {
+        "mode": "gms",
+        "pfLatDeg": -34, "pfLatMin": 36, "pfLatSec": 0.0,
+        "pfLonDeg": -58, "pfLonMin": 24, "pfLonSec": 0.0,
+        "ownLat": -34.6,
+        "ownLon": -58.4
+      },
+      "expected": {
+        "pfX": 0.0,
+        "pfY": 0.0
+      }
+    },
+
+    {
+      "id": "CALC_06_ResolvePF_GMS_PfAlNorte",
+      "description": "resolvePuntoFondeo modo GMS: PF al norte del BP → yDm positivo, xDm≈0 (misma longitud)",
+      "inputs": {
+        "mode": "gms",
+        "pfLatDeg": -34, "pfLatMin": 30, "pfLatSec": 0.0,
+        "pfLonDeg": -58, "pfLonMin": 24, "pfLonSec": 0.0,
+        "ownLat": -34.6,
+        "ownLon": -58.4
+      },
+      "expected": {
+        "pfXIsZero": true,
+        "pfYIsPositive": true,
+        "pfY": 6.087
+      }
+    },
+
+    {
+      "id": "CALC_07_ResolvePuntoAuxiliar_Az0_Norte",
+      "description": "resolvePuntoAuxiliar: az=0° desde PF=(0,0), dt=1.0MN → PA al norte, x≈0, y≈1.012685",
+      "inputs": {
+        "pfX": 0.0,
+        "pfY": 0.0,
+        "paAz": 0.0,
+        "paDt": 1.0
+      },
+      "expected": {
+        "paX": 0.0,
+        "paY": 1.0127
+      }
+    },
+
+    {
+      "id": "CALC_08_ResolvePuntoAuxiliar_Az90_Este",
+      "description": "resolvePuntoAuxiliar: az=90° desde PF=(5,5) → PA al este, x>pfX, y≈pfY",
+      "inputs": {
+        "pfX": 5.0,
+        "pfY": 5.0,
+        "paAz": 90.0,
+        "paDt": 1.0
+      },
+      "expected": {
+        "paXGreaterThanPfX": true,
+        "paYEqualsPfY": true
+      }
+    },
+
+    {
+      "id": "CALC_09_ResolvePuntoAuxiliar_Az180_Sur",
+      "description": "resolvePuntoAuxiliar: az=180° desde PF=(0,0) → PA al sur, x≈0, y<0",
+      "inputs": {
+        "pfX": 0.0,
+        "pfY": 0.0,
+        "paAz": 180.0,
+        "paDt": 1.0
+      },
+      "expected": {
+        "paX": 0.0,
+        "paYIsNegative": true
+      }
+    },
+
+    {
+      "id": "CALC_10_ResolvePuntoAuxiliar_DistanciaCero",
+      "description": "resolvePuntoAuxiliar: distancia=0 → PA coincide con PF",
+      "inputs": {
+        "pfX": 3.0,
+        "pfY": 7.0,
+        "paAz": 45.0,
+        "paDt": 0.0
+      },
+      "expected": {
+        "paX": 3.0,
+        "paY": 7.0
+      }
+    },
+
+    {
+      "id": "CALC_11_DistAzPfPa_Pitagoras",
+      "description": "calculateDistAzPfPa: geometría 3-4-5. ownPos=(0,0), PF=(3,4)→10000yds, PA=(0,4)→8000yds",
+      "inputs": {
+        "ownX": 0.0, "ownY": 0.0,
+        "pfX": 3.0,  "pfY": 4.0,
+        "paX": 0.0,  "paY": 4.0
+      },
+      "expected": {
+        "distanciaPF": 10000.0,
+        "distanciaPA": 8000.0
+      }
+    },
+
+    {
+      "id": "CALC_12_DistAzPfPa_AzimutPF_Este",
+      "description": "calculateDistAzPfPa: PF=(1,0) directamente al este del BP=(0,0) → azimutPF≈90°",
+      "inputs": {
+        "ownX": 0.0, "ownY": 0.0,
+        "pfX": 1.0,  "pfY": 0.0,
+        "paX": 0.0,  "paY": 1.0
+      },
+      "expected": {
+        "azimutPF": 90.0
+      }
+    },
+
+    {
+      "id": "CALC_13_DistAzPfPa_BPCoincideConPF",
+      "description": "calculateDistAzPfPa: BP en la misma posición que PF → distanciaPF=0",
+      "inputs": {
+        "ownX": 2.0, "ownY": 2.0,
+        "pfX": 2.0,  "pfY": 2.0,
+        "paX": 5.0,  "paY": 5.0
+      },
+      "expected": {
+        "distanciaPF": 0.0
+      }
+    },
+
+    {
+      "id": "CALC_14_MarcacionRelativa_FasePA",
+      "description": "calculateMarcacionRelativa: paAlcanzado=false → usa azPA. azPA=0°, ownCourse=45° → azRel=315°, distRel=distPA",
+      "inputs": {
+        "paAlcanzado": false,
+        "azimutPA": 0.0,
+        "distanciaPA": 500.0,
+        "azimutPF": 90.0,
+        "distanciaPF": 1000.0,
+        "ownCourse": 45.0
+      },
+      "expected": {
+        "azimutRelativo": 315.0,
+        "distanciaRelativa": 500.0
+      }
+    },
+
+    {
+      "id": "CALC_15_MarcacionRelativa_FasePF",
+      "description": "calculateMarcacionRelativa: paAlcanzado=true → usa azPF. azPF=90°, ownCourse=45° → azRel=45°, distRel=distPF",
+      "inputs": {
+        "paAlcanzado": true,
+        "azimutPA": 0.0,
+        "distanciaPA": 500.0,
+        "azimutPF": 90.0,
+        "distanciaPF": 200.0,
+        "ownCourse": 45.0
+      },
+      "expected": {
+        "azimutRelativo": 45.0,
+        "distanciaRelativa": 200.0
+      }
+    },
+
+    {
+      "id": "CALC_16_MarcacionRelativa_WrapAround",
+      "description": "calculateMarcacionRelativa: resultado sin wrap sería negativo. azPA=10°, ownCourse=350° → azRel=20°",
+      "inputs": {
+        "paAlcanzado": false,
+        "azimutPA": 10.0,
+        "distanciaPA": 100.0,
+        "azimutPF": 0.0,
+        "distanciaPF": 0.0,
+        "ownCourse": 350.0
+      },
+      "expected": {
+        "azimutRelativo": 20.0
+      }
+    },
+
+    {
+      "id": "CALC_17_MarcacionRelativa_ObjetivoEnProa",
+      "description": "calculateMarcacionRelativa: objetivo exactamente en la proa → azimutRelativo=0°",
+      "inputs": {
+        "paAlcanzado": false,
+        "azimutPA": 90.0,
+        "distanciaPA": 300.0,
+        "azimutPF": 0.0,
+        "distanciaPF": 0.0,
+        "ownCourse": 90.0
+      },
+      "expected": {
+        "azimutRelativo": 0.0
+      }
+    },
+
+    {
+      "id": "CALC_18_Panel_Banda1_AdelanteToda",
+      "description": "calculatePanelPredictivo: distPF=2500 > r1=2000 → Adelante Toda / Adelante Media",
+      "inputs": { "distanciaPF": 2500.0, "r1": 2000, "r2": 1500, "r3": 800, "r4": 100, "r5": 50 },
+      "expected": { "movimientoActual": "Adelante Toda", "proximoMovimiento": "Adelante Media" }
+    },
+
+    {
+      "id": "CALC_19_Panel_Banda2_AdelanteMedia",
+      "description": "calculatePanelPredictivo: r2<distPF<=r1 (1700) → Adelante Media / Adelante Despacio",
+      "inputs": { "distanciaPF": 1700.0, "r1": 2000, "r2": 1500, "r3": 800, "r4": 100, "r5": 50 },
+      "expected": { "movimientoActual": "Adelante Media", "proximoMovimiento": "Adelante Despacio" }
+    },
+
+    {
+      "id": "CALC_20_Panel_Banda3_AdelanteDespacio",
+      "description": "calculatePanelPredictivo: r3<distPF<=r2 (1000) → Adelante Despacio / Para Maquinas",
+      "inputs": { "distanciaPF": 1000.0, "r1": 2000, "r2": 1500, "r3": 800, "r4": 100, "r5": 50 },
+      "expected": { "movimientoActual": "Adelante Despacio", "proximoMovimiento": "Para Maquinas" }
+    },
+
+    {
+      "id": "CALC_21_Panel_Banda4_ParaMaquinas",
+      "description": "calculatePanelPredictivo: r4<distPF<=r3 (400) → Para Maquinas / Maquinas Atras",
+      "inputs": { "distanciaPF": 400.0, "r1": 2000, "r2": 1500, "r3": 800, "r4": 100, "r5": 50 },
+      "expected": { "movimientoActual": "Para Maquinas", "proximoMovimiento": "Maquinas Atras" }
+    },
+
+    {
+      "id": "CALC_22_Panel_Banda5_MaquinasAtras",
+      "description": "calculatePanelPredictivo: r5<distPF<=r4 (70) → Maquinas Atras / Detención",
+      "inputs": { "distanciaPF": 70.0, "r1": 2000, "r2": 1500, "r3": 800, "r4": 100, "r5": 50 },
+      "expected": { "movimientoActual": "Maquinas Atras", "proximoMovimiento": "Detención" }
+    },
+
+    {
+      "id": "CALC_23_Panel_Banda6_Detencion",
+      "description": "calculatePanelPredictivo: distPF<=r5 (20) → Detención / (vacío)",
+      "inputs": { "distanciaPF": 20.0, "r1": 2000, "r2": 1500, "r3": 800, "r4": 100, "r5": 50 },
+      "expected": { "movimientoActual": "Detención", "proximoMovimiento": "" }
+    },
+
+    {
+      "id": "CALC_24_Panel_BordeExacto_R1",
+      "description": "calculatePanelPredictivo: distPF==r1 (borde exacto) → entra en banda 2",
+      "inputs": { "distanciaPF": 2000.0, "r1": 2000, "r2": 1500, "r3": 800, "r4": 100, "r5": 50 },
+      "expected": { "movimientoActual": "Adelante Media", "proximoMovimiento": "Adelante Despacio" }
+    },
+
+    {
+      "id": "CALC_25_Panel_BordeExacto_R5",
+      "description": "calculatePanelPredictivo: distPF==r5 (borde exacto) → entra en banda 6 (Detención)",
+      "inputs": { "distanciaPF": 50.0, "r1": 2000, "r2": 1500, "r3": 800, "r4": 100, "r5": 50 },
+      "expected": { "movimientoActual": "Detención", "proximoMovimiento": "" }
+    }
+
+  ]
+}
