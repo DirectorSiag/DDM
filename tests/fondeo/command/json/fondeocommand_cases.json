@@ -1,0 +1,82 @@
+{
+  "fondeoCommandTestCases": [
+    {
+      "id": "CMD_01_Exitoso_Modo_Track",
+      "commandLine": "fondeo --track=1 --az=90 --dt=2.0 --pa-az=180 --pa-dt=1.0 --r1=2000 --r2=1500 --r3=800 --r4=100 --r5=50",
+      "expectedSuccess": true,
+      "expectedMessageContains": "iniciada"
+    },
+    {
+      "id": "CMD_02_Exitoso_Modo_GMS",
+      "commandLine": "fondeo --pf-lat-deg=38 --pf-lat-min=30 --pf-lat-sec=0.0 --pf-lon-deg=9 --pf-lon-min=8 --pf-lon-sec=0.0 --pa-az=270 --pa-dt=1.0 --r1=2000 --r2=1500 --r3=800 --r4=100 --r5=50",
+      "expectedSuccess": false,
+      "expectedMessageContains": "no tiene coordenadas"
+    },
+    {
+      "id": "CMD_03_Error_Modo_Track_Y_GMS_Simultaneos",
+      "commandLine": "fondeo --track=1 --az=90 --dt=2.0 --pf-lat-deg=38 --pf-lat-min=30 --pf-lat-sec=0.0 --pf-lon-deg=9 --pf-lon-min=8 --pf-lon-sec=0.0 --pa-az=90 --pa-dt=1.0 --r1=2000 --r2=1500 --r3=800 --r4=100 --r5=50",
+      "expectedSuccess": false,
+      "expectedMessageContains": "simultaneamente"
+    },
+    {
+      "id": "CMD_04_Error_Sin_Modo",
+      "commandLine": "fondeo --pa-az=90 --pa-dt=1.0 --r1=2000 --r2=1500 --r3=800 --r4=100 --r5=50",
+      "expectedSuccess": false,
+      "expectedMessageContains": "track de referencia o coordenadas GMS"
+    },
+    {
+      "id": "CMD_05_Error_Falta_PA",
+      "commandLine": "fondeo --track=1 --az=90 --dt=2.0 --r1=2000 --r2=1500 --r3=800 --r4=100 --r5=50",
+      "expectedSuccess": false,
+      "expectedMessageContains": "Punto Auxiliar es obligatorio"
+    },
+    {
+      "id": "CMD_06_Error_Faltan_Radios",
+      "commandLine": "fondeo --track=1 --az=90 --dt=2.0 --pa-az=180 --pa-dt=1.0 --r1=2000 --r2=1500",
+      "expectedSuccess": false,
+      "expectedMessageContains": "5 radios de marcha"
+    },
+    {
+      "id": "CMD_07_Error_Radios_No_Decrecientes",
+      "commandLine": "fondeo --track=1 --az=90 --dt=2.0 --pa-az=180 --pa-dt=1.0 --r1=500 --r2=1500 --r3=800 --r4=100 --r5=50",
+      "expectedSuccess": false,
+      "expectedMessageContains": "estrictamente decrecientes"
+    },
+    {
+      "id": "CMD_08_Error_Track_Inexistente",
+      "commandLine": "fondeo --track=99 --az=90 --dt=2.0 --pa-az=180 --pa-dt=1.0 --r1=2000 --r2=1500 --r3=800 --r4=100 --r5=50",
+      "expectedSuccess": false,
+      "expectedMessageContains": "no existe"
+    },
+    {
+      "id": "CMD_09_Error_Stop_Sin_Sesion_Activa",
+      "commandLine": "fondeo --stop",
+      "expectedSuccess": false,
+      "expectedMessageContains": "No hay ninguna maniobra"
+    },
+    {
+      "id": "CMD_10_Info_Sin_Sesion_Activa",
+      "commandLine": "fondeo --info",
+      "expectedSuccess": true,
+      "expectedMessageContains": "no se encuentra activa"
+    },
+    {
+      "id": "CMD_11_Error_Track_Falta_Az_O_Dt",
+      "commandLine": "fondeo --track=1 --pa-az=180 --pa-dt=1.0 --r1=2000 --r2=1500 --r3=800 --r4=100 --r5=50",
+      "expectedSuccess": false,
+      "expectedMessageContains": "Faltan parametros del track"
+    },
+    {
+      "id": "CMD_12_Error_PA_Az_Fuera_De_Rango",
+      "commandLine": "fondeo --track=1 --az=90 --dt=2.0 --pa-az=370 --pa-dt=1.0 --r1=2000 --r2=1500 --r3=800 --r4=100 --r5=50",
+      "expectedSuccess": false,
+      "expectedMessageContains": "azimut al Punto Auxiliar"
+    },
+    {
+      "id": "CMD_13_Error_PA_Dt_Cero",
+      "commandLine": "fondeo --track=1 --az=90 --dt=2.0 --pa-az=180 --pa-dt=0 --r1=2000 --r2=1500 --r3=800 --r4=100 --r5=50",
+      "expectedSuccess": false,
+      "expectedMessageContains": "distancia al Punto Auxiliar"
+    }
+  ]
+}

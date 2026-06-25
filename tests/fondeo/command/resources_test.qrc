@@ -1,0 +1,5 @@
+<RCC>
+    <qresource prefix="/jsons">
+        <file>json/fondeocommand_cases.json</file>
+    </qresource>
+</RCC>
