@@ -4,7 +4,7 @@
 
 Este flujo documenta la gestión y el cálculo cinemático continuo del módulo de **Maniobra de Fondeo**. Su propósito es asistir al operador en la aproximación de precisión del Buque Propio (`Track 0`) hacia un **Punto de Fondeo (PF)** designado, con guía continua a través de un **Punto Auxiliar (PA)** de aproximación intermedia.
 
-El sistema calcula automáticamente en cada ciclo las distancias y azimuts verdaderos hacia el PF y el PA, la marcación relativa al objetivo activo según la fase de la maniobra, y un **panel predictivo de cinco anillos** que recomienda el movimiento de máquinas requerido (ej. *Adelante Toda*, *Para Máquinas*, etc.) en función de la distancia remanente al PF.
+El sistema calcula automáticamente en cada ciclo las distancias y azimuts verdaderos hacia el PF y el PA, la marcación relativa al objetivo activo según la fase de la maniobra, y un **panel predictivo de cinco anillos** que recomienda el movimiento de máquinas requerido (ej. AD. TODA, PARA MAQ) indicando la distancia exacta en yardas al umbral de accionamiento.
 
 El PF puede ser designado mediante dos modos mutuamente excluyentes: **Track de referencia** (azimut y distancia desde un track existente) o **coordenadas GMS** (latitud y longitud en grados, minutos y segundos).
 
@@ -71,7 +71,7 @@ struct FondeoOperationResult {
 | Resolver PA | `static QPointF resolvePuntoAuxiliar(const QPointF& pf, double paAz, double paDt)` | Proyecta el PA desde el PF usando el azimut y la distancia configurados. |
 | Calcular distancias y azimuts | `static void calculateDistAzPfPa(const QPointF& ownPos, FondeoSessionState& out_state)` | Calcula las distancias (DM → yardas) y los azimuts verdaderos desde el BP hacia el PF y el PA, actualizando el estado. |
 | Calcular marcación relativa | `static void calculateMarcacionRelativa(double ownCourseDeg, FondeoSessionState& out_state)` | Determina el azimut relativo al objetivo activo (PA en Fase 1, PF en Fase 2) neutralizando el rumbo del BP. |
-| Panel predictivo | `static void calculatePanelPredictivo(FondeoSessionState& out_state)` | Evalúa la distancia al PF contra los cinco anillos y actualiza `movimientoActual` y `proximoMovimiento`. |
+| Panel predictivo | `static void calculatePanelPredictivo(FondeoSessionState& out_state)` | Evalúa la distancia al PF contra los cinco anillos y actualiza las estructuras `movimientoActual` y `proximoMovimiento` (asignando etiqueta y distancia al anillo correspondiente). |
 
 - **Consideraciones técnicas del motor**:
   - **Conversión de unidades**: Las distancias en millas náuticas (Mn) se convierten a Data Miles (DM) con el factor **1 Mn = 1.012685 DM**. Las distancias en DM se convierten a yardas con el factor constante **1 DM = 2000 yardas** (`RadarMath::dmToYards`).
@@ -171,6 +171,14 @@ flowchart TD
 
 ## Estructuras de Datos Clave
 
+### Asesoramiento de Movimiento (`AsesoramientoMovimiento`)
+
+
+Estructura anidada que representa un estado del panel predictivo.
+
+- **Orden de máquinas**: `label` Cadena de texto con la orden de máquinas (ej. "AD. TODA", "MAQ AT").
+- **Distancia al anillo**: `distancia` Valor decimal (double) con la distancia remanente en yardas hacia el anillo correspondiente.
+
 ### Configuración de Sesión (`FondeoConfig`)
 
 Estructura inmutable durante la sesión. Almacena todos los parámetros ingresados por el operador al momento de invocar el comando:
@@ -190,7 +198,7 @@ Mantiene la separación limpia entre datos estáticos fijados al inicio y métri
 - **Configuración**: `config` (instancia de `FondeoConfig`).
 - **Telemetría dinámica**: `distanciaPF`, `azimutPF`, `distanciaPA`, `azimutPA` (distancias en yardas, azimuts en grados).
 - **Asesoramiento activo**: `azimutRelativo`, `distanciaRelativa` (referenciados al objetivo de la fase actual: PA o PF).
-- **Panel predictivo**: `movimientoActual`, `proximoMovimiento` (cadenas de texto con el estado de máquinas recomendado).
+- **Panel predictivo**: `movimientoActual`, `proximoMovimiento` (estructura AsesoramientoMovimiento que contiene la etiqueta técnica del comando y la distancia en yardas restante hacia el anillo correspondiente).
 
 ---
 

@@ -32,6 +32,11 @@ struct FondeoConfig {
     double r5 = 0.0; // Yardas - Origen en el PF
 };
 
+struct AsesoramientoMovimiento {
+    QString label;      // Ej: "AD. TODA"
+    double distancia;   // Distancia en yardas al anillo
+};
+
 struct FondeoSessionState {
     // ---- Datos estáticos    
     FondeoConfig config;
@@ -49,8 +54,8 @@ struct FondeoSessionState {
     double azimutRelativo = 0.0; // Azimut relativo al al PA o PF (Dependiendo al que esté yendo)
     double distanciaRelativa = 0.0; // Distancia del BP al PA o PF (Dependiendo al que esté yendo)
 
-    QString movimientoActual = "Adelante Toda"; // TODO: Ver como arranca
-    QString proximoMovimiento = "Adelante Media"; // TODO
+    AsesoramientoMovimiento movimientoActual = {"AD. TODA", 0.0};
+    AsesoramientoMovimiento proximoMovimiento = {"AD. MEDIA", 0.0};
 
     void reset() { *this = FondeoSessionState{}; }
 };
