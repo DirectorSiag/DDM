@@ -83,23 +83,28 @@ void FondeoCalculator::calculatePanelPredictivo(
 
     // TODO: Validar que esta sea la respuesta definitiva
     if (d > c.r1) {
-        out_state.movimientoActual = "Adelante Toda";
-        out_state.proximoMovimiento = "Adelante Media";
-    } else if (d <= c.r1 && d > c.r2) {
-        out_state.movimientoActual = "Adelante Media";
-        out_state.proximoMovimiento = "Adelante Despacio";
-    } else if (d <= c.r2 && d > c.r3) {
-        out_state.movimientoActual = "Adelante Despacio";
-        out_state.proximoMovimiento = "Para Maquinas";
-    } else if (d <= c.r3 && d > c.r4) {
-        out_state.movimientoActual = "Para Maquinas";
-        out_state.proximoMovimiento = "Maquinas Atras";
-    } else if (d <= c.r4 && d > c.r5) {
-        out_state.movimientoActual = "Maquinas Atras";
-        out_state.proximoMovimiento = "Detención";
-    } else {
-        // Estamos adentro del último anillo (r5)
-        out_state.movimientoActual = "Detención";
-        out_state.proximoMovimiento = "";
+        out_state.movimientoActual = {"AD. TODA", d - c.r1};
+        out_state.proximoMovimiento = {"AD. MEDIA", d - c.r2};
+    }
+    else if (d > c.r2) {
+        out_state.movimientoActual = {"AD. MEDIA", d - c.r2};
+        out_state.proximoMovimiento = {"AD. DESP.", d - c.r3};
+    }
+    else if (d > c.r3) {
+        out_state.movimientoActual = {"AD. DESP.", d - c.r3};
+        out_state.proximoMovimiento = {"PARA MAQ", d - c.r4};
+    }
+    else if (d > c.r4) {
+        out_state.movimientoActual = {"PARA MAQ", d - c.r4};
+        out_state.proximoMovimiento = {"MAQ. AT", d - c.r5};
+    }
+    else if (d > c.r5) {
+        out_state.movimientoActual = {"MAQ. AT", d - c.r5};
+        out_state.proximoMovimiento = {"DETENCIÓN", d};
+    }
+    else {
+        out_state.movimientoActual = {"DETENCIÓN", d};
+        out_state.proximoMovimiento = {"FONDEADO", 0.0};
+
     }
 }
