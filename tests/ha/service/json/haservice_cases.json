@@ -1,0 +1,67 @@
+{
+  "haServiceTestCases": [
+    {
+      "id": "SVC_01_StartAtCursor_ActivaSesion",
+      "description": "startSessionAtCursor fija el punto y activa la sesión",
+      "cursorX": 5.0,
+      "cursorY": 3.0,
+      "expected": {
+        "active": true,
+        "fallPointX": 5.0,
+        "fallPointY": 3.0
+      }
+    },
+    {
+      "id": "SVC_02_Stop_ReseteSesion",
+      "description": "stopSession resetea haSession al estado inicial",
+      "expected": {
+        "active": false
+      }
+    },
+    {
+      "id": "SVC_03_Stop_SinSesionActiva_Falla",
+      "description": "stopSession sin sesión activa devuelve ok=false",
+      "expected": {
+        "ok": false
+      }
+    },
+    {
+      "id": "SVC_04_StartAtBearing_RangoAzimutInvalido",
+      "description": "azimut=360 fuera de rango → falla",
+      "azimuthDeg": 360.0,
+      "distanceYards": 1000.0,
+      "expected": {
+        "ok": false
+      }
+    },
+    {
+      "id": "SVC_05_StartAtBearing_DistanciaInvalida",
+      "description": "distancia=0 → falla",
+      "azimuthDeg": 90.0,
+      "distanceYards": 0.0,
+      "expected": {
+        "ok": false
+      }
+    },
+    {
+      "id": "SVC_06_StartAtCursor_SobreescribeSesionPrevia",
+      "description": "Segunda startSession sobreescribe la anterior",
+      "cursorX": 10.0,
+      "cursorY": 20.0,
+      "expected": {
+        "active": true,
+        "fallPointX": 10.0,
+        "fallPointY": 20.0
+      }
+    },
+    {
+      "id": "SVC_07_LatLon_SinGeoposicion_Falla",
+      "description": "disparador latlon sin geo-posición del BP → falla",
+      "latDeg": -38, "latMin": 47, "latSec": 0.0,
+      "lonDeg": -62, "lonMin": 18, "lonSec": 0.0,
+      "expected": {
+        "ok": false
+      }
+    }
+  ]
+}

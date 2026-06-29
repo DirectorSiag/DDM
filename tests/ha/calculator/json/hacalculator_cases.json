@@ -1,0 +1,149 @@
+{
+  "haCalculatorTestCases": [
+    {
+      "id": "CALC_01_AzimutVerdadero_PuntoAlEste",
+      "description": "Punto al Este del BP → azimut verdadero debe ser 90°",
+      "ownX": 0.0, "ownY": 0.0,
+      "ownCourse": 0.0, "ownSpeed": 10.0,
+      "fallX": 5.0, "fallY": 0.0,
+      "expected": {
+        "trueAzimuthDeg_approx": 90.0,
+        "tolerance": 0.5
+      }
+    },
+    {
+      "id": "CALC_02_AzimutVerdadero_PuntoAlNorte",
+      "description": "Punto al Norte del BP → azimut verdadero debe ser 0°",
+      "ownX": 0.0, "ownY": 0.0,
+      "ownCourse": 0.0, "ownSpeed": 10.0,
+      "fallX": 0.0, "fallY": 5.0,
+      "expected": {
+        "trueAzimuthDeg_approx": 0.0,
+        "tolerance": 0.5
+      }
+    },
+    {
+      "id": "CALC_03_AzimutVerdadero_PuntoAlSur",
+      "description": "Punto al Sur del BP → azimut verdadero debe ser 180°",
+      "ownX": 0.0, "ownY": 0.0,
+      "ownCourse": 0.0, "ownSpeed": 10.0,
+      "fallX": 0.0, "fallY": -5.0,
+      "expected": {
+        "trueAzimuthDeg_approx": 180.0,
+        "tolerance": 0.5
+      }
+    },
+    {
+      "id": "CALC_04_Distancia_Correcta",
+      "description": "Punto a 5 DM → distancia debe ser 10000 yardas",
+      "ownX": 0.0, "ownY": 0.0,
+      "ownCourse": 0.0, "ownSpeed": 10.0,
+      "fallX": 5.0, "fallY": 0.0,
+      "expected": {
+        "distanceYards": 10000.0,
+        "tolerance": 1.0
+      }
+    },
+    {
+      "id": "CALC_05_MarcacionRelativa_PuntoEnProa",
+      "description": "Punto al Este con rumbo 90° → marcación relativa 0° (PROA)",
+      "ownX": 0.0, "ownY": 0.0,
+      "ownCourse": 90.0, "ownSpeed": 10.0,
+      "fallX": 5.0, "fallY": 0.0,
+      "expected": {
+        "relativeBearingDeg_approx": 0.0,
+        "tolerance": 0.5,
+        "banda": "PROA"
+      }
+    },
+    {
+      "id": "CALC_06_MarcacionRelativa_PuntoEnEstribor",
+      "description": "Punto al Este con rumbo 0° → marcación relativa 90° (ESTRIBOR)",
+      "ownX": 0.0, "ownY": 0.0,
+      "ownCourse": 0.0, "ownSpeed": 10.0,
+      "fallX": 5.0, "fallY": 0.0,
+      "expected": {
+        "relativeBearingDeg_approx": 90.0,
+        "tolerance": 0.5,
+        "banda": "ESTRIBOR"
+      }
+    },
+    {
+      "id": "CALC_07_MarcacionRelativa_PuntoEnBabor",
+      "description": "Punto al Oeste con rumbo 0° → marcación relativa 90° (BABOR)",
+      "ownX": 0.0, "ownY": 0.0,
+      "ownCourse": 0.0, "ownSpeed": 10.0,
+      "fallX": -5.0, "fallY": 0.0,
+      "expected": {
+        "relativeBearingDeg_approx": 90.0,
+        "tolerance": 0.5,
+        "banda": "BABOR"
+      }
+    },
+    {
+      "id": "CALC_08_ETA_Valido_VelocidadPositiva",
+      "description": "Con velocidad > 0 y distancia > 0, etaValid debe ser true",
+      "ownX": 0.0, "ownY": 0.0,
+      "ownCourse": 0.0, "ownSpeed": 10.0,
+      "fallX": 5.0, "fallY": 0.0,
+      "expected": {
+        "etaValid": true
+      }
+    },
+    {
+      "id": "CALC_09_ETA_Invalido_VelocidadCero",
+      "description": "Con velocidad = 0, etaValid debe ser false",
+      "ownX": 0.0, "ownY": 0.0,
+      "ownCourse": 0.0, "ownSpeed": 0.0,
+      "fallX": 5.0, "fallY": 0.0,
+      "expected": {
+        "etaValid": false,
+        "timeToArrivalMin": 0.0
+      }
+    },
+    {
+      "id": "CALC_10_ETA_Invalido_DistanciaCero",
+      "description": "Con distancia = 0 (BP sobre el punto), etaValid debe ser false",
+      "ownX": 0.0, "ownY": 0.0,
+      "ownCourse": 0.0, "ownSpeed": 10.0,
+      "fallX": 0.0, "fallY": 0.0,
+      "expected": {
+        "etaValid": false,
+        "timeToArrivalMin": 0.0
+      }
+    },
+    {
+      "id": "CALC_11_ETA_Calculo_Correcto",
+      "description": "5 DM a 10 DM/h → ETA = 30 minutos",
+      "ownX": 0.0, "ownY": 0.0,
+      "ownCourse": 0.0, "ownSpeed": 10.0,
+      "fallX": 5.0, "fallY": 0.0,
+      "expected": {
+        "etaValid": true,
+        "timeToArrivalMin_approx": 30.0,
+        "tolerance": 0.1
+      }
+    },
+    {
+      "id": "CALC_12_IconCenter_EsElPuntoDeCaida",
+      "description": "haIconCenter debe coincidir exactamente con el punto de caída",
+      "ownX": 0.0, "ownY": 0.0,
+      "ownCourse": 0.0, "ownSpeed": 10.0,
+      "fallX": 3.0, "fallY": 4.0,
+      "expected": {
+        "haIconCenterX": 3.0,
+        "haIconCenterY": 4.0
+      }
+    },
+    {
+      "id": "CALC_13_Banda_Popa",
+      "description": "Punto al Sur con rumbo 0° → banda POPA",
+      "ownX": 0.0, "ownY": 0.0,
+      "ownCourse": 0.0, "ownSpeed": 10.0,
+      "fallX": 0.0, "fallY": -5.0,
+      "expected": {
+        "banda": "POPA"
+      }
+    }
+  ]
+}
