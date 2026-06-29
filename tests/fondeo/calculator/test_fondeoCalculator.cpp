@@ -348,6 +348,8 @@ private slots:
 
     // ─────────────────────────────────────────────────────────────
     // Helper compartido para los casos de Panel Predictivo
+    // movimientoActual / proximoMovimiento son ahora structs
+    // AsesoramientoMovimiento { QString label; double distancia; }
     // ─────────────────────────────────────────────────────────────
     void runPanelTest(const QString& id) {
         QJsonObject tc = findCase(id);
@@ -364,8 +366,17 @@ private slots:
 
         FondeoCalculator::calculatePanelPredictivo(state);
 
-        QCOMPARE(state.movimientoActual,  ex["movimientoActual"].toString());
-        QCOMPARE(state.proximoMovimiento, ex["proximoMovimiento"].toString());
+        // --- Movimiento actual: label + distancia ---
+        QCOMPARE(state.movimientoActual.label, ex["movActualLabel"].toString());
+        QVERIFY2(qAbs(state.movimientoActual.distancia - ex["movActualDist"].toDouble()) < kEps,
+                 qPrintable(QString("[%1] movActual.distancia: esperado %2, obtenido %3")
+                                .arg(id).arg(ex["movActualDist"].toDouble()).arg(state.movimientoActual.distancia)));
+
+        // --- Próximo movimiento: label + distancia ---
+        QCOMPARE(state.proximoMovimiento.label, ex["proxMovLabel"].toString());
+        QVERIFY2(qAbs(state.proximoMovimiento.distancia - ex["proxMovDist"].toDouble()) < kEps,
+                 qPrintable(QString("[%1] proxMov.distancia: esperado %2, obtenido %3")
+                                .arg(id).arg(ex["proxMovDist"].toDouble()).arg(state.proximoMovimiento.distancia)));
     }
 };
 
