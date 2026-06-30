@@ -1,5 +1,7 @@
 #include "iTransport.h"
 #include "transportFactory.h"
+#include "replicationBridge.h"
+#include "iReplicationBridge.h"
 #include "concDecoder.h"
 #include "dclConcController.h"
 #include "lpdEncoder.h"
@@ -68,6 +70,17 @@ int main(int argc, char *argv[]) {
   QCoreApplication app(argc, argv);
 
   auto *ctx = new CommandContext();
+
+  auto *reStub = new ReplicationBridgeStub();
+  auto *replicationBridge = new ReplicationBridge(ctx, reStub, &app);
+
+  ctx->onTrackUpserted = [replicationBridge](const Track& t) {
+      replicationBridge->notifyObjectUpserted(t);
+  };
+  ctx->onTrackDeleted = [replicationBridge](const std::string& guid) {
+      replicationBridge->notifyObjectDeleted(guid);
+  };
+
   auto *registry = new CommandRegistry();
   auto *parser = new CommandParser();
 

@@ -2,6 +2,9 @@
 
 #include "RadarMath.h"
 
+const std::string& Track::getGuid() const { return m_guid; }
+void Track::setGuid(const std::string& guid) { m_guid = guid; }
+
 #include <QtMath>
 #include <cmath>
 

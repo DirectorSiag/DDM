@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cstdint>
+#include <string>
 
 #include "enums/enums.h"   // TrackData::{Type,Identity,TrackMode}
 #include <QString>
@@ -112,6 +113,9 @@ public:
     SitrepPppData getSitrepPpp() const;
     QString getSitrepPppTimeHHMM() const;
 
+    const std::string& getGuid() const;
+    void setGuid(const std::string& guid);
+
     // --- Setters ---
     void setId(int id);
     void setType(Type t);
@@ -194,4 +198,6 @@ private:
     QString  m_codigoPrivado{QStringLiteral("-")};
 
     SitrepPppData m_sitrepPpp;
+
+    std::string  m_guid;   // UUID v4. PK en red. Vacío si el track es solo local.
 };

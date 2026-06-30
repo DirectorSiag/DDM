@@ -7,6 +7,7 @@
 #include <QtMath>
 #include <cmath>
 #include <deque>
+#include <functional>
 #include <map>
 #include <utility>
 #include <unordered_map>
@@ -109,6 +110,11 @@ struct CommandContext {
     // Transport opcional: si está seteado, los comandos CLI/backend pueden
     // notificar eventos JSON al frontend via transport->send()
     ITransport* transport = nullptr;
+
+    // Callbacks de replicación — seteados por ReplicationBridge en main.cpp.
+    // Se disparan solo en cambios de origen local (TrackService).
+    std::function<void(const Track&)>       onTrackUpserted;
+    std::function<void(const std::string&)> onTrackDeleted;
 
     inline std::deque<Track>& getTracks() { return tracks; }
     inline const std::deque<Track>& getTracks() const { return tracks; }
@@ -442,6 +448,38 @@ struct CommandContext {
             }
         }
         return false;
+    }
+
+    // ── Replicación remota (llamado solo desde ReplicationBridge) ─────────
+    // Estos métodos son silenciosos: no disparan notificaciones hacia RE.
+
+    inline void injectRemoteTrack(const Track& track) {
+        for (Track& t : tracks) {
+            if (t.getGuid() == track.getGuid()) {
+                t = track;
+                return;
+            }
+        }
+        Track newTrack = track;
+        newTrack.setId(nextTrackId++);
+        tracks.push_front(newTrack);
+    }
+
+    inline bool removeRemoteTrack(const std::string& guid) {
+        for (auto it = tracks.begin(); it != tracks.end(); ++it) {
+            if (it->getGuid() == guid) {
+                tracks.erase(it);
+                return true;
+            }
+        }
+        return false;
+    }
+
+    inline void clearAllPersistentTracks() {
+        tracks.erase(
+            std::remove_if(tracks.begin(), tracks.end(),
+                           [](const Track& t){ return !t.getGuid().empty(); }),
+            tracks.end());
     }
 };
 

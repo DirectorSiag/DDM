@@ -67,6 +67,9 @@ TrackOperationResult TrackService::createTrack(const TrackCreateRequest& request
         TrackPppService(m_context).recalculateTrackAgainstOwnShip(track);
     }
 
+    if (m_context->onTrackUpserted)
+        m_context->onTrackUpserted(track);
+
     return {true, QString(), QString(), id};
 }
 
@@ -76,9 +79,17 @@ TrackOperationResult TrackService::deleteTrackById(int trackId)
         return {false, "INVALID_ID", "El id del track debe ser no negativo", -1};
     }
 
+    // Capturar guid antes de borrar para poder notificar después.
+    std::string guid;
+    const Track* track = m_context->findTrackById(trackId);
+    if (track) guid = track->getGuid();
+
     if (!m_context->eraseTrackById(trackId)) {
         return {false, "NOT_FOUND", "Track no encontrado", trackId};
     }
+
+    if (m_context->onTrackDeleted && !guid.empty())
+        m_context->onTrackDeleted(guid);
 
     return {true, QString(), QString(), trackId};
 }

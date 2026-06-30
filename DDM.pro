@@ -24,9 +24,14 @@ INCLUDEPATH += \
     src/model/utils/ \
     src/model/enums/ \
     src/view/ \
+    src/replication/ \
 
 
 HEADERS += \
+    src/replication/replicatedObject.h \
+    src/replication/iReplicationListener.h \
+    src/replication/iReplicationBridge.h \
+    src/replication/replicationBridge.h \
     src/controller/commandRegistry.h \
     src/controller/commanddispatcher.h \
     src/controller/commands/addCommand.h \
@@ -109,6 +114,7 @@ HEADERS += \
     src/view/stdinreader.h
 
 SOURCES += \
+    src/replication/replicationBridge.cpp \
     src/controller/commandDispatcher.cpp \
     src/controller/commands/addCommand.cpp \
     src/controller/commands/addCursor.cpp \
