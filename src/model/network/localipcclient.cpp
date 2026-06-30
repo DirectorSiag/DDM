@@ -1,4 +1,4 @@
-#include "LocalIpcClient.h"
+#include "localipcclient.h"
 #include <QDataStream>
 #include <QTimer>
 

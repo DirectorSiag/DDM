@@ -1,4 +1,4 @@
-#include "StdinReader.h"
+#include "stdinreader.h"
 #include <QTextStream>
 
 StdinReader::StdinReader(QObject* parent) : QObject(parent) {}

@@ -43,6 +43,7 @@
 #include "deleteAreaCommand.h"
 #include "deleteCircleCommand.h"
 
+#ifdef Q_OS_WIN
 static void enableAnsiColorsOnWindows() {
   DWORD mode = 0;
   HANDLE hOut = GetStdHandle(STD_OUTPUT_HANDLE);
@@ -56,6 +57,7 @@ static void enableAnsiColorsOnWindows() {
     SetConsoleMode(hErr, mode);
   }
 }
+#endif
 
 int main(int argc, char *argv[]) {
 
@@ -167,7 +169,10 @@ int main(int argc, char *argv[]) {
 
   // conectar señales del decoder con ownCurse
   QObject::connect(decoder, &ConcDecoder::newHandWheel, ownCurs,
-                   &OwnCurs::updateHandwheel);
+                   [ownCurs](const QPair<float, float>& hw) {
+                       ownCurs->updateHandwheel(
+                           QPair<qfloat16, qfloat16>(qfloat16(hw.first), qfloat16(hw.second)));
+                   });
   QObject::connect(decoder, &ConcDecoder::cuOrOffCentLeft, ownCurs,
                    &OwnCurs::cuOrOffCent);
   QObject::connect(decoder, &ConcDecoder::cuOrCentLeft, ownCurs,

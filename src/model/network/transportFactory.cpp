@@ -1,8 +1,8 @@
-#include "TransportFactory.h"
-#include "ITransport.h"
-#include "UdpClientAdapter.h"
-#include "clientSocket.h"       // tu UDP real
-#include "LocalIpcClient.h"
+#include "transportFactory.h"
+#include "iTransport.h"
+#include "udpClientAdapter.h"
+#include "clientSocket.h"
+#include "localipcclient.h"
 
 #include <QUrl>
 #include <QHostAddress>
@@ -10,12 +10,12 @@
 static void parseUdp(const QString& uri, QHostAddress& ip, quint16& port) {
     // Soporta "udp://127.0.0.1:5000" o "127.0.0.1:5000"
     QString s = uri;
-    if (s.startsWith("udp://", Qt::CaseInsensitive)) {
+    if (s.startsWith(QLatin1String("udp://"), Qt::CaseInsensitive)) {
         QUrl u(s);
         ip   = QHostAddress(u.host());
         port = quint16(u.port());
     } else {
-        const auto parts = s.split(':');
+        const auto parts = s.split(QLatin1Char(':'));
         ip   = QHostAddress(parts.value(0));
         port = quint16(parts.value(1).toUShort());
     }
@@ -30,8 +30,8 @@ std::unique_ptr<ITransport> makeTransport(TransportKind kind, const TransportOpt
     }
     case TransportKind::LocalIpc: {
         QString name = o.localName;
-        if (name.startsWith("local://", Qt::CaseInsensitive))
-            name = name.mid(QStringLiteral("local://").size());
+        if (name.startsWith(QLatin1String("local://"), Qt::CaseInsensitive))
+            name = name.mid(8); // length of "local://"
         return std::unique_ptr<ITransport>(new LocalIpcClient(name, parent));
     }
     }
