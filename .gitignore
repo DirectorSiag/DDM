@@ -42,6 +42,9 @@ Thumbs.db
 .idea/
 .vscode/
 
+# Documentation source extracts
+docs/fuentes_informe_extraidas/
+
 # Ignorar carpetas de salida
 /bin/
 /lib/
