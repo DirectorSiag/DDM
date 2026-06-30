@@ -28,8 +28,9 @@
       "circleRadiusNm": 1.0,
       "selectedStations": [],
       "expected": {
+        "ownCenterX": -4.05074,
         "ownCenterY": 0.0,
-        "ownCenterXNegative": true
+        "tolerance": 0.001
       }
     },
     {
@@ -45,7 +46,8 @@
       "selectedStations": [],
       "expected": {
         "ownCenterX": 0.0,
-        "ownCenterYPositive": true
+        "ownCenterY": 3.5443975,
+        "tolerance": 0.001
       }
     },
     {
@@ -60,7 +62,8 @@
       "circleRadiusNm": 2.0,
       "selectedStations": [],
       "expected": {
-        "distanceDoubled": true
+        "distanceScaleFactor": 2.0,
+        "tolerance": 0.001
       }
     },
     {
@@ -91,7 +94,9 @@
       "circleRadiusNm": 1.0,
       "selectedStations": [],
       "expected": {
-        "etaValid": true
+        "etaValid": true,
+        "etaMin_approx": 831.519920,
+        "tolerance": 0.001
       }
     },
     {
@@ -169,7 +174,13 @@
       "circleRadiusNm": 1.0,
       "selectedStations": [1, 2, 3],
       "expected": {
-        "allyCentersCount": 3
+        "allyCentersCount": 3,
+        "allyCenters": [
+          { "x": 51.012685, "y": 51.754022 },
+          { "x": 48.987315, "y": 51.754022 },
+          { "x": 52.025370, "y": 50.000000 }
+        ],
+        "tolerance": 0.001
       }
     },
     {
