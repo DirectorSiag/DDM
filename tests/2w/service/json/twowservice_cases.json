@@ -22,7 +22,8 @@
       "expected": {
         "active": false,
         "guideTrackId": -1,
-        "bpStation": -1
+        "bpStation": -1,
+        "matchesDefaultState": true
       }
     },
     {
@@ -33,7 +34,7 @@
       "circleRadiusNm": 1.0,
       "expected": {
         "etaValid": false,
-        "kinematicsUnchanged": true
+        "stateUnchanged": true
       }
     },
     {
@@ -43,7 +44,8 @@
       "bpStation": 12,
       "circleRadiusNm": 1.0,
       "expected": {
-        "active": false
+        "active": false,
+        "matchesDefaultState": true
       }
     },
     {
@@ -55,9 +57,27 @@
       "bpStation": 12,
       "circleRadiusNm": 1.0,
       "ownSpeed": 10.0,
+      "selectedStations": [1, 2, 3],
       "expected": {
-        "guideCenterMatchesTrack": true,
-        "ownCenterNotZero": true
+        "active": true,
+        "trackValid": true,
+        "guideCircleCenter": { "x": 100.0, "y": 100.0 },
+        "ownCircleCenter": { "x": 95.94926, "y": 100.0 },
+        "allyCircleCenters": [
+          { "x": 101.012685, "y": 101.754022 },
+          { "x": 98.987315, "y": 101.754022 },
+          { "x": 102.025370, "y": 100.000000 }
+        ],
+        "etaValid": true,
+        "courseToStationDeg": 43.815728,
+        "timeToStationMin": 831.519920,
+        "currentAzimuthDeg": 225.0,
+        "currentDistanceNm": 139.649897,
+        "expectedAzimuthDeg": 270.0,
+        "expectedDistanceNm": 4.0,
+        "tolerance": 0.001,
+        "angleTolerance": 0.1,
+        "distanceTolerance": 0.1
       }
     },
     {
