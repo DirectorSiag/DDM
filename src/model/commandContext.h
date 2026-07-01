@@ -20,7 +20,7 @@
 #include "entities/polygonoentity.h"
 #include "model/2w/twowsessionstate.h"
 #include "ha/haSessionState.h"
-
+#include <array>
 
 struct CommandContext {
     enum MotionMode {
@@ -106,7 +106,10 @@ struct CommandContext {
     std::map<int, StationingSession> stationingSessions;
 
     TwoWSessionState twoWSession;
-    HaSessionState   haSession;
+
+    static constexpr int kMaxHaSessions = 10;
+    std::array<HaSessionState, kMaxHaSessions> haSessions;
+    int activeHaSlot = -1;  // slot actualmente seleccionado para consulta (-1 = ninguno)
 
     double centerX = 0.0;
     double centerY = 0.0;
