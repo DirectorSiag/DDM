@@ -3,6 +3,8 @@
 #include <QJsonObject>
 #include <QJsonArray>
 #include <QFile>
+#include <QSet>
+#include <QStringList>
 #include <cmath>
 
 #include "twoWCalculator.h"
@@ -52,6 +54,19 @@ static CalcOutputs runCalculator(const QJsonObject& tc)
     return out;
 }
 
+static void verifyNear(double actual, double expected, double tolerance, const QString& label)
+{
+    QVERIFY2(std::abs(actual - expected) <= tolerance,
+             qPrintable(QString("%1=%2 no coincide con esperado=%3 tolerancia=%4")
+                        .arg(label).arg(actual).arg(expected).arg(tolerance)));
+}
+
+static void verifyPointNear(const QPointF& actual, const QJsonObject& expected, double tolerance, const QString& label)
+{
+    verifyNear(actual.x(), expected["x"].toDouble(), tolerance, label + ".x");
+    verifyNear(actual.y(), expected["y"].toDouble(), tolerance, label + ".y");
+}
+
 // Carga el JSON de recursos y devuelve el array de casos.
 static QJsonArray loadCases()
 {
@@ -86,8 +101,62 @@ private slots:
     // Se ejecuta una sola vez antes de todos los tests.
     void initTestCase() {
         m_cases = loadCases();
-        QVERIFY2(!m_cases.isEmpty(),
-                 "No se pudo cargar twowcalculator_cases.json. Revisá el .qrc");
+        QVERIFY2(!m_cases.isEmpty(), "twowcalculator_cases.json must not be empty");
+
+        const QStringList requiredIds = {
+            QStringLiteral("CALC_01_GuideCenter_EsLaPosicionDelGuia"),
+            QStringLiteral("CALC_02_EstacionProyectada_AlOeste_Azimut270"),
+            QStringLiteral("CALC_03_EstacionProyectada_AlNorte_Azimut0"),
+            QStringLiteral("CALC_04_Radio_Escala_Duplicado"),
+            QStringLiteral("CALC_05_ETA_Invalida_VelocidadCero"),
+            QStringLiteral("CALC_06_ETA_Valida_VelocidadPositiva"),
+            QStringLiteral("CALC_07_DistanciaActual_Correcta"),
+            QStringLiteral("CALC_08_AzimutActual_BPAlSurDelGuia"),
+            QStringLiteral("CALC_09_AzimutActual_BPAlNorteDelGuia"),
+            QStringLiteral("CALC_10_Aliados_ListaVacia"),
+            QStringLiteral("CALC_11_Aliados_TresEstaciones"),
+            QStringLiteral("CALC_12_ValoresEsperados_MatchTablaA"),
+            QStringLiteral("CALC_13_CentroAliado_CorrectamenteProyectado")
+        };
+
+        const QStringList numericInputs = {
+            QStringLiteral("guideX"),
+            QStringLiteral("guideY"),
+            QStringLiteral("ownX"),
+            QStringLiteral("ownY"),
+            QStringLiteral("ownSpeed"),
+            QStringLiteral("bpStation"),
+            QStringLiteral("circleRadiusNm")
+        };
+
+        QSet<QString> seenIds;
+        for (const QJsonValue& value : m_cases) {
+            QVERIFY2(value.isObject(), "Each calculator case must be a JSON object");
+
+            const QJsonObject tc = value.toObject();
+            const QString id = tc["id"].toString();
+            QVERIFY2(!id.isEmpty(), "Each calculator case must define a non-empty id");
+            QVERIFY2(!seenIds.contains(id),
+                     qPrintable(QStringLiteral("Duplicated calculator case id: %1").arg(id)));
+            seenIds.insert(id);
+
+            for (const QString& key : numericInputs) {
+                QVERIFY2(tc[key].isDouble(),
+                         qPrintable(QStringLiteral("Case %1 must define numeric %2").arg(id, key)));
+            }
+
+            QVERIFY2(tc["selectedStations"].isArray(),
+                     qPrintable(QStringLiteral("Case %1 must define selectedStations array").arg(id)));
+
+            const QJsonObject exp = tc["expected"].toObject();
+            QVERIFY2(!exp.isEmpty(),
+                     qPrintable(QStringLiteral("Case %1 must define expected values").arg(id)));
+        }
+
+        for (const QString& id : requiredIds) {
+            QVERIFY2(seenIds.contains(id),
+                     qPrintable(QStringLiteral("Missing calculator case id: %1").arg(id)));
+        }
     }
 
     // ── CALC_01 ──────────────────────────────────────────────────────────────
@@ -106,12 +175,10 @@ private slots:
         QJsonObject exp = tc["expected"].toObject();
         CalcOutputs out = runCalculator(tc);
 
-        // Y debe ser 0 (mismo nivel que el Guía en 0,0)
-        QVERIFY2(std::abs(out.ownCenter.y() - exp["ownCenterY"].toDouble()) < 0.1,
-                 "ownCenter.y no es 0 para azimut 270°");
-        // X debe ser negativa (al Oeste)
-        QVERIFY2(out.ownCenter.x() < 0,
-                 "ownCenter.x no es negativa para azimut 270° (Oeste)");
+        const double tolerance = exp["tolerance"].toDouble();
+        verifyNear(out.ownCenter.x(), exp["ownCenterX"].toDouble(), tolerance, "ownCenter.x");
+        verifyNear(out.ownCenter.y(), exp["ownCenterY"].toDouble(), tolerance, "ownCenter.y");
+
     }
 
     // ── CALC_03 ──────────────────────────────────────────────────────────────
@@ -120,18 +187,17 @@ private slots:
         QJsonObject exp = tc["expected"].toObject();
         CalcOutputs out = runCalculator(tc);
 
-        // X debe ser ~0 (sin desplazamiento horizontal)
-        QVERIFY2(std::abs(out.ownCenter.x() - exp["ownCenterX"].toDouble()) < 0.1,
-                 "ownCenter.x no es 0 para azimut 0° (Norte)");
-        // Y debe ser positiva (al Norte)
-        QVERIFY2(out.ownCenter.y() > 0,
-                 "ownCenter.y no es positiva para azimut 0° (Norte)");
+        const double tolerance = exp["tolerance"].toDouble();
+        verifyNear(out.ownCenter.x(), exp["ownCenterX"].toDouble(), tolerance, "ownCenter.x");
+        verifyNear(out.ownCenter.y(), exp["ownCenterY"].toDouble(), tolerance, "ownCenter.y");
+
     }
 
     // ── CALC_04 ──────────────────────────────────────────────────────────────
     void test_CALC_04_Radio_Escala_Duplicado() {
         // Obtenemos el caso base (radio 1.0)
         QJsonObject tc = findCase("CALC_04_Radio_Escala_Duplicado");
+        QJsonObject exp = tc["expected"].toObject();
 
         // Radio 1.0 — usamos el caso base con radio 1.0 explícito
         QJsonObject tc1 = tc;
@@ -147,8 +213,10 @@ private slots:
         double dist2 = std::sqrt(out2.ownCenter.x() * out2.ownCenter.x() +
                                   out2.ownCenter.y() * out2.ownCenter.y());
 
-        QVERIFY2(std::abs(dist2 - 2.0 * dist1) < 0.5,
-                 "Con radio 2.0 la distancia proyectada no es el doble que con radio 1.0");
+        const double expectedScale = exp["distanceScaleFactor"].toDouble();
+        const double tolerance = exp["tolerance"].toDouble();
+        verifyNear(dist2, expectedScale * dist1, tolerance, "scaled station distance");
+
     }
 
     // ── CALC_05 ──────────────────────────────────────────────────────────────
@@ -168,7 +236,10 @@ private slots:
         CalcOutputs out = runCalculator(tc);
 
         QCOMPARE(out.etaValid, exp["etaValid"].toBool());
-        QVERIFY2(out.etaMin > 0.0, "ETA debe ser mayor que 0 si hay velocidad y distancia");
+        verifyNear(out.etaMin,
+                   exp["etaMin_approx"].toDouble(),
+                   exp["tolerance"].toDouble(),
+                   "etaMin");
     }
 
     // ── CALC_07 ──────────────────────────────────────────────────────────────
@@ -233,6 +304,17 @@ private slots:
         CalcOutputs out = runCalculator(tc);
 
         QCOMPARE(out.allyCenters.size(), exp["allyCentersCount"].toInt());
+
+        const QJsonArray expectedCenters = exp["allyCenters"].toArray();
+        QCOMPARE(out.allyCenters.size(), expectedCenters.size());
+
+        const double tolerance = exp["tolerance"].toDouble();
+        for (int i = 0; i < expectedCenters.size(); ++i) {
+            verifyPointNear(out.allyCenters[i],
+                            expectedCenters[i].toObject(),
+                            tolerance,
+                            QStringLiteral("allyCenters[%1]").arg(i));
+        }
     }
 
     // ── CALC_12 ──────────────────────────────────────────────────────────────
