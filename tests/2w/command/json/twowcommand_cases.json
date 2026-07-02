@@ -2,9 +2,9 @@
   "twoWCommandTestCases": [
     {
       "id": "CMD_01_Camino_Exitoso_Iniciacion_Valida",
-      "commandLine": "2w --guia=10 --bp=5 --radio=2.5",
+      "commandLine": "2w --guia=10 --est=5 --radio=2.5",
       "expectedSuccess": true,
-      "expectedMessageContains": "Disposicion 2W iniciada.",
+      "expectedMessageContains": "Disposicion iniciada.",
       "expected": {
         "active": true,
         "guideTrackId": 10,
@@ -14,17 +14,17 @@
     },
     {
       "id": "CMD_02_Error_Estacion_Fuera_De_Rango_Maximo",
-      "commandLine": "2w --guia=10 --bp=69",
+      "commandLine": "2w --guia=10 --est=69",
       "precondition": "activeSentinel",
       "expectedSuccess": false,
-      "expectedMessageContains": "--bp debe estar entre 1 y 68.",
+      "expectedMessageContains": "--est debe estar entre 1 y 68.",
       "expected": {
         "stateUnchanged": true
       }
     },
     {
       "id": "CMD_03_Error_Radio_Invalido_Negativo",
-      "commandLine": "2w --guia=10 --bp=5 --radio=-1.5",
+      "commandLine": "2w --guia=10 --est=5 --radio=-1.5",
       "precondition": "activeSentinel",
       "expectedSuccess": false,
       "expectedMessageContains": "--radio debe ser un numero positivo.",
@@ -34,10 +34,10 @@
     },
     {
       "id": "CMD_04_Error_Estacion_Fuera_De_Rango_Minimo",
-      "commandLine": "2w --guia=10 --bp=0",
+      "commandLine": "2w --guia=10 --est=0",
       "precondition": "activeSentinel",
       "expectedSuccess": false,
-      "expectedMessageContains": "--bp debe estar entre 1 y 68.",
+      "expectedMessageContains": "--est debe estar entre 1 y 68.",
       "expected": {
         "stateUnchanged": true
       }
@@ -47,7 +47,7 @@
       "commandLine": "2w --guia=10",
       "precondition": "activeSentinel",
       "expectedSuccess": false,
-      "expectedMessageContains": "Faltan --guia y --bp",
+      "expectedMessageContains": "Faltan --guia y --est",
       "expected": {
         "stateUnchanged": true
       }
@@ -63,11 +63,53 @@
       }
     },
     {
+      "id": "CMD_06B_Error_Detener_Sin_Sesion_Activa",
+      "commandLine": "2w --stop",
+      "precondition": "inactiveSentinel",
+      "expectedSuccess": false,
+      "expectedMessageContains": "no se encuentra activa",
+      "expected": {
+        "stateUnchanged": true
+      }
+    },
+    {
       "id": "CMD_07_Error_Estacion_No_Presente",
-      "commandLine": "2w --guia=10 --bp=26",
+      "commandLine": "2w --guia=10 --est=26",
       "precondition": "activeSentinel",
       "expectedSuccess": false,
       "expectedMessageContains": "La estacion 26 no esta presente en la tabla.",
+      "expected": {
+        "stateUnchanged": true
+      }
+    },
+    {
+      "id": "CMD_08_Camino_Exitoso_Con_Aliadas",
+      "commandLine": "2w --guia=10 --est=5 --aliadas=1,2,3",
+      "expectedSuccess": true,
+      "expectedMessageContains": "Disposicion iniciada.",
+      "expected": {
+        "active": true,
+        "guideTrackId": 10,
+        "bpStation": 5,
+        "circleRadiusNm": 1.0
+      }
+    },
+    {
+      "id": "CMD_09_Error_Aliada_Fuera_De_Rango",
+      "commandLine": "2w --guia=10 --est=5 --aliadas=1,69,3",
+      "precondition": "activeSentinel",
+      "expectedSuccess": false,
+      "expectedMessageContains": "fuera de rango",
+      "expected": {
+        "stateUnchanged": true
+      }
+    },
+    {
+      "id": "CMD_10_Error_Aliada_No_Presente_En_Tabla",
+      "commandLine": "2w --guia=10 --est=5 --aliadas=1,26,3",
+      "precondition": "activeSentinel",
+      "expectedSuccess": false,
+      "expectedMessageContains": "no esta presente en la tabla",
       "expected": {
         "stateUnchanged": true
       }
@@ -99,9 +141,9 @@
     },
     {
       "id": "CMD_NEW_03_RadioOmitido_UsaValorPorDefecto",
-      "commandLine": "2w --guia=10 --bp=5",
+      "commandLine": "2w --guia=10 --est=5",
       "expectedSuccess": true,
-      "expectedMessageContains": "Disposicion 2W iniciada.",
+      "expectedMessageContains": "Disposicion iniciada.",
       "expected": {
         "active": true,
         "guideTrackId": 10,
@@ -111,27 +153,27 @@
     },
     {
       "id": "CMD_NEW_04_GuiaNoEntera_RechazaSinCambios",
-      "commandLine": "2w --guia=abc --bp=5",
+      "commandLine": "2w --guia=abc --est=5",
       "precondition": "activeSentinel",
       "expectedSuccess": false,
-      "expectedMessageContains": "--guia y --bp deben ser enteros.",
+      "expectedMessageContains": "--guia y --est deben ser enteros.",
       "expected": {
         "stateUnchanged": true
       }
     },
     {
       "id": "CMD_NEW_04_BpNoEntero_RechazaSinCambios",
-      "commandLine": "2w --guia=10 --bp=cinco",
+      "commandLine": "2w --guia=10 --est=cinco",
       "precondition": "activeSentinel",
       "expectedSuccess": false,
-      "expectedMessageContains": "--guia y --bp deben ser enteros.",
+      "expectedMessageContains": "--guia y --est deben ser enteros.",
       "expected": {
         "stateUnchanged": true
       }
     },
     {
       "id": "CMD_NEW_04_RadioCero_RechazaSinCambios",
-      "commandLine": "2w --guia=10 --bp=5 --radio=0",
+      "commandLine": "2w --guia=10 --est=5 --radio=0",
       "precondition": "activeSentinel",
       "expectedSuccess": false,
       "expectedMessageContains": "--radio debe ser un numero positivo.",
@@ -141,10 +183,10 @@
     },
     {
       "id": "CMD_NEW_04_BpFlagSinValor_RechazaSinCambios",
-      "commandLine": "2w --guia=10 --bp",
+      "commandLine": "2w --guia=10 --est",
       "precondition": "activeSentinel",
       "expectedSuccess": false,
-      "expectedMessageContains": "--guia y --bp deben ser enteros.",
+      "expectedMessageContains": "--guia y --est deben ser enteros.",
       "expected": {
         "stateUnchanged": true
       }
@@ -154,16 +196,16 @@
       "commandLine": "2w token sin_formato",
       "precondition": "activeSentinel",
       "expectedSuccess": false,
-      "expectedMessageContains": "Faltan --guia y --bp",
+      "expectedMessageContains": "Faltan --guia y --est",
       "expected": {
         "stateUnchanged": true
       }
     },
     {
       "id": "CMD_NEW_06_Mayusculas_Normalizadas",
-      "commandLine": "2W --GUIA=10 --BP=5 --RADIO=2.5",
+      "commandLine": "2W --GUIA=10 --EST=5 --RADIO=2.5",
       "expectedSuccess": true,
-      "expectedMessageContains": "Disposicion 2W iniciada.",
+      "expectedMessageContains": "Disposicion iniciada.",
       "expected": {
         "active": true,
         "guideTrackId": 10,

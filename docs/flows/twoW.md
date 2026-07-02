@@ -12,7 +12,7 @@ A partir de una estación asignada (basada en los casilleros del 1 al 68 de la T
 
 | Archivo | Clase/Struct | Responsabilidad |
 |---|---|---|
-| `src/controller/commands/TwoWCommand.cpp` | `TwoWCommand` | Entrada CLI para iniciar (`--guia`), detener (`--stop`) y consultar (`--info`) la formación. |
+| `src/controller/commands/TwoWCommand.cpp` | `TwoWCommand` | Entrada CLI para iniciar (`--guia`, `--est`, `--aliadas`), detener (`--stop`) y consultar (`--info`) la formación. |
 | `src/controller/services/TwoWService.cpp` | `TwoWService` | Orquestador del ciclo de vida de la sesión (start/stop) e integrador con el bucle de actualización. |
 | `src/model/2w/twoWCalculator.cpp` | `TwoWCalculator` | Motor matemático puro encargado de proyectar las estaciones y resolver la cinemática de intercepción. |
 | `src/model/2w/twoWSessionState.h` | `TwoWSessionState` | Estructura de datos que persiste el estado dinámico y los resultados analizados de la formación. |
@@ -25,26 +25,26 @@ A partir de una estación asignada (basada en los casilleros del 1 al 68 de la T
 
 ### TwoWCommand
 
-- **Rol**: Wrapper CLI encargado del análisis sintáctico (parsing) de tokens y de la validación de las reglas de negocio de entrada.
+- **Rol**: Wrapper CLI encargado exclusivamente del análisis sintáctico de tokens. No contiene reglas de negocio: delega toda validación y ejecución a `TwoWService`, devolviendo directamente el `TwoWOperationResult` recibido.
+
 - **Métodos clave**:
 
 | Método | Firma | Descripción |
 |---|---|---|
 | Ejecutar | `CommandResult execute(const CommandInvocation& inv, CommandContext& ctx) const` | Modula entre los modos operativos (`--info`, `--stop`, o inicialización de sesión). |
 
-- **Reglas de Validación CLI**:
-  - `--bp` debe ser un entero válido comprendido estrictamente en el rango $[1, 68]$.
-  - `--radio` (opcional, por defecto `1.0`) debe ser un valor de punto flotante estrictamente $> 0.0$.
+- **Validación en CLI**: limitada a la conversión de tipos primitivos (`toInt`, `toDouble`) y a la presencia de parámetros obligatorios (`--guia` y `--est`). Las reglas de negocio (rangos, estaciones en tabla, radio positivo, estaciones aliadas) se resuelven en `TwoWService`.
 
 ### TwoWService
 
-- **Rol**: Interfaz de control operativo que manipula el estado de la sesión táctica y actúa como puente hacia el calculador.
+- **Rol**: Interfaz de control operativo que centraliza las reglas de validación de negocio (rangos numéricos, existencia de estaciones en la Tabla A, validez del radio, rango y presencia de estaciones aliadas), manipula el estado de la sesión táctica y actúa como puente hacia el calculador. Todos los métodos públicos de operación devuelven una estructura uniforme `TwoWOperationResult { bool ok; QString message; }`.
+
 - **Métodos clave**:
 
 | Método | Firma | Descripción |
 |---|---|---|
-| Iniciar Sesión | `void startSession(int guideTrackId, int bpStation, double circleRadiusNm)` | Modifica el contexto fijando el buque guía, la estación del Buque Propio y el radio de escala. |
-| Finalizar Sesión | `void stopSession()` | Llama al método `reset()` de la estructura de datos para apagar el procesamiento dinámico. |
+| Iniciar Sesión | `TwoWOperationResult startSession(int guideTrackId, int bpStation, double circleRadiusNm, const QList<int>& aliadas = {})` | Valida rangos, presencia en tabla y radio, luego fija el buque guía, la estación del Buque Propio, el radio y las estaciones aliadas en el contexto. |
+| Finalizar Sesión | `TwoWOperationResult stopSession()` | Valida que haya sesión activa y llama al método `reset()` de la estructura de datos. |
 | Actualización | `void update()` | Extrae las posiciones cinemáticas actuales de los vectores globales e invoca el recálculo geométrico. |
 
 ### TwoWCalculator
@@ -66,46 +66,36 @@ A partir de una estación asignada (basada en los casilleros del 1 al 68 de la T
 ```mermaid
 flowchart TD
     A([Inicio: Comando 2w recibido]) --> B{"¿Flag detectado?"}
-    
-    B -->|"--guia=ID --bp=N"| C["Validar rangos: BP 1..68 y Radio > 0"]
-    C --> D{"¿Datos válidos?"}
-    D -->|No| E[Retornar Error CLI] --> FE1([Fin con error])
-    D -->|Sí| F[TwoWService::startSession]
-    F --> G["Persistir variables en ctx->twoWSession"] --> Z1([Sesión Iniciada])
+
+    B -->|"--guia=ID --est=N [--aliadas=...]"| C[TwoWService::startSession]
+    C --> D{"¿Validaciones OK?"}
+    D -->|No| E[Retornar TwoWOperationResult ok=false] --> FE1([Fin con error])
+    D -->|Sí| F["Persistir variables en ctx->twoWSession"] --> Z1([Sesión Iniciada])
 
     B -->|"--info"| H{"¿Sesión activa?"}
     H -->|No| I[Error: Disposición no activa] --> FE2([Fin con error])
     H -->|Sí| J[Construir reporte con datos de telemetría actualizados] --> ZF([Mostrar en Consola])
 
     B -->|"--stop"| K[TwoWService::stopSession]
-    K --> L[Llamar reset en dosWSession] --> Z2([Disposición Finalizada])
+    K --> L[Llamar reset en twoWSession] --> Z2([Disposición Finalizada])
 
     classDef error fill:#ffcccc,stroke:#cc0000,color:#800000
     classDef ok fill:#ccffcc,stroke:#007700,color:#004400
     class E,I,FE1,FE2 error
     class Z1,Z2,ZF ok
 ```
+
   ### Flujo CLI (Paso a Paso)
 
 El usuario ejecuta el comando en la consola utilizando la sintaxis de inicialización:
 
 ```bash
-2w --guia=<trackId> --bp=<estacion> [--radio=<mn>]
+2w --guia=<trackId> --est=<estacion> [--radio=<mn>] [--aliadas=<est1,est2,...>]
 ```
 
 1. `TwoWCommand::execute` intercepta los argumentos y los procesa en un mapa local de opciones (`QMap<QString, QString> opts`), normalizando las claves a minúsculas y removiendo los guiones iniciales (`--`).
-2. El comando valida las reglas de negocio críticas antes de interactuar con el servicio:
-   - Verifica la existencia obligatoria de los parámetros `guia` y `bp`.
-   - Comprueba que los valores ingresados puedan convertirse a números enteros.
-   - Valida los límites de la Tabla A: la estación (`bp`) debe estar comprendida estrictamente entre `1` y `68`.
-   - Si se incluye el flag `--radio`, valida que sea un número flotante estrictamente positivo (`> 0.0`). Si se omite, se establece de forma predeterminada en `1.0`.
-3. Si las validaciones fallan, el comando interrumpe la ejecución de inmediato y retorna un `CommandResult` con estado de éxito en `false` junto con la ayuda de uso (`usage()`).
-4. Si los parámetros son correctos, se instancia `TwoWService` pasando el puntero del contexto actual y se invoca `service.startSession(guiaId, bpEst, radio)`.
-5. El servicio modifica el estado global dentro de `CommandContext::twoWSession`:
-   - Setea el flag `active` en `true`.
-   - Registra los IDs de configuración táctica y limpia los contenedores dinámicos.
-6. Se imprime en la consola (`ctx->out`) el mensaje operativo confirmando el inicio de la disposición táctica y el comando retorna un resultado exitoso.
-
+2. El comando realiza únicamente validaciones de forma: verifica la presencia obligatoria de `--guia` y `--est`, y que los valores puedan convertirse a tipos primitivos (`toInt`, `toDouble`). Las reglas de negocio se delegan al servicio.
+3. Se invoca `TwoWService::startSession()`, que valida internamente rangos, presencia en tabla, radio positivo y estaciones aliadas. Si alguna falla, devuelve un `TwoWOperationResult` con `ok=false` y el mensaje correspondiente, que el comando traduce directamente a `CommandResult`.
 ---
 
 ### Ciclo de Recálculo Continuo (Bucle Activo)
@@ -160,7 +150,7 @@ Mantiene la separación limpia entre parámetros de configuración y métricas d
 
 ## Manejo de Errores y Casos de Borde
 
-- **Validación de rangos numéricos**: Rechazo de ejecuciones CLI con estaciones inexistentes en la matriz de la Tabla A (posiciones marcadas como `0.0, 0.0` o índices fuera del intervalo `[1, 68]`).
+- **Validación de rangos numéricos**: `TwoWService` rechaza estaciones del BP o aliadas fuera del intervalo `[1, 68]` o no presentes en la Tabla A (marcadas con `distanceNm = -1.0`). `TwoWCommand` ya no contiene estas validaciones.
 - **Tratamiento de indeterminaciones cinemáticas**: Si la velocidad del Buque Propio es exactamente `0.0`, el sistema deshabilita de manera segura el indicador `kinematicsValid` para saltarse el cálculo del ETA y evitar la división por cero en la ecuación temporal.
 - **Pérdida crítica de referencia**: Si el buque designado como Guía es eliminado de la lista global de vectores tácticos (`findTrackById(s.guideTrackId)` devuelve `nullptr`), el servicio intercepta la anomalía en el siguiente ciclo de `80 ms` y fuerza un `stopSession()` inmediato para proteger la integridad del sistema.
 

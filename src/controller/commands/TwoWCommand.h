@@ -12,7 +12,7 @@ public:
     }
     QString usage() const override {
         return QStringLiteral(
-            "2w --guia=<trackId> --bp=<estacion 1..68> [--radio=<mn>]\n"
+            "2w --guia=<trackId> --est=<estacion 1..68> [--radio=<mn>] [--aliadas=<est1,est2,...>]\n"
             "2w --stop\n"
             "2w --info\n"
             );
