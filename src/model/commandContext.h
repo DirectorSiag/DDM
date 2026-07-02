@@ -18,6 +18,7 @@
 #include "entities/areaEntity.h"
 #include "entities/circleEntity.h"
 #include "entities/polygonoentity.h"
+#include "entities/sectorEntity.h"
 
 struct CommandContext {
     enum MotionMode {
@@ -99,6 +100,7 @@ struct CommandContext {
     std::deque<AreaEntity> areas;
     std::deque<CircleEntity> circles;
     std::deque<PolygonoEntity> polygons;
+    std::deque<SectorEntity> sectors;
     std::deque<CpaMarkerState> cpaMarkers;
     std::map<int, StationingSession> stationingSessions;
 
@@ -125,6 +127,9 @@ struct CommandContext {
     inline std::deque<PolygonoEntity>& getPolygons() { return polygons; }
     inline const std::deque<PolygonoEntity>& getPolygons() const { return polygons; }
 
+    inline std::deque<SectorEntity>& getSectors() { return sectors; }
+    inline const std::deque<SectorEntity>& getSectors() const { return sectors; }
+
     inline std::deque<CpaMarkerState>& getCpaMarkers() { return cpaMarkers; }
     inline const std::deque<CpaMarkerState>& getCpaMarkers() const { return cpaMarkers; }
 
@@ -138,6 +143,10 @@ struct CommandContext {
 
     inline void addPolygon(const PolygonoEntity& polygon) {
         polygons.push_back(polygon);
+    }
+
+    inline void addSector(const SectorEntity& sector) {
+        sectors.push_back(sector);
     }
 
     inline CursorEntity& addCursorFront(const CursorEntity& c) {
@@ -438,6 +447,18 @@ struct CommandContext {
                     eraseCursorById(cid);
                 }
                 polygons.erase(it);
+                return true;
+            }
+        }
+        return false;
+    }
+
+    inline bool deleteSector(int sectorId) {
+        for (auto it = sectors.begin(); it != sectors.end(); ++it) {
+            if (it->getId() == sectorId) {
+                for (int cid : it->getCursorIds())
+                    eraseCursorById(cid);
+                sectors.erase(it);
                 return true;
             }
         }
