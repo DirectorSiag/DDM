@@ -266,58 +266,82 @@
 
     {
       "id": "CALC_18_Panel_Banda1_AdelanteToda",
-      "description": "calculatePanelPredictivo: distPF=2500 > r1=2000 → Adelante Toda / Adelante Media",
+      "description": "calculatePanelPredictivo: distPF=2500 > r1=2000. mov={AD. TODA, d-r1=500}, prox={AD. MEDIA, d-r2=1000}",
       "inputs": { "distanciaPF": 2500.0, "r1": 2000, "r2": 1500, "r3": 800, "r4": 100, "r5": 50 },
-      "expected": { "movimientoActual": "Adelante Toda", "proximoMovimiento": "Adelante Media" }
+      "expected": {
+        "movActualLabel": "AD. TODA",  "movActualDist": 500.0,
+        "proxMovLabel":   "AD. MEDIA", "proxMovDist":   1000.0
+      }
     },
 
     {
       "id": "CALC_19_Panel_Banda2_AdelanteMedia",
-      "description": "calculatePanelPredictivo: r2<distPF<=r1 (1700) → Adelante Media / Adelante Despacio",
+      "description": "calculatePanelPredictivo: r2<distPF<=r1 (1700). mov={AD. MEDIA, d-r2=200}, prox={AD. DESP., d-r3=900}",
       "inputs": { "distanciaPF": 1700.0, "r1": 2000, "r2": 1500, "r3": 800, "r4": 100, "r5": 50 },
-      "expected": { "movimientoActual": "Adelante Media", "proximoMovimiento": "Adelante Despacio" }
+      "expected": {
+        "movActualLabel": "AD. MEDIA", "movActualDist": 200.0,
+        "proxMovLabel":   "AD. DESP.", "proxMovDist":   900.0
+      }
     },
 
     {
       "id": "CALC_20_Panel_Banda3_AdelanteDespacio",
-      "description": "calculatePanelPredictivo: r3<distPF<=r2 (1000) → Adelante Despacio / Para Maquinas",
+      "description": "calculatePanelPredictivo: r3<distPF<=r2 (1000). mov={AD. DESP., d-r3=200}, prox={PARA MAQ, d-r4=900}",
       "inputs": { "distanciaPF": 1000.0, "r1": 2000, "r2": 1500, "r3": 800, "r4": 100, "r5": 50 },
-      "expected": { "movimientoActual": "Adelante Despacio", "proximoMovimiento": "Para Maquinas" }
+      "expected": {
+        "movActualLabel": "AD. DESP.", "movActualDist": 200.0,
+        "proxMovLabel":   "PARA MAQ",  "proxMovDist":   900.0
+      }
     },
 
     {
       "id": "CALC_21_Panel_Banda4_ParaMaquinas",
-      "description": "calculatePanelPredictivo: r4<distPF<=r3 (400) → Para Maquinas / Maquinas Atras",
+      "description": "calculatePanelPredictivo: r4<distPF<=r3 (400). mov={PARA MAQ, d-r4=300}, prox={MAQ. AT, d-r5=350}",
       "inputs": { "distanciaPF": 400.0, "r1": 2000, "r2": 1500, "r3": 800, "r4": 100, "r5": 50 },
-      "expected": { "movimientoActual": "Para Maquinas", "proximoMovimiento": "Maquinas Atras" }
+      "expected": {
+        "movActualLabel": "PARA MAQ", "movActualDist": 300.0,
+        "proxMovLabel":   "MAQ. AT",  "proxMovDist":   350.0
+      }
     },
 
     {
       "id": "CALC_22_Panel_Banda5_MaquinasAtras",
-      "description": "calculatePanelPredictivo: r5<distPF<=r4 (70) → Maquinas Atras / Detención",
+      "description": "calculatePanelPredictivo: r5<distPF<=r4 (70). mov={MAQ. AT, d-r5=20}, prox={DETENCIÓN, d=70 (total, NO resta)}",
       "inputs": { "distanciaPF": 70.0, "r1": 2000, "r2": 1500, "r3": 800, "r4": 100, "r5": 50 },
-      "expected": { "movimientoActual": "Maquinas Atras", "proximoMovimiento": "Detención" }
+      "expected": {
+        "movActualLabel": "MAQ. AT",   "movActualDist": 20.0,
+        "proxMovLabel":   "DETENCIÓN", "proxMovDist":   70.0
+      }
     },
 
     {
       "id": "CALC_23_Panel_Banda6_Detencion",
-      "description": "calculatePanelPredictivo: distPF<=r5 (20) → Detención / (vacío)",
+      "description": "calculatePanelPredictivo: distPF<=r5 (20), estado terminal. mov={DETENCIÓN, d=20}, prox={FONDEADO, 0.0}",
       "inputs": { "distanciaPF": 20.0, "r1": 2000, "r2": 1500, "r3": 800, "r4": 100, "r5": 50 },
-      "expected": { "movimientoActual": "Detención", "proximoMovimiento": "" }
+      "expected": {
+        "movActualLabel": "DETENCIÓN", "movActualDist": 20.0,
+        "proxMovLabel":   "FONDEADO",  "proxMovDist":   0.0
+      }
     },
 
     {
       "id": "CALC_24_Panel_BordeExacto_R1",
-      "description": "calculatePanelPredictivo: distPF==r1 (borde exacto) → entra en banda 2",
+      "description": "calculatePanelPredictivo: distPF==r1 (borde exacto, NO es > r1) → entra en banda 2. mov={AD. MEDIA, d-r2=500}, prox={AD. DESP., d-r3=1200}",
       "inputs": { "distanciaPF": 2000.0, "r1": 2000, "r2": 1500, "r3": 800, "r4": 100, "r5": 50 },
-      "expected": { "movimientoActual": "Adelante Media", "proximoMovimiento": "Adelante Despacio" }
+      "expected": {
+        "movActualLabel": "AD. MEDIA", "movActualDist": 500.0,
+        "proxMovLabel":   "AD. DESP.", "proxMovDist":   1200.0
+      }
     },
 
     {
       "id": "CALC_25_Panel_BordeExacto_R5",
-      "description": "calculatePanelPredictivo: distPF==r5 (borde exacto) → entra en banda 6 (Detención)",
+      "description": "calculatePanelPredictivo: distPF==r5 (borde exacto, NO es > r5) → estado terminal. mov={DETENCIÓN, d=50}, prox={FONDEADO, 0.0}",
       "inputs": { "distanciaPF": 50.0, "r1": 2000, "r2": 1500, "r3": 800, "r4": 100, "r5": 50 },
-      "expected": { "movimientoActual": "Detención", "proximoMovimiento": "" }
+      "expected": {
+        "movActualLabel": "DETENCIÓN", "movActualDist": 50.0,
+        "proxMovLabel":   "FONDEADO",  "proxMovDist":   0.0
+      }
     }
 
   ]
