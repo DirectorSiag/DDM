@@ -72,3 +72,22 @@ qrc_*
 # Archivos de configuración del entorno Qt Creator
 *.pro.user
 
+# --- Proyecto Final: artefactos locales y documentos de trabajo (no compartir) ---
+# Directorios de build temporales (cubre build_cli y similares)
+*build_cli/
+
+# Suites locales no compartidas
+tests/testingModules/
+
+# Documentos de trabajo personales del Proyecto Final
+2W-EXPLICACION.md
+ACTUALIZACION-INFORME.md
+ACTUALIZACION-CASOS-TESTING.md
+AUDITORIA-2W-CALCULATOR.md
+AUDITORIA-2W-SERVICE-COMMAND.md
+CASOS-PROPUESTOS-2W.md
+INFORME-REESTRUCTURACION-PROMPT.md
+Informe Carlos-Ruiz.md
+SRS-DDM.md
+docs/fuentes_informe_extraidas/
+
