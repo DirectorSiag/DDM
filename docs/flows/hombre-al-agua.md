@@ -4,7 +4,7 @@
 
 Este flujo documenta la gestión y el cálculo cinemático continuo del módulo de **Rescate de Hombre al Agua (HA)**. Ante el evento de caída de personal por la borda, el sistema fija de forma inmutable la coordenada geográfica del punto de caída y genera un asesoramiento continuo de orientación (azimut verdadero y marcación relativa), distancia en yardas, tiempo estimado de arribo y datos temporales (hora de caída y cronómetro).
 
-El sistema admite cuatro disparadores de inicio mutuamente excluyentes: posición del Buque Propio, posición del cursor (OBM), coordenada geográfica manual (Lat/Lon) y azimut verdadero + distancia en yardas desde el Buque Propio.
+El sistema admite cuatro disparadores de inicio mutuamente excluyentes: posición del Buque Propio, posición del cursor (OBM), coordenada geográfica manual (Lat/Lon) y azimut verdadero + distancia en yardas desde el Buque Propio. El módulo soporta hasta 10 emergencias simultáneas, cada una identificada por un número de slot. El operador puede consultar, detener y seleccionar cualquier slot independientemente.
 
 ---
 
@@ -15,9 +15,9 @@ El sistema admite cuatro disparadores de inicio mutuamente excluyentes: posició
 | `src/controller/commands/haCommand.cpp` | `HaCommand` | Entrada CLI para iniciar (`--popa`, `--cursor`, `--latlon`, `--az`), detener (`--stop`) y consultar (`--info`) la emergencia. |
 | `src/controller/services/haService.cpp` | `HaService` | Orquestador del ciclo de vida de la sesión (start/stop) e integrador con el bucle de actualización. |
 | `src/model/ha/haCalculator.cpp` | `HaCalculator` | Motor matemático puro encargado de calcular azimuts, marcación relativa, banda y tiempo de arribo. |
-| `src/model/ha/haSessionState.h` | `HaSessionState` | Estructura de datos que persiste el estado dinámico y los resultados calculados de la emergencia. |
+| `src/model/ha/haSessionState.h` | `HaSessionState` | Estructura de datos que persiste el estado dinámico y los resultados calculados de la emergencia. Cada slot del pool de 10 instancias es un HaSessionState independiente.|
 | `src/model/ha/haSessionTimer.cpp` | `HaSessionTimer` | Captura y congela el timestamp de inicio; calcula el tiempo transcurrido en formato HH:MM:SS. |
-| `src/model/commandContext.h` | `CommandContext` | Contenedor global que aloja la sesión activa `haSession` dentro del pipeline del sistema. |
+| `src/model/commandContext.h` | `CommandContext` | Contenedor global que aloja el pool de 10 sesiones haSessions[] y el slot activo activeHaSlot dentro del pipeline del sistema. |
 
 ---
 
@@ -55,17 +55,16 @@ struct HaOperationResult {
 
 | Método | Firma | Descripción |
 |---|---|---|
-| Disparador 1 | `HaOperationResult startSessionAtOwnShip()` | Fija el punto en la posición actual del Buque Propio (Track 0). Falla si el Track 0 no existe. |
+| Disparador 1 | `HaOperationResult startSessionAtOwnShip()` | Fija el punto en la posición actual del Track 0. Falla si no existe. |
 | Disparador 2 | `HaOperationResult startSessionAtCursor(double cursorXDm, double cursorYDm)` | Fija el punto en las coordenadas del cursor OBM. |
-| Disparador 3 | `HaOperationResult startSessionAtLatLonDms(int latDeg, int latMin, double latSec, int lonDeg, int lonMin, double lonSec)` | Convierte GMS a grados decimales vía `RadarMath::dmsToDecimal` y delega en el método privado `startSessionAtLatLon(double, double)`, que valida rangos, valida geo-posición real del BP, convierte a DM vía `RadarMath::latLonToDm` y fija el punto. |
-| Disparador 4 | `HaOperationResult startSessionAtBearing(double azimuthDeg, double distanceYards)` | Valida rangos, proyecta el punto desde el Buque Propio por azimut verdadero y distancia en yardas. |
-| Finalizar | `HaOperationResult stopSession()` | Llama al método `reset()` de la estructura de datos y del cronómetro. Falla si no hay sesión activa. |
-| Actualización | `void update()` | Extrae la posición cinemática actual del Buque Propio e invoca el recálculo. |
-
-- **Métodos internos**:
-  - `void initSession(double xDm, double yDm)`: método privado común a todos los disparadores. Una vez resuelta la coordenada, fija el punto, inicia el `HaSessionTimer` y congela las horas de caída (local y UTC).
-
-  - `HaOperationResult startSessionAtLatLon(double lat, double lon)` : método privado. Conserva toda la lógica de validación de rangos y conversión geográfica; es reutilizado exclusivamente por `startSessionAtLatLonDms`.
+| Disparador 3 | `HaOperationResult startSessionAtLatLonDms(int latDeg, int latMin, double latSec, int lonDeg, int lonMin, double lonSec)` | Convierte GMS a decimal vía `RadarMath::dmsToDecimal` y delega en `startSessionAtLatLon`. |
+| Disparador 4 | `HaOperationResult startSessionAtBearing(double azimuthDeg, double distanceYards)` | Valida rangos y proyecta el punto desde el Track 0 por azimut y distancia en yardas. |
+| Finalizar | `HaOperationResult stopSession(int slotIndex = -1)` | Sin argumento: finaliza todos los slots activos. Con argumento: finaliza el slot específico. |
+| Reporte | `HaOperationResult infoReport(int slotIndex) const` | Construye el reporte del slot indicado. Falla si no está activo. |
+| Seleccionar slot | `HaOperationResult selectSlot(int slotIndex)` | Marca el slot indicado como `activeHaSlot` en el contexto. |
+| Actualización | `void update()` | Recalcula **todos** los slots activos del pool. |
+| Helper interno | `int nextFreeSlot() const` | Devuelve el primer índice libre del array (1-based), o `-1` si todos están ocupados. |
+| Helper interno | `void initSession(double xDm, double yDm)` | Toma el primer slot libre, inicializa su `HaSessionState` y su `HaSessionTimer`, y fija `activeHaSlot`. |
 
 ### HaCalculator
 
@@ -78,7 +77,7 @@ struct HaOperationResult {
 
 - **Consideraciones técnicas del motor**:
   - **Conversión de unidades**: Utiliza el factor constante $1\text{ DM} = 2000\text{ yardas}$ para expresar la distancia al operador.
-  - **Restricción de marcación relativa**: La marcación relativa se fuerza siempre al rango $[0°, 180°]$, devolviendo el valor angular menor hacia el punto.
+  - **Marcación relativa**: Se obtiene como (trueAzimuthDeg − ownCourseDeg) normalizado a [0°, 360°) vía RadarMath::normalizeAngle360. No se restringe al ángulo menor.
   - **Tiempo de arribo**: Cálculo directo en `HaCalculator` — `timeToArrivalMin = (distDm / ownSpeedDm) * 60.0`. Se calcula únicamente cuando `ownSpeedDm > 0.0` y `distDm > 0.0`; en caso contrario `etaValid` se fija como `false`.
   - **Determinación de banda**: Se calcula según el ángulo relativo del punto respecto a la proa: `ESTRIBOR` `[0°, 180°)`, `BABOR` `(180°, 360°)`, `PROA` en `≈0°` y `POPA` en `≈180°`.
 
@@ -137,16 +136,16 @@ flowchart TD
     D3 --> INIT
     D4 --> INIT
 
-    INIT --> FIX[Fijar punto de caída en haSession]
+    INIT --> FIX[Fijar punto de caída en haSessions[idx]]
     FIX --> TIMER[HaSessionTimer::start — congelar hora local y UTC]
     TIMER --> Z1([Emergencia iniciada])
 
-    B -->|"--info"| H{"¿Sesión activa?"}
+    B -->|"--info"| H{"¿Slot solicitado activo?"}
     H -->|No| I[Error: No hay emergencia activa] --> FE3([Fin con error])
     H -->|Sí| J[Construir reporte con datos de asesoramiento actualizados] --> ZF([Mostrar en Consola])
 
     B -->|"--stop"| K[HaService::stopSession]
-    K --> L[reset en haSession + HaSessionTimer::reset] --> Z2([Emergencia finalizada])
+    K --> L[reset en haSessions[slot] + HaSessionTimer::reset] --> Z2([Emergencia finalizada])
 
     classDef error fill:#ffcccc,stroke:#cc0000,color:#800000
     classDef ok fill:#ccffcc,stroke:#007700,color:#004400
@@ -163,14 +162,15 @@ ha --popa
 ha --cursor=<xDm>,<yDm>
 ha --latlon --lat=<deg>,<min>,<sec> --lon=<deg>,<min>,<sec>
 ha --az=<azimut> --d=<distancia_yardas>
-ha --stop
-ha --info
+ha --stop [<slot>]
+ha --info <slot>
+ha --list
 ```
 
 1. `HaCommand::execute` intercepta los argumentos y determina cuál de los seis modos fue invocado.
 2. El comando realiza únicamente validaciones de forma (presencia de parámetros obligatorios, conversión de tipos). Las validaciones de rango y de reglas de negocio se delegan a `HaService`.
 3. Se invoca el método correspondiente de `HaService`, que valida internamente (rangos, existencia de Track 0, disponibilidad geográfica), resuelve la coordenada cartesiana del punto de caída (en DM) y, si todo es correcto, llama a `initSession(xDm, yDm)`.
-4. `initSession` fija el punto en `CommandContext::haSession`, inicia `HaSessionTimer` y congela `fallTimeLocal` y `fallTimeUtc`.
+4. `initSession` toma el primer slot libre del pool, fija el punto en `ctx->haSessions[idx]`, inicia el `HaSessionTimer` correspondiente, congela `fallTimeLocal` y `fallTimeUtc`, y actualiza `ctx->activeHaSlot`.
 5. El resultado de cualquier operación —exitosa o fallida— se devuelve como `HaOperationResult { bool ok, QString message }`, que `HaCommand` traduce directamente a `CommandResult`.
 6. A partir del inicio exitoso de la sesión, el bucle de actualización continuo toma el control.
 
@@ -183,25 +183,27 @@ El módulo HA se evalúa de manera continua mediante el temporizador asincrónic
 ```mermaid
 flowchart TD
     T1([updatePositionTimer cada 80ms]) --> T2["HaService::update()"]
-    T2 --> T3{"¿Sesión activa?"}
-    T3 -->|No| T_END([Retorno inmediato])
+    T2 --> T3[Extraer posición y velocidad del Track 0]
+    T3 --> T4[Para cada slot i en 0..9]
+    T4 --> T5{"¿haSessions[i].active?"}
+    T5 -->|No| T4
+    T5 -->|Sí| T6["HaCalculator::calculate()"]
 
-    T3 -->|Sí| T4[Obtener posición y cinemática del Track 0]
-    T4 --> T5["HaCalculator::calculate()"]
+    T6 --> T7[Calcular azimut verdadero BP → punto de caída]
+    T7 --> T8["Calcular distancia en yardas (DM × 2000)"]
+    T8 --> T9["Calcular marcación relativa normalizada a [0°, 360°)"]
+    T9 --> T10[Determinar banda: ESTRIBOR / BABOR / PROA / POPA]
 
-    T5 --> T6[Calcular azimut verdadero BP → punto de caída]
-    T6 --> T7["Calcular distancia en yardas (DM × 2000)"]
-    T7 --> T8["Calcular marcación relativa restringida a [0°, 180°]"]
-    T8 --> T9[Determinar banda: ESTRIBOR / BABOR / PROA / POPA]
+    T10 --> T11{"¿ownSpeed > 0 y distancia > 0?"}
+    T11 -->|Sí| T12["timeToArrivalMin = (distDm / ownSpeedDm) × 60.0"]
+    T11 -->|No| T13[etaValid = false, timeToArrivalMin = 0.0]
 
-    T9 --> T10{"¿ownSpeed > 0 y distancia > 0?"}
-    T10 -->|Sí| T11["timeToArrivalMin = (distDm / ownSpeedDm) × 60.0"]
-    T10 -->|No| T12[etaValid = false, timeToArrivalMin = 0.0]
+    T12 --> T14["Actualizar ctx->haSessions[i] con resultados"]
+    T13 --> T14
+    T14 --> T15["Actualizar haSessions[i].elapsedTime desde HaSessionTimer"]
+    T15 --> T4
 
-    T11 --> T13[Actualizar ctx->haSession con resultados]
-    T12 --> T13
-    T13 --> T14[Actualizar haSession.elapsedTime desde HaSessionTimer]
-    T14 --> FT([Métricas disponibles para UI y LPD])
+    T4 -->|Fin del pool| FT([Métricas disponibles para UI y LPD])
 
     classDef ok fill:#ccffcc,stroke:#007700,color:#004400
     class FT ok
@@ -215,7 +217,7 @@ flowchart TD
 
 Mantiene la separación limpia entre datos fijos al inicio de la emergencia y métricas dinámicas actualizadas en cada ciclo:
 
-- **Datos de control**: `active`, `fallPointX`, `fallPointY`.
+- **Datos de control**: `active`, `slotIndex (1..10)`, `fallPointX`, `fallPointY`, `haIconCenter` (coordenada para renderizado en el radar).
 - **Datos temporales fijos**: `fallTimeLocal`, `fallTimeUtc` (congelados al disparar).
 - **Dato temporal dinámico**: `elapsedTime` (se recalcula en cada ciclo).
 - **Asesoramiento cinemático**: `trueAzimuthDeg`, `relativeBearingDeg`, `banda`, `distanceYards`, `timeToArrivalMin`, `etaValid`.
@@ -229,6 +231,7 @@ Mantiene la separación limpia entre datos fijos al inicio de la emergencia y m�
 - **Disparador Lat/Lon — BP sin geo-posición**: `startSessionAtLatLon` valida que `ctx->ownShip.valid` sea verdadero y que la geo-posición del BP no sea `(0.0, 0.0)` (dato no inicializado) antes de convertir. Si esta condición no se cumple, el disparador falla con un mensaje operativo y no inicia la sesión.
 - **Disparador Lat/Lon — dependencia del modo de operación**: La conversión `RadarMath::latLonToDm` usa la geo-posición actual del Buque Propio como origen del plano DM. Esto es válido únicamente porque, en modo `RELATIVE`, `CommandContext::updateTracks` ancla el Track 0 a `(0,0)` en cada ciclo. 
 - **Sesión preexistente**: Al invocar cualquier disparador de inicio mientras hay una sesión activa, el sistema sobreescribe el estado anterior mediante `reset()` antes de fijar el nuevo punto, garantizando que no queden residuos de la emergencia anterior.
+- **Pool de slots lleno**: Si los 10 slots están ocupados cuando se invoca un disparador de inicio, nextFreeSlot() retorna -1 e initSession emite el mensaje "[HA] No hay slots disponibles (máximo 10 emergencias activas)." por consola sin iniciar la sesión.
 
 ---
 
