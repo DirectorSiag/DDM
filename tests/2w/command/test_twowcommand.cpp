@@ -148,6 +148,13 @@ static void verifySessionMatchesExpected(const TwoWSessionState& actual, const Q
     if (expected.contains(QStringLiteral("circleRadiusNm"))) {
         verifyNear(actual.circleRadiusNm, expected["circleRadiusNm"].toDouble(), 0.0, "circleRadiusNm");
     }
+    if (expected.contains(QStringLiteral("selectedStations"))) {
+        QList<int> expectedStations;
+        for (const QJsonValue& station : expected["selectedStations"].toArray()) {
+            expectedStations.append(station.toInt());
+        }
+        verifyIntListEquals(actual.selectedStations, expectedStations, "selectedStations");
+    }
 }
 
 static void verifyTextContains(const QString& actual, const QString& expectedText)
@@ -191,7 +198,12 @@ private slots:
             QStringLiteral("CMD_04_Error_Estacion_Fuera_De_Rango_Minimo"),
             QStringLiteral("CMD_05_Error_Falta_Bp"),
             QStringLiteral("CMD_06_Camino_Exitoso_Detener_Formacion"),
+            QStringLiteral("CMD_06B_Error_Detener_Sin_Sesion_Activa"),
             QStringLiteral("CMD_07_Error_Estacion_No_Presente"),
+            QStringLiteral("CMD_08_Camino_Exitoso_Con_Aliadas"),
+            QStringLiteral("CMD_09_Error_Aliada_Fuera_De_Rango"),
+            QStringLiteral("CMD_10_Error_Aliada_No_Presente_En_Tabla"),
+            QStringLiteral("CMD_11_Error_Aliada_No_Entera"),
             QStringLiteral("CMD_NEW_01_Info_SinSesionActiva_NoModificaEstado"),
             QStringLiteral("CMD_NEW_02_Info_ConSesionActiva_NoModificaEstado"),
             QStringLiteral("CMD_NEW_03_RadioOmitido_UsaValorPorDefecto"),
@@ -256,6 +268,15 @@ private slots:
             if (expected.contains(QStringLiteral("circleRadiusNm"))) {
                 QVERIFY2(expected["circleRadiusNm"].isDouble(),
                          qPrintable(QStringLiteral("Case %1 expected.circleRadiusNm must be numeric").arg(id)));
+            }
+            if (expected.contains(QStringLiteral("selectedStations"))) {
+                QVERIFY2(expected["selectedStations"].isArray(),
+                         qPrintable(QStringLiteral("Case %1 expected.selectedStations must be an array").arg(id)));
+                const QJsonArray stations = expected["selectedStations"].toArray();
+                for (const QJsonValue& station : stations) {
+                    QVERIFY2(station.isDouble(),
+                             qPrintable(QStringLiteral("Case %1 expected.selectedStations entries must be numeric").arg(id)));
+                }
             }
         }
 

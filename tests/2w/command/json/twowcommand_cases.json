@@ -91,7 +91,8 @@
         "active": true,
         "guideTrackId": 10,
         "bpStation": 5,
-        "circleRadiusNm": 1.0
+        "circleRadiusNm": 1.0,
+        "selectedStations": [1, 2, 3]
       }
     },
     {
@@ -99,7 +100,7 @@
       "commandLine": "2w --guia=10 --est=5 --aliadas=1,69,3",
       "precondition": "activeSentinel",
       "expectedSuccess": false,
-      "expectedMessageContains": "fuera de rango",
+      "expectedMessageContains": "Estacion aliada 69 fuera de rango",
       "expected": {
         "stateUnchanged": true
       }
@@ -109,7 +110,17 @@
       "commandLine": "2w --guia=10 --est=5 --aliadas=1,26,3",
       "precondition": "activeSentinel",
       "expectedSuccess": false,
-      "expectedMessageContains": "no esta presente en la tabla",
+      "expectedMessageContains": "La estacion aliada 26 no esta presente en la tabla.",
+      "expected": {
+        "stateUnchanged": true
+      }
+    },
+    {
+      "id": "CMD_11_Error_Aliada_No_Entera",
+      "commandLine": "2w --guia=10 --est=5 --aliadas=1,abc,3",
+      "precondition": "activeSentinel",
+      "expectedSuccess": false,
+      "expectedMessageContains": "--aliadas: todos los valores deben ser enteros.",
       "expected": {
         "stateUnchanged": true
       }
