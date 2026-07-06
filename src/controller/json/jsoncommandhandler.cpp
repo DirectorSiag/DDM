@@ -125,6 +125,14 @@ void JsonCommandHandler::initializeCommandMap()
         return m_geometryHandler->deletePolygon(args);
     };
 
+    m_commandMap[QStringLiteral("create_sector")] = [this](const QJsonObject& args) {
+        return m_geometryHandler->createSector(args);
+    };
+
+    m_commandMap[QStringLiteral("delete_sector")] = [this](const QJsonObject& args) {
+        return m_geometryHandler->deleteSector(args);
+    };
+
     m_commandMap[QStringLiteral("list_shapes")] = [this](const QJsonObject& args) {
         return m_geometryHandler->listShapes(args);
     };
