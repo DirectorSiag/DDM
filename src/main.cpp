@@ -6,6 +6,7 @@
 #include "messagerouter.h"
 #include "obmHandler.h"
 #include "obmservice.h"
+#include <qfloat16.h>
 #include "overlayHandler.h"
 #include "json/jsoncommandhandler.h"
 #include <QCoreApplication>
@@ -36,7 +37,7 @@
 #include "ownshipcommand.h"
 #include "estacionamientocommand.h"
 #include "displaymodecommand.h"
-#include "twoWCommand.h"
+#include "TwoWCommand.h"
 #include "TwoWService.h"
 
 #include "addareacommand.h"
@@ -45,19 +46,19 @@
 #include "deleteAreaCommand.h"
 #include "deleteCircleCommand.h"
 
-static void enableAnsiColorsOnWindows() {
-  DWORD mode = 0;
-  HANDLE hOut = GetStdHandle(STD_OUTPUT_HANDLE);
-  if (hOut != INVALID_HANDLE_VALUE && GetConsoleMode(hOut, &mode)) {
-    mode |= 0x0004; // ENABLE_VIRTUAL_TERMINAL_PROCESSING
-    SetConsoleMode(hOut, mode);
-  }
-  HANDLE hErr = GetStdHandle(STD_ERROR_HANDLE);
-  if (hErr != INVALID_HANDLE_VALUE && GetConsoleMode(hErr, &mode)) {
-    mode |= 0x0004;
-    SetConsoleMode(hErr, mode);
-  }
-}
+// static void enableAnsiColorsOnWindows() {
+//   DWORD mode = 0;
+//   HANDLE hOut = GetStdHandle(STD_OUTPUT_HANDLE);
+//   if (hOut != INVALID_HANDLE_VALUE && GetConsoleMode(hOut, &mode)) {
+//     mode |= 0x0004; // ENABLE_VIRTUAL_TERMINAL_PROCESSING
+//     SetConsoleMode(hOut, mode);
+//   }
+//   HANDLE hErr = GetStdHandle(STD_ERROR_HANDLE);
+//   if (hErr != INVALID_HANDLE_VALUE && GetConsoleMode(hErr, &mode)) {
+//     mode |= 0x0004;
+//     SetConsoleMode(hErr, mode);
+//   }
+// }
 
 int main(int argc, char *argv[]) {
 
@@ -172,7 +173,11 @@ int main(int argc, char *argv[]) {
 
   // conectar señales del decoder con ownCurse
   QObject::connect(decoder, &ConcDecoder::newHandWheel, ownCurs,
-                   &OwnCurs::updateHandwheel);
+                   [ownCurs](QPair<float, float> delta) {
+                     ownCurs->updateHandwheel(QPair<qfloat16, qfloat16>(
+                         static_cast<qfloat16>(delta.first),
+                         static_cast<qfloat16>(delta.second)));
+                   });
   QObject::connect(decoder, &ConcDecoder::cuOrOffCentLeft, ownCurs,
                    &OwnCurs::cuOrOffCent);
   QObject::connect(decoder, &ConcDecoder::cuOrCentLeft, ownCurs,

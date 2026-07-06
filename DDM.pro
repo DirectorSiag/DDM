@@ -108,7 +108,7 @@ HEADERS += \
     src/model/utils/configuration.h \
     src/model/entities/track.h \
     src/model/utils/consoleUtils.h \
-    src/view/CommandParser.h \
+    src/view/commandParser.h \
     src/view/ansi.h \
     src/view/iInputParser.h \
     src/view/stdinreader.h

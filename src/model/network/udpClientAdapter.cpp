@@ -1,4 +1,4 @@
-#include "UdpClientAdapter.h"
+#include "udpClientAdapter.h"
 #include "clientSocket.h"    // tu header real
 
 #include <QTimer>

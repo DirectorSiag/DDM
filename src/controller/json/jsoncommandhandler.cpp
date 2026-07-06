@@ -7,6 +7,7 @@
 #include "../services/cpaservice.h"
 #include "../services/estacionamientoservice.h"
 #include "../services/obmservice.h"
+#include "../services/TwoWService.h"
 #include "jsonresponsebuilder.h"
 #include "commandContext.h"
 #include "network/iTransport.h"
@@ -31,6 +32,7 @@ JsonCommandHandler::JsonCommandHandler(CommandContext* context, ITransport* tran
     m_ownShipHandler = std::make_unique<OwnShipCommandHandler>(m_context);
     m_cpaService = std::make_unique<CPAService>(m_context);
     m_estacionamientoService = std::make_unique<EstacionamientoService>(m_context);
+    m_twoWService = std::make_unique<TwoWService>(m_context);
 
     initializeCommandMap();
 }
@@ -167,6 +169,22 @@ void JsonCommandHandler::initializeCommandMap()
 
     m_commandMap[QStringLiteral("estacionamiento_stop")] = [this](const QJsonObject& args) {
         return handleEstacionamientoStop(args);
+    };
+
+    m_commandMap[QStringLiteral("2w_start")] = [this](const QJsonObject& args) {
+        return handleTwoWStart(args);
+    };
+
+    m_commandMap[QStringLiteral("2w_stop")] = [this](const QJsonObject& args) {
+        return handleTwoWStop(args);
+    };
+
+    m_commandMap[QStringLiteral("2w_info")] = [this](const QJsonObject& args) {
+        return handleTwoWInfo(args);
+    };
+
+    m_commandMap[QStringLiteral("2w_set_stations")] = [this](const QJsonObject& args) {
+        return handleTwoWSetStations(args);
     };
 }
 
@@ -593,4 +611,145 @@ QByteArray JsonCommandHandler::handleEstacionamientoStop(const QJsonObject& args
     responseArgs[QStringLiteral("index")] = slotIndex;
     responseArgs[QStringLiteral("status")] = QStringLiteral("stopped");
     return JsonResponseBuilder::buildSuccessResponse(QStringLiteral("estacionamiento_stop"), responseArgs);
+}
+
+QByteArray JsonCommandHandler::handleTwoWStart(const QJsonObject& args)
+{
+    const QJsonValue guideTrackValue = args.value(QStringLiteral("guide_track"));
+    if (!guideTrackValue.isDouble()) {
+        return JsonResponseBuilder::buildValidationErrorResponse(QStringLiteral("2w_start"), QStringLiteral("guide_track"), QString(), QStringLiteral("required integer"));
+    }
+    const int guideTrackId = guideTrackValue.toInt();
+
+    const QJsonValue bpStationValue = args.value(QStringLiteral("bp_station"));
+    if (!bpStationValue.isDouble()) {
+        return JsonResponseBuilder::buildValidationErrorResponse(QStringLiteral("2w_start"), QStringLiteral("bp_station"), QString(), QStringLiteral("required integer, 1-68"));
+    }
+    const int bpStation = bpStationValue.toInt();
+
+    double radiusNm = 1.0;
+    const QJsonValue radiusValue = args.value(QStringLiteral("radius_nm"));
+    if (!radiusValue.isUndefined()) {
+        if (!radiusValue.isDouble()) {
+            return JsonResponseBuilder::buildValidationErrorResponse(QStringLiteral("2w_start"), QStringLiteral("radius_nm"), QString(), QStringLiteral("must be numeric, > 0"));
+        }
+        radiusNm = radiusValue.toDouble();
+    }
+
+    QList<int> aliadas;
+    const QJsonValue aliadasValue = args.value(QStringLiteral("aliadas"));
+    if (!aliadasValue.isUndefined()) {
+        if (!aliadasValue.isArray()) {
+            return JsonResponseBuilder::buildValidationErrorResponse(QStringLiteral("2w_start"), QStringLiteral("aliadas"), QString(), QStringLiteral("must be an array of integers"));
+        }
+        const QJsonArray aliadasArray = aliadasValue.toArray();
+        for (const QJsonValue& entry : aliadasArray) {
+            if (!entry.isDouble()) {
+                return JsonResponseBuilder::buildValidationErrorResponse(QStringLiteral("2w_start"), QStringLiteral("aliadas"), QString(), QStringLiteral("must be an array of integers"));
+            }
+            aliadas.append(entry.toInt());
+        }
+    }
+
+    const TwoWOperationResult result = m_twoWService->startSession(guideTrackId, bpStation, radiusNm, aliadas);
+    if (!result.ok) {
+        return JsonResponseBuilder::buildErrorResponse(QStringLiteral("2w_start"), QStringLiteral("VALIDATION_ERROR"), result.message);
+    }
+
+    const TwoWSessionState& s = m_context->twoWSession;
+    QJsonObject responseArgs;
+    responseArgs[QStringLiteral("guide_track_id")] = s.guideTrackId;
+    responseArgs[QStringLiteral("bp_station")] = s.bpStation;
+    responseArgs[QStringLiteral("radius_nm")] = s.circleRadiusNm;
+    responseArgs[QStringLiteral("guide_circle_id")] = s.guideCircleId;
+    responseArgs[QStringLiteral("own_circle_id")] = s.ownCircleId;
+
+    QJsonArray allyIdsArray;
+    for (int id : s.allyCircleIds) allyIdsArray.append(id);
+    responseArgs[QStringLiteral("ally_circle_ids")] = allyIdsArray;
+
+    return JsonResponseBuilder::buildSuccessResponse(QStringLiteral("2w_start"), responseArgs);
+}
+
+QByteArray JsonCommandHandler::handleTwoWStop(const QJsonObject& /*args*/)
+{
+    const TwoWOperationResult result = m_twoWService->stopSession();
+    if (!result.ok) {
+        return JsonResponseBuilder::buildErrorResponse(QStringLiteral("2w_stop"), QStringLiteral("NOT_ACTIVE"), result.message);
+    }
+
+    QJsonObject responseArgs;
+    responseArgs[QStringLiteral("status")] = QStringLiteral("stopped");
+    return JsonResponseBuilder::buildSuccessResponse(QStringLiteral("2w_stop"), responseArgs);
+}
+
+QByteArray JsonCommandHandler::handleTwoWInfo(const QJsonObject& /*args*/)
+{
+    const TwoWSessionState& s = m_context->twoWSession;
+
+    QJsonObject responseArgs;
+    responseArgs[QStringLiteral("active")] = s.active;
+
+    if (s.active) {
+        responseArgs[QStringLiteral("guide_track_id")] = s.guideTrackId;
+        responseArgs[QStringLiteral("bp_station")] = s.bpStation;
+        responseArgs[QStringLiteral("radius_nm")] = s.circleRadiusNm;
+
+        QJsonArray aliadasArray;
+        for (int est : s.selectedStations) aliadasArray.append(est);
+        responseArgs[QStringLiteral("aliadas")] = aliadasArray;
+
+        responseArgs[QStringLiteral("guide_circle_id")] = s.guideCircleId;
+        responseArgs[QStringLiteral("own_circle_id")] = s.ownCircleId;
+
+        QJsonArray allyIdsArray;
+        for (int id : s.allyCircleIds) allyIdsArray.append(id);
+        responseArgs[QStringLiteral("ally_circle_ids")] = allyIdsArray;
+
+        responseArgs[QStringLiteral("track_valid")] = s.trackValid;
+        responseArgs[QStringLiteral("current_azimuth_deg")] = s.currentAzimuthDeg;
+        responseArgs[QStringLiteral("current_distance_nm")] = s.currentDistanceNm;
+        responseArgs[QStringLiteral("expected_azimuth_deg")] = s.expectedAzimuthDeg;
+        responseArgs[QStringLiteral("expected_distance_nm")] = s.expectedDistanceNm;
+        responseArgs[QStringLiteral("course_to_station_deg")] = s.courseToStationDeg;
+        responseArgs[QStringLiteral("eta_valid")] = s.etaValid;
+        responseArgs[QStringLiteral("time_to_station_min")] = s.timeToStationMin;
+    }
+
+    return JsonResponseBuilder::buildSuccessResponse(QStringLiteral("2w_info"), responseArgs);
+}
+
+QByteArray JsonCommandHandler::handleTwoWSetStations(const QJsonObject& args)
+{
+    const QJsonValue aliadasValue = args.value(QStringLiteral("aliadas"));
+    if (!aliadasValue.isArray()) {
+        return JsonResponseBuilder::buildValidationErrorResponse(QStringLiteral("2w_set_stations"), QStringLiteral("aliadas"), QString(), QStringLiteral("required array of integers (puede ser vacio)"));
+    }
+
+    QList<int> aliadas;
+    const QJsonArray aliadasArray = aliadasValue.toArray();
+    for (const QJsonValue& entry : aliadasArray) {
+        if (!entry.isDouble()) {
+            return JsonResponseBuilder::buildValidationErrorResponse(QStringLiteral("2w_set_stations"), QStringLiteral("aliadas"), QString(), QStringLiteral("must be an array of integers"));
+        }
+        aliadas.append(entry.toInt());
+    }
+
+    const TwoWOperationResult result = m_twoWService->setStations(aliadas);
+    if (!result.ok) {
+        return JsonResponseBuilder::buildErrorResponse(QStringLiteral("2w_set_stations"), QStringLiteral("VALIDATION_ERROR"), result.message);
+    }
+
+    const TwoWSessionState& s = m_context->twoWSession;
+    QJsonObject responseArgs;
+
+    QJsonArray aliadasOut;
+    for (int est : s.selectedStations) aliadasOut.append(est);
+    responseArgs[QStringLiteral("aliadas")] = aliadasOut;
+
+    QJsonArray allyIdsArray;
+    for (int id : s.allyCircleIds) allyIdsArray.append(id);
+    responseArgs[QStringLiteral("ally_circle_ids")] = allyIdsArray;
+
+    return JsonResponseBuilder::buildSuccessResponse(QStringLiteral("2w_set_stations"), responseArgs);
 }

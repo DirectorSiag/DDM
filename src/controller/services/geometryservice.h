@@ -62,6 +62,17 @@ public:
     GeometryResult createCircle(const QPointF& center, double radius, int type, const QString& color);
 
     /**
+     * @brief Reposiciona/redimensiona un círculo existente sin cambiar su ID
+     * @param circleId ID del círculo a actualizar
+     * @param center Nuevo centro del círculo en coordenadas del radar
+     * @param radius Nuevo radio del círculo (distancia)
+     * @return GeometryResult con estado y el mismo ID (círculo no encontrado si falla)
+     * @note Regenera los cursores del perímetro (borra los viejos y crea los nuevos),
+     *       preservando el ID del círculo para que referencias externas (ej. list_shapes) sigan siendo válidas.
+     */
+    GeometryResult updateCircle(int circleId, const QPointF& center, double radius);
+
+    /**
      * @brief Elimina un círculo por ID
      * @param circleId ID del círculo a eliminar
      * @return GeometryResult indicando éxito o error (círculo no encontrado)

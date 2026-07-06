@@ -1,5 +1,6 @@
-#include "LocalIpcClient.h"
+#include "localipcclient.h"
 #include <QDataStream>
+#include <QDebug>
 #include <QTimer>
 
 LocalIpcClient::LocalIpcClient(QString name, QObject* parent)

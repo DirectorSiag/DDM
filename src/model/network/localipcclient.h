@@ -1,5 +1,5 @@
 #pragma once
-#include "ITransport.h"
+#include "iTransport.h"
 #include <QLocalSocket>
 #include <QByteArray>
 

@@ -17,6 +17,19 @@ struct TwoWSessionState {
     QPointF         ownCircleCenter;        // Círculo azul   (estación del BP)
     QList<QPointF>  allyCircleCenters;      // Círculos ámbar (estaciones aliadas)
 
+    // IDs de las figuras graficadas en el radar (GeometryService / CircleEntity).
+    // NO_CIRCLE mientras la figura correspondiente todavia no fue creada.
+    int        guideCircleId = -1;   // Círculo verde  (Guía)
+    int        ownCircleId   = -1;   // Círculo azul   (BP)
+    QList<int> allyCircleIds;        // Círculos ámbar, paralelo a selectedStations
+
+    // Últimos centros efectivamente publicados en el radar (evita llamar a
+    // GeometryService::updateCircle innecesariamente cuando el Guía está
+    // estacionario). Sólo tienen sentido una vez creado el círculo correspondiente.
+    QPointF        lastSyncedGuideCircleCenter;
+    QPointF        lastSyncedOwnCircleCenter;
+    QList<QPointF> lastSyncedAllyCircleCenters;   // paralelo a allyCircleIds
+
     // Asesoramiento cinemático para la Botonera
 
     bool etaValid        = false; // true SOLO si velocidad > 0 y se puede calcular el ETA
@@ -33,4 +46,5 @@ struct TwoWSessionState {
 
     static constexpr int NO_TRACK   = -1;
     static constexpr int NO_STATION = -1;
+    static constexpr int NO_CIRCLE  = -1;
 };

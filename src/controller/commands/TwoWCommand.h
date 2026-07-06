@@ -13,6 +13,7 @@ public:
     QString usage() const override {
         return QStringLiteral(
             "2w --guia=<trackId> --est=<estacion 1..68> [--radio=<mn>] [--aliadas=<est1,est2,...>]\n"
+            "2w --aliadas=<est1,est2,...>   (actualiza solo las estaciones aliadas graficadas; requiere sesion activa)\n"
             "2w --stop\n"
             "2w --info\n"
             );

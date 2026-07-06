@@ -5,6 +5,10 @@
 
 class TwoWCalculator {
 public:
+    // Factor de conversion tactico: de Millas Nauticas (NM) a Data Miles (DM).
+    // 1 NM = 6076.1154 pies / 1 DM = 6000 pies -> Relacion exacta: 1.012685
+    static constexpr double kNmToDm = 1.012685;
+
     static void calculate(
         // -- Entradas --
         QPointF             guidePos,

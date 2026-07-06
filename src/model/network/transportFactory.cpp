@@ -1,8 +1,8 @@
-#include "TransportFactory.h"
-#include "ITransport.h"
-#include "UdpClientAdapter.h"
+#include "transportFactory.h"
+#include "iTransport.h"
+#include "udpClientAdapter.h"
 #include "clientSocket.h"       // tu UDP real
-#include "LocalIpcClient.h"
+#include "localipcclient.h"
 
 #include <QUrl>
 #include <QHostAddress>

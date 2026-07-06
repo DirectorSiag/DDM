@@ -17,6 +17,7 @@ Incluye servicios de tracks, cursores, geometría, ownship, CPA/PPP, estacionami
 | `src/controller/services/cpaservice.h` | `CPAService`, `CPATrackRef`, `CPAComputationResult`, `CPASession`, `CPAClearResult` | Cálculo y ciclo de vida de sesiones CPA/PPP. |
 | `src/controller/services/trackpppservice.h` | `TrackPppService` | Cálculo PPP de SITREP track-vs-ownship. |
 | `src/controller/services/estacionamientoservice.h` | `EstacionamientoService`, `CalculationResult`, `OperationResult` | Parseo/validación y orquestación de cálculo de estacionamiento. |
+| `src/controller/services/TwoWService.h` | `TwoWService`, `TwoWOperationResult` | Ciclo de vida de la Disposición 2W: cálculo cinemático (`TwoWCalculator`) y publicación de figuras (`GeometryService`) en el radar. |
 | `src/controller/services/sitrepservice.h` | `SitrepService` | Operaciones de snapshot, borrado y metadatos SITREP. |
 | `src/controller/services/queryservice.h` | `QueryService` | Consultas read-only sobre estado táctico. |
 | `src/controller/services/centerservice.h` | `CenterService` | Gestión del centro global de visualización. |
@@ -77,6 +78,7 @@ Incluye servicios de tracks, cursores, geometría, ownship, CPA/PPP, estacionami
 | Alta área | `GeometryResult createArea(const std::vector<QPointF>& points, int areaType, const QString& areaColor)` | Crea área de 4 puntos y cursores asociados. |
 | Baja área | `GeometryResult deleteArea(int areaId)` | Elimina área y sus cursores relacionados. |
 | Alta círculo | `GeometryResult createCircle(const QPointF& center, double radius, int type, const QString& color)` | Crea círculo y segmentos/cursosres. |
+| Reposicionar círculo | `GeometryResult updateCircle(int circleId, const QPointF& center, double radius)` | Regenera los cursores del perímetro con nuevo centro/radio, preservando el ID (usado por `TwoWService` para no recrear círculos cada ciclo). |
 | Baja círculo | `GeometryResult deleteCircle(int circleId)` | Elimina círculo y cursores asociados. |
 | Alta polígono | `GeometryResult createPolygon(const std::vector<QPointF>& points, int polyType, const QString& polyColor)` | Crea polígono y su perímetro en cursores. |
 | Baja polígono | `GeometryResult deletePolygon(int polygonId)` | Elimina polígono y cursores asociados. |
@@ -142,6 +144,25 @@ Incluye servicios de tracks, cursores, geometría, ownship, CPA/PPP, estacionami
 - `CommandContext`
 - `EstacionamientoCalculator`
 
+### TwoWService
+
+- **Rol**: Gestiona el ciclo de vida de la Disposición 2W: activa/desactiva la sesión (`twoWSession`), dispara el cálculo cinemático (`TwoWCalculator`) en cada ciclo y publica los resultados como figuras reales en el radar (`GeometryService`/`CircleEntity`), sin recalcular posiciones por su cuenta (ver `docs/modules/2W-Figuras.md`).
+- **Métodos clave**:
+
+| Método | Firma | Descripción |
+|---|---|---|
+| Iniciar sesión | `TwoWOperationResult startSession(int guideTrackId, int bpStation, double circleRadiusNm, const QList<int>& aliadas = {})` | Valida entradas, rechaza si ya hay sesión activa o si el track Guía no existe, activa `twoWSession` y publica de inmediato Guía+Propio (obligatorios); si se pasan `aliadas`, delega a `setStations` como atajo de compatibilidad. |
+| Actualizar aliadas | `TwoWOperationResult setStations(const QList<int>& aliadas)` | Reemplaza la lista completa de estaciones aliadas graficadas (opcionales, a pedido) sin tocar Guía/Propio; requiere sesión activa. |
+| Detener sesión | `TwoWOperationResult stopSession()` | Borra las figuras de guía/propio/aliadas (`GeometryService::deleteCircle`) y resetea `twoWSession`. |
+| Actualizar ciclo | `void update()` | Recalcula posiciones (`TwoWCalculator::calculate`) y sincroniza figuras (`syncFigures`, privado) cada 80 ms. |
+
+- **Structs/Tipos definidos**:
+- `TwoWOperationResult`
+- **Dependencias**:
+- `CommandContext` (`TwoWSessionState`)
+- `TwoWCalculator`, `TwoWStationTable`
+- `GeometryService`
+
 ## Flujo de datos
 
 1. Handler/CLI recibe datos de entrada.
@@ -167,5 +188,6 @@ Incluye servicios de tracks, cursores, geometría, ownship, CPA/PPP, estacionami
 - `docs/architecture.md`
 - `docs/modules/handlers.md`
 - `docs/modules/command-context.md`
+- `docs/modules/2W-Figuras.md`
 - `docs/PPP_SYSTEM.md`
 - `docs/STATIONING_SYSTEM.md`

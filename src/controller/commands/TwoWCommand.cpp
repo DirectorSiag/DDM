@@ -1,5 +1,6 @@
-#include "twoWCommand.h"
-#include "../services/twoWService.h"
+#include "TwoWCommand.h"
+#include "../services/TwoWService.h"
+#include <QStringList>
 
 CommandResult TwoWCommand::execute(const CommandInvocation& inv, CommandContext& ctx) const
 {
@@ -39,6 +40,15 @@ CommandResult TwoWCommand::execute(const CommandInvocation& inv, CommandContext&
                         .arg(s.guideTrackId)
                         .arg(s.bpStation);
         response += QStringLiteral("------------------------------------------------------\n");
+        response += QStringLiteral("Circulo Guia (id): %1  |  Circulo Propio (id): %2\n")
+                        .arg(s.guideCircleId)
+                        .arg(s.ownCircleId);
+        {
+            QStringList allyIds;
+            for (int id : s.allyCircleIds) allyIds << QString::number(id);
+            response += QStringLiteral("Circulos Aliadas (ids): [%1]\n").arg(allyIds.join(QStringLiteral(", ")));
+        }
+        response += QStringLiteral("------------------------------------------------------\n");
         response += QStringLiteral("Marcacion Real al Guia: %1 grados | Tabla A: %2 grados\n")
                         .arg(s.currentAzimuthDeg, 0, 'f', 1)
                         .arg(s.expectedAzimuthDeg, 0, 'f', 1);
@@ -61,6 +71,28 @@ CommandResult TwoWCommand::execute(const CommandInvocation& inv, CommandContext&
     // 2w --stop
     if (opts.contains(QStringLiteral("stop"))) {
         const TwoWOperationResult r = service.stopSession();
+        return { r.ok, r.message };
+    }
+
+    // 2w --aliadas=<est1,est2,...> (standalone, sin --guia/--est): actualiza
+    // solo las estaciones aliadas graficadas, requiere sesion ya activa.
+    if (opts.contains(QStringLiteral("aliadas"))
+        && !opts.contains(QStringLiteral("guia"))
+        && !opts.contains(QStringLiteral("est"))) {
+        const QString raw = opts.value(QStringLiteral("aliadas"));
+        QList<int> aliadas;
+        if (!raw.isEmpty()) {
+            const QStringList parts = raw.split(',');
+            for (const QString& part : parts) {
+                bool okA = false;
+                const int est = part.trimmed().toInt(&okA);
+                if (!okA) {
+                    return { false, QStringLiteral("--aliadas: todos los valores deben ser enteros.") };
+                }
+                aliadas.append(est);
+            }
+        }
+        const TwoWOperationResult r = service.setStations(aliadas);
         return { r.ok, r.message };
     }
 

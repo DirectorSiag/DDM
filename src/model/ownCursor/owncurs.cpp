@@ -6,7 +6,9 @@ OwnCurs::OwnCurs(CommandContext* context, OBMHandler* newObm, QObject* parent)
 void OwnCurs::cuOrOffCent() {
     qDebug() << "OwnCurs << cuOrOffCent PRESSED";
     if (!cursorRef || !obm) return;
-    cursorRef->get().setCoordinates(obm->getPosition());
+    const QPair<float, float> pos = obm->getPosition();
+    cursorRef->get().setCoordinates(QPair<qfloat16, qfloat16>(
+        static_cast<qfloat16>(pos.first), static_cast<qfloat16>(pos.second)));
 }
 
 void OwnCurs::cuOrCent(){

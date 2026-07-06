@@ -18,7 +18,7 @@
 #include "entities/areaEntity.h"
 #include "entities/circleEntity.h"
 #include "entities/polygonoentity.h"
-#include "model/2w/twowsessionstate.h"
+#include "model/2w/twoWSessionState.h"
 
 struct CommandContext {
     enum MotionMode {
@@ -144,20 +144,13 @@ struct CommandContext {
     }
 
     inline CursorEntity& addCursorFront(const CursorEntity& c) {
-        qDebug() << "agregando cursor ID:" << c.getCursorId()
-                 << " Angle:" << c.getCursorAngle()
-                 << " Length:" << c.getCursorLength();
         cursors.push_front(c);
-        qDebug() << "termine de agregar";
         return cursors.front();
     }
 
     template <typename... Args>
     inline CursorEntity& emplaceCursorFront(Args&&... args) {
-        qDebug() << "agregando cursor (emplace)";
         cursors.emplace_front(std::forward<Args>(args)...);
-        qDebug() << "termine de agregar (emplace)";
-        qDebug() << "cursors size =" << cursors.size();
         return cursors.front();
     }
 

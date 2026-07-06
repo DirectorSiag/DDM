@@ -12,10 +12,6 @@ void TwoWCalculator::calculate(
     double& out_currentAzDeg, double& out_currentDistNm,
     double& out_expectedAzDeg, double& out_expectedDistNm)
 {
-    // FACTOR DE CONVERSIÓN TÁCTICO: de Millas Náuticas (NM) a Data Miles (DM)
-    // 1 NM = 6076.1154 pies / 1 DM = 6000 pies -> Relación exacta: 1.012685
-    const double kNmToDm = 1.012685;
-
     // 1. Centro del Guía
     out_guideCenter = guidePos;
 
