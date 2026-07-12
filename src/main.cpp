@@ -36,7 +36,7 @@
 #include "ownshipcommand.h"
 #include "estacionamientocommand.h"
 #include "displaymodecommand.h"
-
+#include "borneoCommand.h"
 #include "addareacommand.h"
 #include "addpolygonocommand.h"
 #include "addCircleCommand.h"
@@ -89,6 +89,7 @@ int main(int argc, char *argv[]) {
     registry->registerCommand(QSharedPointer<ICommand>(new AddCircleCommand()));
     registry->registerCommand(QSharedPointer<ICommand>(new DeleteAreaCommand()));
     registry->registerCommand(QSharedPointer<ICommand>(new DeleteCircleCommand()));
+    registry->registerCommand(QSharedPointer<ICommand>(new BorneoCommand()));
 
   CommandDispatcher dispatcher(registry, parser, *ctx);
 

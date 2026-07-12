@@ -34,6 +34,7 @@ HEADERS += \
     src/controller/commands/addareacommand.h \
     src/controller/commands/addCircleCommand.h \
     src/controller/commands/addpolygonocommand.h \
+    src/controller/commands/borneoCommand.h \
     src/controller/commands/centerCommand.h \
     src/controller/commands/deleteAreaCommand.h \
     src/controller/commands/deleteCircleCommand.h \
@@ -53,6 +54,7 @@ HEADERS += \
     src/controller/json/jsonserializer.h \
     src/controller/handlers/cursorcommandhandler.h \
     src/controller/handlers/ownshipcommandhandler.h \
+    src/controller/services/borneoService.h \
     src/controller/services/centerservice.h \
     src/controller/handlers/geometrycommandhandler.h \
     src/controller/services/cursorservice.h \
@@ -69,6 +71,9 @@ HEADERS += \
     src/controller/messagerouter.h \
     src/controller/overlayHandler.h \
     src/controller/json/validators/jsonvalidator.h \
+    src/model/borneo/borneoCalculator.h \
+    src/model/borneo/borneoSessionState.h \
+    src/model/borneo/buqueClaseCatalog.h \
     src/model/commandContext.h \
     src/model/cpa.h \
     src/model/pppcalculator.h \
@@ -115,12 +120,14 @@ SOURCES += \
     src/controller/commands/addareacommand.cpp \
     src/controller/commands/addCircleCommand.cpp \
     src/controller/commands/addpolygonocommand.cpp \
+    src/controller/commands/borneoCommand.cpp \
     src/controller/commands/centerCommand.cpp \
     src/controller/commands/cpaCommand.cpp \
     src/controller/commands/displaymodecommand.cpp \
     src/controller/commands/estacionamientocommand.cpp \
     src/controller/commands/delete_area_command.cpp \
     src/controller/commands/ownshipcommand.cpp \
+    src/controller/services/borneoService.cpp \
     src/controller/services/centerservice.cpp \
     src/controller/commands/deleteCircleCommand.cpp \
     src/controller/commands/deleteCommand.cpp \
@@ -150,6 +157,8 @@ SOURCES += \
     src/controller/overlayHandler.cpp \
     src/controller/json/validators/jsonvalidator.cpp \
     src/main.cpp \
+    src/model/borneo/borneoCalculator.cpp \
+    src/model/borneo/buqueClaseCatalog.cpp \
     src/model/cpa.cpp \
     src/model/pppcalculator.cpp \
     src/model/estacionamientocalculator.cpp \

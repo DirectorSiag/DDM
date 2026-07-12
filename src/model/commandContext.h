@@ -18,6 +18,7 @@
 #include "entities/areaEntity.h"
 #include "entities/circleEntity.h"
 #include "entities/polygonoentity.h"
+#include "borneo/borneoSessionState.h"
 
 struct CommandContext {
     enum MotionMode {
@@ -101,6 +102,7 @@ struct CommandContext {
     std::deque<PolygonoEntity> polygons;
     std::deque<CpaMarkerState> cpaMarkers;
     std::map<int, StationingSession> stationingSessions;
+    BorneoSessionState borneoSession;
 
     double centerX = 0.0;
     double centerY = 0.0;
