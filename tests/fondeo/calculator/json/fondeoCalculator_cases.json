@@ -99,6 +99,23 @@
     },
 
     {
+      "id": "CALC_27_ResolvePF_GMS_PfAlEste",
+      "description": "resolvePuntoFondeo modo GMS: PF al este del BP con MISMA latitud → xDm positivo (~5.01), yDm≈0. Espejo de CALC_06 en el eje Este-Oeste; ejercita la conversion longitud→X con la escala cos(lat), no cubierta hasta ahora.",
+      "inputs": {
+        "mode": "gms",
+        "pfLatDeg": -34, "pfLatMin": 36, "pfLatSec": 0.0,
+        "pfLonDeg": -58, "pfLonMin": 18, "pfLonSec": 0.0,
+        "ownLat": -34.6,
+        "ownLon": -58.4
+      },
+      "expected": {
+        "pfYIsZero": true,
+        "pfXIsPositive": true,
+        "pfX": 5.01
+      }
+    },
+
+    {
       "id": "CALC_07_ResolvePuntoAuxiliar_Az0_Norte",
       "description": "resolvePuntoAuxiliar: az=0° desde PF=(0,0), dt=1.0MN → PA al norte, x≈0, y≈1.012685",
       "inputs": {
@@ -195,6 +212,19 @@
       },
       "expected": {
         "distanciaPF": 0.0
+      }
+    },
+
+    {
+      "id": "CALC_26_DistAzPfPa_AzimutPA_Oeste",
+      "description": "calculateDistAzPfPa: PA=(-1,0) directamente al oeste del BP=(0,0) → azimutPA≈270°. Verifica la salida azimutPA (única de las 4 salidas sin comprobar) y la normalizacion angular a [0,360).",
+      "inputs": {
+        "ownX": 0.0, "ownY": 0.0,
+        "pfX": 0.0,  "pfY": 1.0,
+        "paX": -1.0, "paY": 0.0
+      },
+      "expected": {
+        "azimutPA": 270.0
       }
     },
 
@@ -341,6 +371,36 @@
       "expected": {
         "movActualLabel": "DETENCIÓN", "movActualDist": 50.0,
         "proxMovLabel":   "FONDEADO",  "proxMovDist":   0.0
+      }
+    },
+
+    {
+      "id": "CALC_28_Panel_BordeExacto_R2",
+      "description": "calculatePanelPredictivo: distPF==r2 (borde exacto, NO es > r2) → cae en banda AD. DESP. mov={AD. DESP., d-r3=700}, prox={PARA MAQ, d-r4=1400}",
+      "inputs": { "distanciaPF": 1500.0, "r1": 2000, "r2": 1500, "r3": 800, "r4": 100, "r5": 50 },
+      "expected": {
+        "movActualLabel": "AD. DESP.", "movActualDist": 700.0,
+        "proxMovLabel":   "PARA MAQ",  "proxMovDist":   1400.0
+      }
+    },
+
+    {
+      "id": "CALC_29_Panel_BordeExacto_R3",
+      "description": "calculatePanelPredictivo: distPF==r3 (borde exacto, NO es > r3) → cae en banda PARA MAQ. mov={PARA MAQ, d-r4=700}, prox={MAQ. AT, d-r5=750}",
+      "inputs": { "distanciaPF": 800.0, "r1": 2000, "r2": 1500, "r3": 800, "r4": 100, "r5": 50 },
+      "expected": {
+        "movActualLabel": "PARA MAQ", "movActualDist": 700.0,
+        "proxMovLabel":   "MAQ. AT",  "proxMovDist":   750.0
+      }
+    },
+
+    {
+      "id": "CALC_30_Panel_BordeExacto_R4",
+      "description": "calculatePanelPredictivo: distPF==r4 (borde exacto, NO es > r4) → cae en banda MAQ. AT. mov={MAQ. AT, d-r5=50}, prox={DETENCIÓN, d=100 (total, NO resta)}",
+      "inputs": { "distanciaPF": 100.0, "r1": 2000, "r2": 1500, "r3": 800, "r4": 100, "r5": 50 },
+      "expected": {
+        "movActualLabel": "MAQ. AT",   "movActualDist": 50.0,
+        "proxMovLabel":   "DETENCIÓN", "proxMovDist":   100.0
       }
     }
 

@@ -189,6 +189,100 @@ private slots:
         QCOMPARE(ctx.fondeoSession.puntoFondeo, QPointF(0.0, 0.0));
     }
 
+    // ── update (bucle dinamico) ───────────────────────────────────
+
+    void test_SVC_18_Update_TransicionPaAPf() {
+        QJsonObject tc = findCase("SVC_18_Update_TransicionPaAPf");
+        QJsonObject ex = tc["expected"].toObject();
+
+        CommandContext ctx;
+        Track own; own.setId(0); own.setX(0.0f); own.setY(0.0f);
+        ctx.tracks.push_back(own);
+
+        ctx.fondeoSession.active        = true;
+        ctx.fondeoSession.paAlcanzado   = false;
+        ctx.fondeoSession.puntoAuxiliar = QPointF(0.0, 0.0); // coincide con el BP → distanciaPA = 0 <= 50
+        ctx.fondeoSession.puntoFondeo   = QPointF(1.0, 1.0); // lejos → no dispara auto-stop
+        ctx.fondeoSession.config.r1 = 2000; ctx.fondeoSession.config.r2 = 1500;
+        ctx.fondeoSession.config.r3 = 800;  ctx.fondeoSession.config.r4 = 100;
+        ctx.fondeoSession.config.r5 = 50;
+
+        FondeoService service(&ctx);
+        service.update();
+
+        QCOMPARE(ctx.fondeoSession.paAlcanzado, ex["paAlcanzado"].toBool());
+        QCOMPARE(ctx.fondeoSession.active,      ex["active"].toBool());
+    }
+
+    void test_SVC_19_Update_AutoStopEnPf() {
+        QJsonObject tc = findCase("SVC_19_Update_AutoStopEnPf");
+        QJsonObject ex = tc["expected"].toObject();
+
+        CommandContext ctx;
+        Track own; own.setId(0); own.setX(0.0f); own.setY(0.0f);
+        ctx.tracks.push_back(own);
+
+        ctx.fondeoSession.active        = true;
+        ctx.fondeoSession.paAlcanzado   = true;              // ya se alcanzo el PA
+        ctx.fondeoSession.puntoFondeo   = QPointF(0.0, 0.0); // coincide con el BP → distanciaPF = 0 <= 15
+        ctx.fondeoSession.puntoAuxiliar = QPointF(0.0, 0.0);
+
+        FondeoService service(&ctx);
+        service.update();
+
+        QCOMPARE(ctx.fondeoSession.active, ex["active"].toBool());
+    }
+
+    void test_SVC_20_Update_CicloNormalSinUmbral() {
+        QJsonObject tc = findCase("SVC_20_Update_CicloNormalSinUmbral");
+        QJsonObject ex = tc["expected"].toObject();
+
+        CommandContext ctx;
+        Track own; own.setId(0); own.setX(0.0f); own.setY(0.0f);
+        ctx.tracks.push_back(own);
+
+        ctx.fondeoSession.active        = true;
+        ctx.fondeoSession.paAlcanzado   = false;
+        ctx.fondeoSession.puntoAuxiliar = QPointF(1.0, 1.0); // lejos → distanciaPA ≈ 2828 yds > 50
+        ctx.fondeoSession.puntoFondeo   = QPointF(2.0, 2.0); // lejos → distanciaPF ≈ 5657 yds > 15
+        ctx.fondeoSession.config.r1 = 2000; ctx.fondeoSession.config.r2 = 1500;
+        ctx.fondeoSession.config.r3 = 800;  ctx.fondeoSession.config.r4 = 100;
+        ctx.fondeoSession.config.r5 = 50;
+
+        FondeoService service(&ctx);
+        service.update();
+
+        QCOMPARE(ctx.fondeoSession.paAlcanzado, ex["paAlcanzado"].toBool());
+        QCOMPARE(ctx.fondeoSession.active,      ex["active"].toBool());
+        QVERIFY2(ctx.fondeoSession.distanciaPF > 0.0, "distanciaPF debe haberse calculado (>0)");
+        QCOMPARE(ctx.fondeoSession.movimientoActual.label, ex["movActualLabel"].toString());
+    }
+
+    // ── persistencia de puntos calculados (integracion Service↔Calculator) ──
+
+    void test_SVC_21_StartSession_PersistePuntosCalculados() {
+        QJsonObject tc = findCase("SVC_21_StartSession_PersistePuntosCalculados");
+        QJsonObject in = tc["inputs"].toObject();
+        QJsonObject ex = tc["expected"].toObject();
+
+        CommandContext ctx;
+        setupContext(ctx, in);
+        FondeoService service(&ctx);
+
+        FondeoOperationResult res = service.startSession(configFromJson(in));
+        QVERIFY2(res.success, qPrintable(QString("startSession debio ser exitosa: %1").arg(res.message)));
+
+        const double eps = 0.01;
+        QVERIFY2(qAbs(ctx.fondeoSession.puntoFondeo.x() - ex["pfX"].toDouble()) < eps,
+                 qPrintable(QString("puntoFondeo.x: esperado %1, obtenido %2").arg(ex["pfX"].toDouble()).arg(ctx.fondeoSession.puntoFondeo.x())));
+        QVERIFY2(qAbs(ctx.fondeoSession.puntoFondeo.y() - ex["pfY"].toDouble()) < eps,
+                 qPrintable(QString("puntoFondeo.y: esperado %1, obtenido %2").arg(ex["pfY"].toDouble()).arg(ctx.fondeoSession.puntoFondeo.y())));
+        QVERIFY2(qAbs(ctx.fondeoSession.puntoAuxiliar.x() - ex["paX"].toDouble()) < eps,
+                 qPrintable(QString("puntoAuxiliar.x: esperado %1, obtenido %2").arg(ex["paX"].toDouble()).arg(ctx.fondeoSession.puntoAuxiliar.x())));
+        QVERIFY2(qAbs(ctx.fondeoSession.puntoAuxiliar.y() - ex["paY"].toDouble()) < eps,
+                 qPrintable(QString("puntoAuxiliar.y: esperado %1, obtenido %2").arg(ex["paY"].toDouble()).arg(ctx.fondeoSession.puntoAuxiliar.y())));
+    }
+
     // ─────────────────────────────────────────────────────────────
     // Helper compartido para casos de startSession (success + message)
     // ─────────────────────────────────────────────────────────────

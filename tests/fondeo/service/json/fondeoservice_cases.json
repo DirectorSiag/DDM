@@ -219,6 +219,44 @@
         "active": false, "paAlcanzado": false,
         "distanciaPF": 0.0, "azimutPF": 0.0
       }
+    },
+
+    {
+      "id": "SVC_18_Update_TransicionPaAPf",
+      "description": "update(): con distanciaPA <= 50 yardas (BP coincide con el PA), transiciona de fase (paAlcanzado pasa a true) y la sesion sigue activa porque el PF aun esta lejos",
+      "inputs": {},
+      "expected": { "paAlcanzado": true, "active": true }
+    },
+
+    {
+      "id": "SVC_19_Update_AutoStopEnPf",
+      "description": "update(): con paAlcanzado=true y distanciaPF <= 15 yardas (BP coincide con el PF), ejecuta el auto-stop y la sesion queda inactiva",
+      "inputs": {},
+      "expected": { "active": false }
+    },
+
+    {
+      "id": "SVC_20_Update_CicloNormalSinUmbral",
+      "description": "update(): sin cruzar ningun umbral, no transiciona (paAlcanzado sigue false), la sesion sigue activa y se poblan los campos dinamicos (distanciaPF calculada y panel predictivo con movimiento actual AD. TODA)",
+      "inputs": {},
+      "expected": { "paAlcanzado": false, "active": true, "movActualLabel": "AD. TODA" }
+    },
+
+    {
+      "id": "SVC_21_StartSession_PersistePuntosCalculados",
+      "description": "Despues de startSession en modo Track, las coordenadas puntoFondeo y puntoAuxiliar calculadas por FondeoCalculator quedan persistidas en el estado de sesion. Cierra el hueco de integracion Service<->Calculator que SVC_13 no cubre (SVC_13 solo compara el eco de los parametros de entrada, no los puntos calculados).",
+      "inputs": {
+        "useTrack": true, "useGms": false,
+        "trackId": 1, "trackX": 5.0, "trackY": 3.0,
+        "trackAz": 90.0, "trackDt": 2.0,
+        "paAz": 180.0, "paDt": 1.0,
+        "r1": 2000.0, "r2": 1500.0, "r3": 800.0, "r4": 100.0, "r5": 50.0,
+        "injectOwnShipGeo": false
+      },
+      "expected": {
+        "pfX": 7.0254, "pfY": 3.0,
+        "paX": 7.0254, "paY": 1.9873
+      }
     }
 
   ]
