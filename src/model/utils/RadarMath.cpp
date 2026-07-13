@@ -44,6 +44,30 @@ qfloat16 RadarMath::calculateLength(const QPointF& start, const QPointF& end) {
     return qSqrt(qPow(end.x() - start.x(), 2) + qPow(end.y() - start.y(), 2));
 }
 
+void RadarMath::latLonToDm(
+    double originLat, double originLon,
+    double targetLat, double targetLon,
+    double& outXDm,   double& outYDm)
+{
+    constexpr double kMetersPerDegree = 111320.0;
+    constexpr double kMetersPerDm     = 1828.8;
+
+    const double dLat   = targetLat - originLat;
+    const double dLon   = targetLon - originLon;
+    const double cosLat = std::cos(qDegreesToRadians(originLat));
+
+    outYDm = (dLat * kMetersPerDegree) / kMetersPerDm;
+    outXDm = (dLon * kMetersPerDegree * cosLat) / kMetersPerDm;
+}
+
+
+double RadarMath::dmsToDecimal(int degrees, int minutes, double seconds) {
+    const double sign = (degrees < 0) ? -1.0 : 1.0;
+    const double absDegrees = std::abs(degrees);
+    const double decimal = absDegrees + (minutes / 60.0) + (seconds / 3600.0);
+    return sign * decimal;
+}
+
 double RadarMath::normalizeAngle360(double deg)
 {
     return normalizeDeg360(deg);

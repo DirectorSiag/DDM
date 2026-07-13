@@ -101,10 +101,6 @@ OwnShipOperationResult OwnShipService::updateFromJson(const QJsonObject& args)
     own.valid = true;
     syncOwnShipVirtualTrack();
 
-    // Etapa actual: tracks estaticos.
-    // Por eso el PPP de SITREP se recalcula una sola vez cuando cambia OwnShip.
-    // Si en el futuro los tracks pasan a ser dinamicos, este recalc tambien debe
-    // dispararse desde el punto de actualizacion cinematica (por ejemplo updateTracks()).
     TrackPppService(m_context).recalculateAllTracksAgainstOwnShip();
 
     return {true, QString(), QStringLiteral("OwnShip actualizado")};
@@ -112,7 +108,9 @@ OwnShipOperationResult OwnShipService::updateFromJson(const QJsonObject& args)
 
 OwnShipOperationResult OwnShipService::setFromCli(double courseDeg,
                                                   double speedKnots,
-                                                  const QString& source)
+                                                  const QString& source,
+                                                  std::optional<double> latDeg,
+                                                  std::optional<double> lonDeg)
 {
     if (!std::isfinite(courseDeg) || !std::isfinite(speedKnots)) {
         return {false, "INVALID_VALUES", "Valores no finitos"};
@@ -123,18 +121,19 @@ OwnShipOperationResult OwnShipService::setFromCli(double courseDeg,
     }
 
     auto& own = m_context->ownShip;
-    own.xDm = 0.0;
-    own.yDm = 0.0;
-    own.courseDeg = normalize360(courseDeg);
+    own.xDm       = 0.0;
+    own.yDm       = 0.0;
+    own.courseDeg  = normalize360(courseDeg);
     own.speedKnots = speedKnots;
-    own.source = source.trimmed().isEmpty() ? QStringLiteral("CLI") : source;
+    own.source     = source.trimmed().isEmpty() ? QStringLiteral("CLI") : source;
+
+    // Lat/lon opcionales — solo se actualizan si se proveyeron
+    if (latDeg.has_value()) own.latitudeDeg  = latDeg.value();
+    if (lonDeg.has_value()) own.longitudeDeg = lonDeg.value();
+
     own.valid = true;
     syncOwnShipVirtualTrack();
 
-    // Etapa actual: tracks estaticos.
-    // Por eso el PPP de SITREP se recalcula una sola vez cuando cambia OwnShip.
-    // Si en el futuro los tracks pasan a ser dinamicos, este recalc tambien debe
-    // dispararse desde el punto de actualizacion cinematica (por ejemplo updateTracks()).
     TrackPppService(m_context).recalculateAllTracksAgainstOwnShip();
 
     return {true, QString(), QStringLiteral("OwnShip actualizado desde consola")};
@@ -144,16 +143,16 @@ QJsonObject OwnShipService::serializeOwnShip() const
 {
     const auto& own = m_context->ownShip;
     QJsonObject ownObj;
-    ownObj["valid"] = own.valid;
-    ownObj["x_dm"] = own.xDm;
-    ownObj["y_dm"] = own.yDm;
-    ownObj["latitude_deg"] = own.latitudeDeg;
+    ownObj["valid"]         = own.valid;
+    ownObj["x_dm"]          = own.xDm;
+    ownObj["y_dm"]          = own.yDm;
+    ownObj["latitude_deg"]  = own.latitudeDeg;
     ownObj["longitude_deg"] = own.longitudeDeg;
-    ownObj["course_deg"] = own.courseDeg;
-    ownObj["speed_knots"] = own.speedKnots;
-    ownObj["time_utc"] = own.timeUtc;
-    ownObj["date_utc"] = own.dateUtc;
-    ownObj["source"] = own.source;
+    ownObj["course_deg"]    = own.courseDeg;
+    ownObj["speed_knots"]   = own.speedKnots;
+    ownObj["time_utc"]      = own.timeUtc;
+    ownObj["date_utc"]      = own.dateUtc;
+    ownObj["source"]        = own.source;
     return ownObj;
 }
 

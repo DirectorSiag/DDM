@@ -106,7 +106,12 @@ HEADERS += \
     src/view/CommandParser.h \
     src/view/ansi.h \
     src/view/iInputParser.h \
-    src/view/stdinreader.h
+    src/view/stdinreader.h \
+    src/model/texto/textLabel.h \
+    src/model/texto/textSessionState.h \
+    src/model/texto/textCalculator.h \
+    src/controller/services/textService.h \
+    src/controller/commands/textCommand.h
 
 SOURCES += \
     src/controller/commandDispatcher.cpp \
@@ -177,7 +182,10 @@ SOURCES += \
     src/model/sitrep/sitrep.cpp \
     src/model/utils/RadarMath.cpp \
     src/model/utils/configuration.cpp \
-    src/view/stdinreader.cpp
+    src/view/stdinreader.cpp \
+    src/model/texto/textCalculator.cpp \
+    src/controller/services/textService.cpp \
+    src/controller/commands/textCommand.cpp
 
 
 
