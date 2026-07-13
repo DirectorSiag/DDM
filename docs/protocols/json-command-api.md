@@ -36,7 +36,7 @@ El objetivo del protocolo es exponer operaciones tácticas del backend (tracks, 
 - `using CommandHandler = std::function<QByteArray(const QJsonObject&)>`
 - **Dependencias**:
 - `TrackCommandHandler`, `CursorCommandHandler`, `GeometryCommandHandler`, `OwnShipCommandHandler`
-- `CPAService`, `EstacionamientoService`
+- `CPAService`, `EstacionamientoService`, `FondeoService`
 - `ITransport`, `CommandContext`
 
 ### JsonResponseBuilder
@@ -89,7 +89,7 @@ El objetivo del protocolo es exponer operaciones tácticas del backend (tracks, 
 
 ## Comandos soportados (mapa actual)
 
-`create_line`, `delete_line`, `list_lines`, `create_area`, `delete_area`, `create_circle`, `delete_circle`, `create_polygon`, `delete_polygon`, `list_shapes`, `create_track`, `delete_track`, `list_tracks`, `ownship_update`, `cpa_start`, `ppp_graph`, `ppp_finish`, `ppp_clear_track`, `estacionamiento_calc`, `estacionamiento_stop`.
+`create_line`, `delete_line`, `list_lines`, `create_area`, `delete_area`, `create_circle`, `delete_circle`, `create_polygon`, `delete_polygon`, `list_shapes`, `create_track`, `delete_track`, `list_tracks`, `ownship_update`, `cpa_start`, `ppp_graph`, `ppp_finish`, `ppp_clear_track`, `estacionamiento_calc`, `estacionamiento_stop`, `fondeo_start`, `fondeo_stop`, `fondeo_info`, `fondeo_tipos`.
 
 ## Formato de mensajes
 

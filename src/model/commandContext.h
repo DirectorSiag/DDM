@@ -19,6 +19,7 @@
 #include "entities/circleEntity.h"
 #include "entities/polygonoentity.h"
 #include "entities/sectorEntity.h"
+#include "model/fondeo/fondeoSessionState.h"
 
 struct CommandContext {
     enum MotionMode {
@@ -103,6 +104,8 @@ struct CommandContext {
     std::deque<SectorEntity> sectors;
     std::deque<CpaMarkerState> cpaMarkers;
     std::map<int, StationingSession> stationingSessions;
+
+    FondeoSessionState fondeoSession;
 
     double centerX = 0.0;
     double centerY = 0.0;

@@ -28,6 +28,7 @@ En la arquitectura general, este módulo es la entrada CLI paralela al pipeline 
 | `src/controller/commands/cpaCommand.h` | `CpaCommand` | Comando CLI para cálculo CPA entre tracks. |
 | `src/controller/commands/ownshipcommand.h` | `OwnShipCommand` | Mostrar/actualizar ownship desde CLI. |
 | `src/controller/commands/estacionamientocommand.h` | `EstacionamientoCommand` | Cálculo de estacionamiento con flags de entrada. |
+| `src/controller/commands/fondeoCommand.h` | `FondeoCommand` | Inicia/detiene/consulta (`--info`) la maniobra de fondeo por CLI. |
 | `src/controller/commands/displaymodecommand.h` | `DisplayModeCommand` | Cambio de modo de movimiento (`relative`/`true_motion`). |
 | `src/controller/commands/addareacommand.h` | `AddAreaCommand` | Alta de área táctica de 4 puntos. |
 | `src/controller/commands/addCircleCommand.h` | `AddCircleCommand` | Alta de círculo táctico. |
@@ -135,6 +136,7 @@ En la arquitectura general, este módulo es la entrada CLI paralela al pipeline 
 | `cpa` | `CpaCommand` | `Uso: cpa <trackId1> <trackId2>` | Calcula/consulta CPA entre tracks (comando CLI específico). |
 | `ownship` | `OwnShipCommand` | `ownship [show] | ownship set <course_deg> <speed_knots> [source]` | Muestra/actualiza ownship. |
 | `estacionamiento` | `EstacionamientoCommand` | `estacionamiento [--track-a=<id|0000>] --track-b=<id_externo> --az=<deg> --d=<dm> (--vd=<knots> | --du=<hours>)` | Calcula rumbo/tiempo de estacionamiento. |
+| `fondeo` | `FondeoCommand` | `fondeo --track=<id> --az=<deg> --dt=<mn> --pa-az=<deg> --pa-dt=<yds> --r1..--r5=<yds>` (o `--pf-lat-deg=...` para modo GMS) / `fondeo --stop` / `fondeo --info` | Inicia/detiene/consulta la maniobra de fondeo. |
 | `display` | `DisplayModeCommand` | `display mode <relative|true|true_motion|show>` | Cambia modo de movimiento del display. |
 | `addArea` | `AddAreaCommand` | `addArea(ax,ay,bx,by,cx,cy,dx,dy,tipo,color)` | Crea área táctica. |
 | `addCircle` | `AddCircleCommand` | `addCircle(x,y,radius,type,color)` | Crea círculo táctico. |

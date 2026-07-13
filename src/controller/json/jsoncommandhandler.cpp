@@ -6,10 +6,14 @@
 #include "../handlers/trackcommandhandler.h"
 #include "../services/cpaservice.h"
 #include "../services/estacionamientoservice.h"
+#include "../services/fondeoservice.h"
 #include "../services/obmservice.h"
 #include "jsonresponsebuilder.h"
 #include "commandContext.h"
 #include "network/iTransport.h"
+#include "model/fondeo/fondeoSessionState.h"
+#include "model/fondeo/fondeoTiposUnidad.h"
+#include <QJsonArray>
 
 #include <QDebug>
 #include <QJsonDocument>
@@ -31,6 +35,7 @@ JsonCommandHandler::JsonCommandHandler(CommandContext* context, ITransport* tran
     m_ownShipHandler = std::make_unique<OwnShipCommandHandler>(m_context);
     m_cpaService = std::make_unique<CPAService>(m_context);
     m_estacionamientoService = std::make_unique<EstacionamientoService>(m_context);
+    m_fondeoService = std::make_unique<FondeoService>(m_context);
 
     initializeCommandMap();
 }
@@ -175,6 +180,22 @@ void JsonCommandHandler::initializeCommandMap()
 
     m_commandMap[QStringLiteral("estacionamiento_stop")] = [this](const QJsonObject& args) {
         return handleEstacionamientoStop(args);
+    };
+
+    m_commandMap[QStringLiteral("fondeo_start")] = [this](const QJsonObject& args) {
+        return handleFondeoStart(args);
+    };
+
+    m_commandMap[QStringLiteral("fondeo_stop")] = [this](const QJsonObject& args) {
+        return handleFondeoStop(args);
+    };
+
+    m_commandMap[QStringLiteral("fondeo_info")] = [this](const QJsonObject& args) {
+        return handleFondeoInfo(args);
+    };
+
+    m_commandMap[QStringLiteral("fondeo_tipos")] = [this](const QJsonObject& args) {
+        return handleFondeoTipos(args);
     };
 }
 
@@ -601,4 +622,139 @@ QByteArray JsonCommandHandler::handleEstacionamientoStop(const QJsonObject& args
     responseArgs[QStringLiteral("index")] = slotIndex;
     responseArgs[QStringLiteral("status")] = QStringLiteral("stopped");
     return JsonResponseBuilder::buildSuccessResponse(QStringLiteral("estacionamiento_stop"), responseArgs);
+}
+
+QByteArray JsonCommandHandler::handleFondeoStart(const QJsonObject& args)
+{
+    const bool hasTrack = args.contains(QStringLiteral("track_id"));
+    const bool hasGms = args.contains(QStringLiteral("pf_lat_deg"));
+
+    if (hasTrack == hasGms) {
+        return JsonResponseBuilder::buildValidationErrorResponse(
+            QStringLiteral("fondeo_start"),
+            QStringLiteral("track_id/pf_lat_deg"),
+            QString(),
+            QStringLiteral("se debe especificar exactamente uno de los dos modos: track_id (modo track) o pf_lat_deg (modo GMS)")
+        );
+    }
+
+    FondeoConfig config;
+
+    if (hasTrack) {
+        config.useTrack = true;
+        config.useGms = false;
+        config.trackId = args.value(QStringLiteral("track_id")).toInt();
+        config.trackAz = args.value(QStringLiteral("track_az")).toDouble();
+        config.trackDt = args.value(QStringLiteral("track_dt")).toDouble();
+    } else {
+        config.useTrack = false;
+        config.useGms = true;
+        config.pfLatDeg = args.value(QStringLiteral("pf_lat_deg")).toInt();
+        config.pfLatMin = args.value(QStringLiteral("pf_lat_min")).toInt();
+        config.pfLatSec = args.value(QStringLiteral("pf_lat_sec")).toDouble();
+        config.pfLonDeg = args.value(QStringLiteral("pf_lon_deg")).toInt();
+        config.pfLonMin = args.value(QStringLiteral("pf_lon_min")).toInt();
+        config.pfLonSec = args.value(QStringLiteral("pf_lon_sec")).toDouble();
+    }
+
+    if (!args.contains(QStringLiteral("pa_az")) || !args.contains(QStringLiteral("pa_dt"))) {
+        return JsonResponseBuilder::buildValidationErrorResponse(
+            QStringLiteral("fondeo_start"),
+            QStringLiteral("pa_az/pa_dt"),
+            QString(),
+            QStringLiteral("el Punto Auxiliar es obligatorio (pa_az y pa_dt)")
+        );
+    }
+    config.paAz = args.value(QStringLiteral("pa_az")).toDouble();
+    config.paDt = args.value(QStringLiteral("pa_dt")).toDouble();
+
+    static const QStringList radiiFields = {
+        QStringLiteral("r1"), QStringLiteral("r2"), QStringLiteral("r3"),
+        QStringLiteral("r4"), QStringLiteral("r5")
+    };
+    for (const QString& field : radiiFields) {
+        if (!args.contains(field)) {
+            return JsonResponseBuilder::buildValidationErrorResponse(
+                QStringLiteral("fondeo_start"),
+                field,
+                QString(),
+                QStringLiteral("obligatorio: faltan definir los 5 radios de marcha (r1..r5)")
+            );
+        }
+    }
+    config.r1 = args.value(QStringLiteral("r1")).toDouble();
+    config.r2 = args.value(QStringLiteral("r2")).toDouble();
+    config.r3 = args.value(QStringLiteral("r3")).toDouble();
+    config.r4 = args.value(QStringLiteral("r4")).toDouble();
+    config.r5 = args.value(QStringLiteral("r5")).toDouble();
+
+    const FondeoOperationResult result = m_fondeoService->startSession(config);
+    if (!result.success) {
+        return JsonResponseBuilder::buildErrorResponse(
+            QStringLiteral("fondeo_start"),
+            QStringLiteral("VALIDATION_ERROR"),
+            result.message
+        );
+    }
+
+    QJsonObject responseArgs;
+    responseArgs[QStringLiteral("message")] = result.message;
+    return JsonResponseBuilder::buildSuccessResponse(QStringLiteral("fondeo_start"), responseArgs);
+}
+
+QByteArray JsonCommandHandler::handleFondeoStop(const QJsonObject& /*args*/)
+{
+    const FondeoOperationResult result = m_fondeoService->stopSession();
+    if (!result.success) {
+        return JsonResponseBuilder::buildErrorResponse(
+            QStringLiteral("fondeo_stop"),
+            QStringLiteral("NO_ACTIVE_SESSION"),
+            result.message
+        );
+    }
+
+    QJsonObject responseArgs;
+    responseArgs[QStringLiteral("message")] = result.message;
+    return JsonResponseBuilder::buildSuccessResponse(QStringLiteral("fondeo_stop"), responseArgs);
+}
+
+QByteArray JsonCommandHandler::handleFondeoInfo(const QJsonObject& /*args*/)
+{
+    const FondeoSessionState& s = m_context->fondeoSession;
+
+    QJsonObject responseArgs;
+    responseArgs[QStringLiteral("active")] = s.active;
+    responseArgs[QStringLiteral("pa_alcanzado")] = s.paAlcanzado;
+    responseArgs[QStringLiteral("distancia_pf")] = s.distanciaPF;
+    responseArgs[QStringLiteral("azimut_pf")] = s.azimutPF;
+    responseArgs[QStringLiteral("distancia_pa")] = s.distanciaPA;
+    responseArgs[QStringLiteral("azimut_pa")] = s.azimutPA;
+    responseArgs[QStringLiteral("azimut_relativo")] = s.azimutRelativo;
+    responseArgs[QStringLiteral("distancia_relativa")] = s.distanciaRelativa;
+    responseArgs[QStringLiteral("movimiento_actual")] = s.movimientoActual.label;
+    responseArgs[QStringLiteral("movimiento_actual_distancia")] = s.movimientoActual.distancia;
+    responseArgs[QStringLiteral("proximo_movimiento")] = s.proximoMovimiento.label;
+    responseArgs[QStringLiteral("proximo_movimiento_distancia")] = s.proximoMovimiento.distancia;
+
+    return JsonResponseBuilder::buildSuccessResponse(QStringLiteral("fondeo_info"), responseArgs);
+}
+
+QByteArray JsonCommandHandler::handleFondeoTipos(const QJsonObject& /*args*/)
+{
+    QJsonArray tiposArray;
+    for (const FondeoData::TipoUnidad tipo : FondeoTiposUnidad::todosLosTipos()) {
+        const RadiosFondeo radios = FondeoTiposUnidad::radiosPara(tipo);
+        QJsonObject tipoObj;
+        tipoObj[QStringLiteral("nombre")] = FondeoData::toQString(tipo);
+        tipoObj[QStringLiteral("r1")] = radios.r1;
+        tipoObj[QStringLiteral("r2")] = radios.r2;
+        tipoObj[QStringLiteral("r3")] = radios.r3;
+        tipoObj[QStringLiteral("r4")] = radios.r4;
+        tipoObj[QStringLiteral("r5")] = radios.r5;
+        tiposArray.append(tipoObj);
+    }
+
+    QJsonObject responseArgs;
+    responseArgs[QStringLiteral("tipos")] = tiposArray;
+    return JsonResponseBuilder::buildSuccessResponse(QStringLiteral("fondeo_tipos"), responseArgs);
 }

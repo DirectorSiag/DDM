@@ -23,6 +23,7 @@ class OwnShipCommandHandler;
 class ObmService;
 class CPAService;
 class EstacionamientoService;
+class FondeoService;
 struct CPATrackRef;
 
 class JsonCommandHandler : public QObject
@@ -49,6 +50,7 @@ private:
     std::unique_ptr<GeometryCommandHandler> m_geometryHandler;
     std::unique_ptr<CPAService> m_cpaService;
     std::unique_ptr<EstacionamientoService> m_estacionamientoService;
+    std::unique_ptr<FondeoService> m_fondeoService;
     QMap<int, QString> m_cpaSlotSessions;
     QMap<QString, CommandHandler> m_commandMap;
     
@@ -62,6 +64,10 @@ private:
     QByteArray handleCpaStart(const QJsonObject& args);
     QByteArray handleEstacionamiento(const QJsonObject& args);
     QByteArray handleEstacionamientoStop(const QJsonObject& args);
+    QByteArray handleFondeoStart(const QJsonObject& args);
+    QByteArray handleFondeoStop(const QJsonObject& args);
+    QByteArray handleFondeoInfo(const QJsonObject& args);
+    QByteArray handleFondeoTipos(const QJsonObject& args);
     QByteArray handlePppGraph(const QJsonObject& args);
     QByteArray handlePppFinish(const QJsonObject& args);
     QByteArray handlePppClearTrack(const QJsonObject& args);

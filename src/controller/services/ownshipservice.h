@@ -17,6 +17,9 @@ public:
     explicit OwnShipService(CommandContext* context);
 
     OwnShipOperationResult updateFromJson(const QJsonObject& args);
+    OwnShipOperationResult setGeoFromCli(double latDeg, double lonDeg);
+    OwnShipOperationResult setGeoFromCliDms(int latDeg, int latMin, double latSec,
+                                            int lonDeg, int lonMin, double lonSec);
     OwnShipOperationResult setFromCli(double courseDeg,
                                       double speedKnots,
                                       const QString& source = QStringLiteral("CLI"));
