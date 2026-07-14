@@ -98,6 +98,19 @@ public:
         return false;
     }
 
+    // Acepta etiquetas del enum Identity ("Pending", "ConfHostile", ...) case-insensitive.
+    static inline bool tryParseIdentity(const QString& value, Identity& out) {
+        const QString normalized = value.trimmed().toUpper();
+        if (normalized == QLatin1String("PENDING"))     { out = Pending;     return true; }
+        if (normalized == QLatin1String("POSSHOSTILE")) { out = PossHostile; return true; }
+        if (normalized == QLatin1String("POSSFRIEND"))  { out = PossFriend;  return true; }
+        if (normalized == QLatin1String("CONFHOSTILE")) { out = ConfHostile; return true; }
+        if (normalized == QLatin1String("CONFFRIEND"))  { out = ConfFriend;  return true; }
+        if (normalized == QLatin1String("EVALUNKNOWN")) { out = EvalUnknown; return true; }
+        if (normalized == QLatin1String("HELI"))        { out = Heli;        return true; }
+        return false;
+    }
+
     // Acepta bits en binario "0001".."1000".
     static inline bool tryParseTypeBits(const QString& bits, Type& out) {
         const QString normalized = bits.trimmed();
@@ -162,6 +175,16 @@ public:
         if (normalized == QLatin1String("OTRO"))      { out = Otro;      return true; }
         return false;
     }
+};
+
+class ReplicationData {
+    Q_GADGET
+
+public:
+    // Categoría del objeto replicado — campo object_type del Envelope (ICD §6.2).
+    // SiOp lo almacena y transmite como entero opaco; solo DDM lo interpreta.
+    enum ObjectType { Track = 1, Cursor = 2, Area = 3 };
+    Q_ENUM(ObjectType)
 };
 
 #endif // TYPESDATA_H

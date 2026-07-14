@@ -111,6 +111,13 @@ HEADERS += \
     src/model/utils/configuration.h \
     src/model/entities/track.h \
     src/model/utils/consoleUtils.h \
+    src/replicationEngine/ReplicatedObject.h \
+    src/replicationEngine/iReplicationBridge.h \
+    src/replicationEngine/iReplicationEngine.h \
+    src/replicationEngine/iReplicationListener.h \
+    src/replicationEngine/networkStatus.h \
+    src/replicationEngine/replicationListener.h \
+    src/replicationEngine/stubReplicationEngine.h \
     src/view/CommandParser.h \
     src/view/ansi.h \
     src/view/iInputParser.h \
@@ -191,6 +198,8 @@ SOURCES += \
     src/model/sitrep/sitrep.cpp \
     src/model/utils/RadarMath.cpp \
     src/model/utils/configuration.cpp \
+    src/replicationEngine/replicationListener.cpp \
+    src/replicationEngine/stubReplicationEngine.cpp \
     src/view/stdinreader.cpp
 
 

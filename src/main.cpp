@@ -47,6 +47,10 @@
 #include "addSectorCommand.h"
 #include "deleteSectorCommand.h"
 
+#include "trackservice.h"
+#include "replicationEngine/replicationListener.h"
+#include "replicationEngine/stubReplicationEngine.h"
+
 #ifdef Q_OS_WIN
 static void enableAnsiColorsOnWindows() {
   DWORD mode = 0;
@@ -77,6 +81,26 @@ int main(int argc, char *argv[]) {
   auto *registry = new CommandRegistry();
   auto *parser = new CommandParser();
   auto *fondeoService = new FondeoService(ctx);
+
+  // --- Replicación (ICD): instancia única de TrackService + listener + engine ---
+  auto *trackService = new TrackService(ctx, &app);
+  auto *replicationEngine = new StubReplicationEngine(); // TODO: reemplazar por el .so real de RE
+  auto *replicationListener = new ReplicationListener(&app);
+
+  trackService->setReplicationEngine(replicationEngine);
+  ctx->trackService = trackService;
+
+  // Bajada RE → DDM: el listener emite desde el Worker Thread de RE;
+  // QueuedConnection entrega los slots en el hilo Qt (ICD §9.4).
+  QObject::connect(replicationListener, &ReplicationListener::trackReceived,
+                   trackService, &TrackService::onReplicatedTrackCreate,
+                   Qt::QueuedConnection);
+  QObject::connect(replicationListener, &ReplicationListener::trackRemoved,
+                   trackService, &TrackService::onReplicatedTrackRemoved,
+                   Qt::QueuedConnection);
+  QObject::connect(replicationListener, &ReplicationListener::clearAllReceived,
+                   trackService, &TrackService::onReplicatedClearAll,
+                   Qt::QueuedConnection);
 
   // registrar comandos
   registry->registerCommand(QSharedPointer<ICommand>(new AddCommand()));
