@@ -81,7 +81,6 @@ void FondeoCalculator::calculatePanelPredictivo(
     double d = out_state.distanciaPF;
     const FondeoConfig& c = out_state.config;
 
-    // TODO: Validar que esta sea la respuesta definitiva
     if (d > c.r1) {
         out_state.movimientoActual = {"AD. TODA", d - c.r1};
         out_state.proximoMovimiento = {"AD. MEDIA", d - c.r2};
@@ -105,6 +104,5 @@ void FondeoCalculator::calculatePanelPredictivo(
     else {
         out_state.movimientoActual = {"DETENCIÓN", d};
         out_state.proximoMovimiento = {"FONDEADO", 0.0};
-
     }
 }
