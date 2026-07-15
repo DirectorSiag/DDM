@@ -41,11 +41,31 @@ public:
     int midi = -1;
     bool useLocalIpc = true;
 
+    // Replicación (RF-DDS-006, ADR-012) — cargados desde ddm.ini en tiempo de
+    // despliegue, no hardcodeados. domainId queda en -1 hasta que
+    // loadReplicationConfig() lo valide; consoleId tiene default seguro (0).
+    int domainId = -1;
+    int consoleId = 0;
+
     // Métodos para cargar o establecer configuración
     void loadConfiguration();
     void setOverlay(QString);
     void setMidi(int);
     QString getOverlayKey() const;
+
+    /**
+     * @brief Lee domain_id/console_id de ddm.ini (RF-DDS-006, ADR-012).
+     * @param iniPath Ruta al .ini. Si está vacío, usa
+     *        QCoreApplication::applicationDirPath() + "/ddm.ini" (al lado del
+     *        ejecutable, portable entre Windows y Linux).
+     * @return false si el archivo no existe o domain_id falta/no es un entero
+     *         válido — domain_id no tiene default seguro (RF-DDS-006: mezclar
+     *         por error una consola de simulación con la red de combate real es
+     *         justamente el riesgo que este requisito previene). El llamador
+     *         debe abortar el arranque en ese caso.
+     *         console_id sí tiene default (0) con warning si falta.
+     */
+    bool loadReplicationConfig(const QString& iniPath = QString());
 
     static const QHostAddress masterIpDhcNetwork;
     static const QHostAddress slaveIpDhcNetwork;

@@ -82,6 +82,14 @@ int main(int argc, char *argv[]) {
 
   QCoreApplication app(argc, argv);
 
+  // Config de despliegue por consola (RF-DDS-006, ADR-012): domain_id no tiene
+  // default seguro — sin él no es seguro arrancar (riesgo de mezclar por error
+  // una consola de simulación con la red de combate real). Se falla temprano,
+  // antes de levantar cualquier otro subsistema.
+  if (!Configuration::instance().loadReplicationConfig()) {
+    return 1;
+  }
+
   auto *ctx = new CommandContext();
   auto *registry = new CommandRegistry();
   auto *parser = new CommandParser();
@@ -103,10 +111,10 @@ int main(int argc, char *argv[]) {
   auto replicationEngine = std::make_unique<replication_engine::ReplicationEngine>(
       std::move(replicationStorage), std::move(replicationTransport),
       std::move(replicationResolver), std::move(replicationBridge),
-      /*domain_id=*/0); // TODO: leer de configuración (RF-DDS-006, ADR-012) —
-                        // mismo estado provisorio que m_consoleId en TrackService.
+      Configuration::instance().domainId);
 
   trackService->setReplicationEngine(replicationEngine.get());
+  trackService->setConsoleId(Configuration::instance().consoleId);
   ctx->trackService = trackService;
 
   replicationEngine->start();

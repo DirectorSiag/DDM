@@ -16,6 +16,8 @@
 #include <QJsonObject>
 #include <QJsonArray>
 #include <QDebug>
+#include <QCoreApplication>
+#include <QSettings>
 
 const QHostAddress Configuration::masterIpDhcNetwork("172.16.0.99");
 const QHostAddress Configuration::slaveIpDhcNetwork("172.16.0.101");
@@ -79,4 +81,39 @@ QString Configuration::getOverlayKey() const {
         }
     }
     return QString(); // Retorna vacío si no se encuentra
+}
+
+bool Configuration::loadReplicationConfig(const QString& iniPath) {
+    const QString path = iniPath.isEmpty()
+        ? QCoreApplication::applicationDirPath() + "/ddm.ini"
+        : iniPath;
+
+    if (!QFile::exists(path)) {
+        qCritical() << "Configuration: no se encontró" << path
+                    << "— copiar ddm.ini.example a ddm.ini junto al ejecutable "
+                       "y completar domain_id antes de desplegar (RF-DDS-006).";
+        return false;
+    }
+
+    QSettings settings(path, QSettings::IniFormat);
+
+    bool domainOk = false;
+    const int parsedDomainId = settings.value("DDS/domain_id").toInt(&domainOk);
+    if (!domainOk) {
+        qCritical() << "Configuration: DDS/domain_id ausente o inválido en" << path
+                    << "— no es seguro arrancar sin un Domain ID explícito (RF-DDS-006).";
+        return false;
+    }
+    domainId = parsedDomainId;
+
+    bool consoleOk = false;
+    const int parsedConsoleId = settings.value("Console/console_id").toInt(&consoleOk);
+    if (consoleOk) {
+        consoleId = parsedConsoleId;
+    } else {
+        qWarning() << "Configuration: Console/console_id ausente o inválido en" << path
+                   << "— usando default" << consoleId;
+    }
+
+    return true;
 }

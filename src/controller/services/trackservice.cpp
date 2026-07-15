@@ -22,6 +22,11 @@ void TrackService::setReplicationEngine(replication_engine::IReplicationEngine* 
     m_replicationEngine = engine;
 }
 
+void TrackService::setConsoleId(int consoleId)
+{
+    m_consoleId = consoleId;
+}
+
 TrackOperationResult TrackService::validateRequest(const TrackCreateRequest& request) const
 {
     if (request.x < -256.0 || request.x > 256.0 || request.y < -256.0 || request.y > 256.0) {

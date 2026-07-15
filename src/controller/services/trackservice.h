@@ -77,6 +77,13 @@ public:
     void setReplicationEngine(replication_engine::IReplicationEngine* engine);
 
     /**
+     * @brief Identidad de esta consola, usada como source_console_id en los
+     *        objetos replicados (auditoría). Ver Configuration::consoleId
+     *        (RF-DDS-006, ddm.ini).
+     */
+    void setConsoleId(int consoleId);
+
+    /**
      * @brief Crea un nuevo track en el contexto
      * @param request Estructura con parámetros del nuevo track
      * @return TrackOperationResult con estado, ID asignado, y mensaje de error si aplica
@@ -178,7 +185,7 @@ private:
     // Motor de replicación (no-owning). nullptr = sin replicación.
     replication_engine::IReplicationEngine* m_replicationEngine = nullptr;
 
-    // TODO: leer de configuración cuando exista identidad de consola (ICD §6.2).
+    // Seteado desde main() vía Configuration::consoleId (RF-DDS-006, ddm.ini).
     int m_consoleId = 0;
 
     // guid (identidad de red) → trackId (id local). Clave opaca, solo se

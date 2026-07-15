@@ -1,3 +1,7 @@
+# Config de despliegue por consola (RF-DDS-006) — cada consola tiene el suyo,
+# no se versiona. Ver ddm.ini.example.
+ddm.ini
+
 # Qt / C++ build artifacts
 build/
 cmake-build-*/
