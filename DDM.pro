@@ -29,6 +29,7 @@ INCLUDEPATH += \
 HEADERS += \
     src/controller/commandRegistry.h \
     src/controller/commanddispatcher.h \
+    src/controller/commands/TwoWCommand.h \
     src/controller/commands/addCommand.h \
     src/controller/commands/addCursor.h \
     src/controller/commands/addareacommand.h \
@@ -43,6 +44,7 @@ HEADERS += \
     src/controller/commands/displaymodecommand.h \
     src/controller/commands/estacionamientocommand.h \
     src/controller/commands/fondeoCommand.h \
+    src/controller/commands/haCommand.h \
     src/controller/commands/ownshipcommand.h \
     src/controller/commands/deleteCommand.h \
     src/controller/commands/deletecursorscommand.h \
@@ -56,11 +58,13 @@ HEADERS += \
     src/controller/json/jsonserializer.h \
     src/controller/handlers/cursorcommandhandler.h \
     src/controller/handlers/ownshipcommandhandler.h \
+    src/controller/services/TwoWService.h \
     src/controller/services/centerservice.h \
     src/controller/handlers/geometrycommandhandler.h \
     src/controller/services/cursorservice.h \
     src/controller/services/fondeoservice.h \
     src/controller/services/geometryservice.h \
+    src/controller/services/haService.h \
     src/controller/services/sitrepservice.h \
     src/controller/services/trackpppservice.h \
     src/controller/services/trackservice.h \
@@ -73,11 +77,17 @@ HEADERS += \
     src/controller/messagerouter.h \
     src/controller/overlayHandler.h \
     src/controller/json/validators/jsonvalidator.h \
+    src/model/2w/twoWCalculator.h \
+    src/model/2w/twoWSessionState.h \
+    src/model/2w/twoWStationTable.h \
     src/model/commandContext.h \
     src/model/cpa.h \
     src/model/fondeo/fondeoCalculator.h \
     src/model/fondeo/fondeoSessionState.h \
     src/model/fondeo/fondeoTiposUnidad.h \
+    src/model/ha/haCalculator.h \
+    src/model/ha/haSessionState.h \
+    src/model/ha/haSessionTimer.h \
     src/model/pppcalculator.h \
     src/model/estacionamientocalculator.h \
     src/model/decoders/concDecoder.h \
@@ -111,13 +121,14 @@ HEADERS += \
     src/model/utils/configuration.h \
     src/model/entities/track.h \
     src/model/utils/consoleUtils.h \
-    src/view/CommandParser.h \
+    src/view/commandParser.h \
     src/view/ansi.h \
     src/view/iInputParser.h \
     src/view/stdinreader.h
 
 SOURCES += \
     src/controller/commandDispatcher.cpp \
+    src/controller/commands/TwoWCommand.cpp \
     src/controller/commands/addCommand.cpp \
     src/controller/commands/addCursor.cpp \
     src/controller/commands/addareacommand.cpp \
@@ -131,7 +142,9 @@ SOURCES += \
     src/controller/commands/estacionamientocommand.cpp \
     src/controller/commands/delete_area_command.cpp \
     src/controller/commands/fondeoCommand.cpp \
+    src/controller/commands/haCommand.cpp \
     src/controller/commands/ownshipcommand.cpp \
+    src/controller/services/TwoWService.cpp \
     src/controller/services/centerservice.cpp \
     src/controller/commands/deleteCircleCommand.cpp \
     src/controller/commands/deleteCommand.cpp \
@@ -149,6 +162,7 @@ SOURCES += \
     src/controller/services/cursorservice.cpp \
     src/controller/services/fondeoservice.cpp \
     src/controller/services/geometryservice.cpp \
+    src/controller/services/haService.cpp \
     src/controller/services/sitrepservice.cpp \
     src/controller/services/trackpppservice.cpp \
     src/controller/services/trackservice.cpp \
@@ -162,8 +176,11 @@ SOURCES += \
     src/controller/overlayHandler.cpp \
     src/controller/json/validators/jsonvalidator.cpp \
     src/main.cpp \
+    src/model/2w/twoWCalculator.cpp \
     src/model/cpa.cpp \
     src/model/fondeo/fondeoCalculator.cpp \
+    src/model/ha/haCalculator.cpp \
+    src/model/ha/haSessionTimer.cpp \
     src/model/pppcalculator.cpp \
     src/model/estacionamientocalculator.cpp \
     src/model/decoders/concDecoder.cpp \

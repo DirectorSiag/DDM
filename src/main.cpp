@@ -39,6 +39,10 @@
 #include "fondeoCommand.h"
 #include "fondeoservice.h"
 
+#include "TwoWCommand.h"
+#include "TwoWService.h"
+#include "haCommand.h"
+#include "haService.h"
 #include "addareacommand.h"
 #include "addpolygonocommand.h"
 #include "addCircleCommand.h"
@@ -76,7 +80,11 @@ int main(int argc, char *argv[]) {
   auto *ctx = new CommandContext();
   auto *registry = new CommandRegistry();
   auto *parser = new CommandParser();
+  auto *obmHandler = new OBMHandler();
+  auto *obmService = new ObmService(obmHandler);
   auto *fondeoService = new FondeoService(ctx);
+  auto *twoWService = new TwoWService(ctx);
+  auto *haService = new HaService(ctx, obmService);
 
   // registrar comandos
   registry->registerCommand(QSharedPointer<ICommand>(new AddCommand()));
@@ -99,6 +107,13 @@ int main(int argc, char *argv[]) {
   registry->registerCommand(QSharedPointer<ICommand>(new AddSectorCommand()));
   registry->registerCommand(QSharedPointer<ICommand>(new DeleteSectorCommand()));
   registry->registerCommand(QSharedPointer<ICommand>(new FondeoCommand()));
+    registry->registerCommand(QSharedPointer<ICommand>(new AddAreaCommand()));
+    registry->registerCommand(QSharedPointer<ICommand>(new AddPolygonoCommand()));
+    registry->registerCommand(QSharedPointer<ICommand>(new AddCircleCommand()));
+    registry->registerCommand(QSharedPointer<ICommand>(new DeleteAreaCommand()));
+    registry->registerCommand(QSharedPointer<ICommand>(new DeleteCircleCommand()));
+    registry->registerCommand(QSharedPointer<ICommand>(new TwoWCommand()));
+    registry->registerCommand(QSharedPointer<ICommand>(new HaCommand(obmService)));
 
   CommandDispatcher dispatcher(registry, parser, *ctx);
 
@@ -149,6 +164,12 @@ int main(int argc, char *argv[]) {
                      fondeoService->update();
                    });
 
+  QObject::connect(&updatePositionTimer, &QTimer::timeout,
+                   [ctx, twoWService, haService]() {
+                     twoWService->update();
+                     haService->update();
+                   });
+
   QObject::connect(&timer, &QTimer::timeout, &timer,
                    [ctx, encoder, transport, &jsonHandler]() {
                      if (jsonHandler) {
@@ -157,8 +178,6 @@ int main(int argc, char *argv[]) {
                      transport->send(encoder->buildFullMessage(*ctx));
                    });
 
-  auto *obmHandler = new OBMHandler();
-  auto *obmService = new ObmService(obmHandler);
   auto *ownCurs = new OwnCurs(ctx, obmHandler);
 
   // 1. Crear los controladores
