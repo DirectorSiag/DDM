@@ -50,7 +50,7 @@ Borneo es un **cálculo puntual**: se ejecuta una vez al iniciar la sesión y el
 |---|---|---|
 | Iniciar por eslora manual | `BorneoOperationResult startSession(const BorneoConfig& config)` | Valida la configuración y calcula el radio directamente con la eslora provista (opción "OTRO"). |
 | Iniciar por clase de buque | `BorneoOperationResult startSessionByClase(const QString& clase, int grilletes, double profundidad)` | Resuelve la eslora vía `BuqueClaseCatalog::resolveEslora`; si la clase no existe, retorna error sin calcular. |
-| Finalizar Sesión | `BorneoOperationResult stopSession()` | Valida que haya sesión activa y la marca como inactiva (`active = false`). |
+| Finalizar Sesión | `BorneoOperationResult stopSession()` | Valida que haya sesión activa y limpia el estado completo vía `session.reset()` (active, config y radioCalculado vuelven a sus valores por defecto). |
 | Helper interno | `QString validate(const BorneoConfig& config) const` | Verifica eslora > 0, grilletes ≥ 0, profundidad ≥ 0. Devuelve string vacío si es válido, o el mensaje de error correspondiente. |
 | Helper interno | `BorneoOperationResult startSessionInternal(const BorneoConfig& config)` | Punto único de validación + cálculo + persistencia en `ctx->borneoSession`, usado por ambos modos de inicio. |
 
@@ -104,18 +104,20 @@ flowchart TD
 
     V -->|No válido| E3[Retornar BorneoOperationResult success=false] --> FE3([Fin con error])
     V -->|Válido| CALC["BorneoCalculator::calculateRadius"]
-    CALC --> PERSIST["Persistir config + radioCalculado en ctx->borneoSession, active=true"] --> Z1([Sesión Iniciada])
+    CALC --> RCHECK{"¿radio > 0?"}
+    RCHECK -->|No| E5[Error: radio de Borneo invalido] --> FE5([Fin con error])
+    RCHECK -->|Sí| PERSIST["Persistir config + radioCalculado en ctx->borneoSession, active=true"] --> Z1([Sesión Iniciada])
 
     B -->|"--info"| H{"¿Sesión activa?"}
     H -->|No| I[Error: sin sesion activa] --> FE4([Fin con error])
     H -->|Sí| J[Construir reporte con eslora, grilletes, profundidad y radio] --> ZF([Mostrar en Consola])
 
     B -->|"--stop"| K[BorneoService::stopSession]
-    K --> L[active=false, datos de entrada se conservan] --> Z2([Sesión Finalizada])
+    K --> L[session.reset: active=false, config y radioCalculado vuelven a default] --> Z2([Sesión Finalizada])
 
     classDef error fill:#ffcccc,stroke:#cc0000,color:#800000
     classDef ok fill:#ccffcc,stroke:#007700,color:#004400
-    class E0,E1,E2,E3,I,FE0,FE1,FE2,FE3,FE4 error
+    class E0,E1,E2,E3,E5,I,FE0,FE1,FE2,FE3,FE4,FE5 error
     class Z1,Z2,ZF ok
 ```
 
@@ -171,7 +173,8 @@ Datos ingresados por el operador, inmutables durante el cálculo:
 - **Valores no numéricos**: `--grilletes` y `--profundidad` se validan con `toInt`/`toDouble`; si la conversión falla, el comando rechaza antes de llegar al servicio.
 - **Validación de negocio**: `BorneoService::validate` rechaza eslora ≤ 0, grilletes < 0 o profundidad < 0.
 - **Sin sesión activa**: `--info` y `--stop` retornan error explícito si `ctx->borneoSession.active == false`.
-- **Finalización no destructiva**: `stopSession` solo cambia `active = false`; los valores de `config` (eslora, grilletes, profundidad) permanecen en memoria y no se limpian, permitiendo reanudar sin recargar datos.
+- **Finalización con limpieza de estado**: `stopSession` invoca `session.reset()`, que restablece `active`, `config` (eslora, grilletes, profundidad) y `radioCalculado` a sus valores por defecto en una única operación, evitando que queden residuos de una sesión anterior.
+- **Radio calculado inválido (≤ 0)**: si `BorneoCalculator::calculateRadius` produce un resultado menor o igual a 0 (profundidad grande respecto a eslora + grilletes + margen), `startSessionInternal` rechaza el inicio de la sesión sin persistir ningún estado, devolviendo un mensaje de advertencia: *"Advertencia: los valores ingresados producen un radio de Borneo invalido (X.XX mts). Verifique eslora, grilletes y profundidad."*
 
 ---
 

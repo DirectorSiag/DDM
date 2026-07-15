@@ -37,6 +37,12 @@ BorneoOperationResult BorneoService::startSessionInternal(const BorneoConfig& co
 
     // TODO (futuro): if (!isFondeoActive()) { return { false, "No hay punto de Fondeo activo" }; }
 
+    const double radio = BorneoCalculator::calculateRadius(config);
+
+    if (radio <= 0.0) {
+        return { false, QStringLiteral("Advertencia: los valores ingresados producen un radio de Borneo invalido. Verifique eslora, grilletes y profundidad.").arg(radio, 0, 'f', 2) };
+    }
+
     BorneoSessionState& session = m_context->borneoSession;
     session.config = config;
     session.radioCalculado = BorneoCalculator::calculateRadius(config);

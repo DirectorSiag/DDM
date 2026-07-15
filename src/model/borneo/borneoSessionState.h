@@ -20,4 +20,11 @@ struct BorneoSessionState {
     bool active = false;
     BorneoConfig config;
     double radioCalculado = 0.0; // RADIO DE BORNEO, en metros
+
+    void reset() {
+        active = false;
+        config = BorneoConfig();
+        radioCalculado = 0.0;
+    }
 };
+
