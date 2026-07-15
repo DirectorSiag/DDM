@@ -22,10 +22,9 @@ void HaCalculator::calculate(
     // Distancia en yardas
     outState.distanceYards = RadarMath::dmToYards(distDm);
 
-    // Marcación relativa [0–180°]
-    double rel = RadarMath::normalizeAngle360(outState.trueAzimuthDeg - ownCourseDeg);
-    if (rel > 180.0) rel = 360.0 - rel;
-    outState.relativeBearingDeg = rel;
+    outState.relativeBearingDeg = RadarMath::normalizeAngle360(
+        outState.trueAzimuthDeg - ownCourseDeg
+        );
 
     // Banda
     outState.banda = computeBanda(
