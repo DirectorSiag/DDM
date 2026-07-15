@@ -154,6 +154,26 @@ private slots:
                  qPrintable(QString("pfY: esperado ~%1, obtenido %2").arg(ex["pfY"].toDouble()).arg(pf.y())));
     }
 
+    void test_CALC_27_ResolvePF_GMS_PfAlEste() {
+        QJsonObject tc = findCase("CALC_27_ResolvePF_GMS_PfAlEste");
+        QJsonObject in = tc["inputs"].toObject();
+        QJsonObject ex = tc["expected"].toObject();
+
+        FondeoConfig cfg;
+        cfg.useGms   = true;
+        cfg.pfLatDeg = in["pfLatDeg"].toInt(); cfg.pfLatMin = in["pfLatMin"].toInt(); cfg.pfLatSec = in["pfLatSec"].toDouble();
+        cfg.pfLonDeg = in["pfLonDeg"].toInt(); cfg.pfLonMin = in["pfLonMin"].toInt(); cfg.pfLonSec = in["pfLonSec"].toDouble();
+
+        QPointF pf = FondeoCalculator::resolvePuntoFondeo(cfg, in["ownLat"].toDouble(), in["ownLon"].toDouble());
+
+        QVERIFY2(ex["pfYIsZero"].toBool() ? qAbs(pf.y()) < kEps : true,
+                 qPrintable(QString("pfY debe ser ~0, obtenido %1").arg(pf.y())));
+        QVERIFY2(ex["pfXIsPositive"].toBool() ? pf.x() > 0.0 : true,
+                 "pfX debe ser positivo cuando PF está al este");
+        QVERIFY2(qAbs(pf.x() - ex["pfX"].toDouble()) < 0.1,
+                 qPrintable(QString("pfX: esperado ~%1, obtenido %2").arg(ex["pfX"].toDouble()).arg(pf.x())));
+    }
+
     // ── resolvePuntoAuxiliar ──────────────────────────────────────
 
     void test_CALC_07_ResolvePuntoAuxiliar_Az0_Norte() {
@@ -261,6 +281,21 @@ private slots:
                  qPrintable(QString("distanciaPF: esperado %1, obtenido %2").arg(ex["distanciaPF"].toDouble()).arg(state.distanciaPF)));
     }
 
+    void test_CALC_26_DistAzPfPa_AzimutPA_Oeste() {
+        QJsonObject tc = findCase("CALC_26_DistAzPfPa_AzimutPA_Oeste");
+        QJsonObject in = tc["inputs"].toObject();
+        QJsonObject ex = tc["expected"].toObject();
+
+        FondeoSessionState state;
+        state.puntoFondeo   = QPointF(in["pfX"].toDouble(), in["pfY"].toDouble());
+        state.puntoAuxiliar = QPointF(in["paX"].toDouble(), in["paY"].toDouble());
+
+        FondeoCalculator::calculateDistAzPfPa(QPointF(in["ownX"].toDouble(), in["ownY"].toDouble()), state);
+
+        QVERIFY2(qAbs(state.azimutPA - ex["azimutPA"].toDouble()) < 1.0,
+                 qPrintable(QString("azimutPA: esperado %1, obtenido %2").arg(ex["azimutPA"].toDouble()).arg(state.azimutPA)));
+    }
+
     // ── calculateMarcacionRelativa ────────────────────────────────
 
     void test_CALC_14_MarcacionRelativa_FasePA() {
@@ -345,6 +380,9 @@ private slots:
     void test_CALC_23_Panel_Banda6_Detencion()          { runPanelTest("CALC_23_Panel_Banda6_Detencion"); }
     void test_CALC_24_Panel_BordeExacto_R1()            { runPanelTest("CALC_24_Panel_BordeExacto_R1"); }
     void test_CALC_25_Panel_BordeExacto_R5()            { runPanelTest("CALC_25_Panel_BordeExacto_R5"); }
+    void test_CALC_28_Panel_BordeExacto_R2()            { runPanelTest("CALC_28_Panel_BordeExacto_R2"); }
+    void test_CALC_29_Panel_BordeExacto_R3()            { runPanelTest("CALC_29_Panel_BordeExacto_R3"); }
+    void test_CALC_30_Panel_BordeExacto_R4()            { runPanelTest("CALC_30_Panel_BordeExacto_R4"); }
 
     // ─────────────────────────────────────────────────────────────
     // Helper compartido para los casos de Panel Predictivo
