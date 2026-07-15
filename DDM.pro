@@ -156,7 +156,6 @@ HEADERS += \
     src/model/entities/track.h \
     src/model/utils/consoleUtils.h \
     src/replicationEngine/replicationListener.h \
-    src/replicationEngine/stubReplicationEngine.h \
     src/view/CommandParser.h \
     src/view/ansi.h \
     src/view/iInputParser.h \
@@ -238,7 +237,6 @@ SOURCES += \
     src/model/utils/RadarMath.cpp \
     src/model/utils/configuration.cpp \
     src/replicationEngine/replicationListener.cpp \
-    src/replicationEngine/stubReplicationEngine.cpp \
     src/view/stdinreader.cpp
 
 

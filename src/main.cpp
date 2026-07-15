@@ -49,7 +49,12 @@
 
 #include "trackservice.h"
 #include "replicationEngine/replicationListener.h"
-#include "replicationEngine/stubReplicationEngine.h"
+
+#include "ReplicationEngine/ReplicationEngine.h"
+#include "ObjectStorage/ObjectStorage.h"
+#include "ConflictResolver/ConflictResolver.h"
+#include "DDSTransport/DDSTransport.h"
+#include "ReplicationBridge/CallbackBridge.h"
 
 #ifdef Q_OS_WIN
 static void enableAnsiColorsOnWindows() {
@@ -84,11 +89,27 @@ int main(int argc, char *argv[]) {
 
   // --- Replicación (ICD): instancia única de TrackService + listener + engine ---
   auto *trackService = new TrackService(ctx, &app);
-  auto *replicationEngine = new StubReplicationEngine(); // TODO: reemplazar por el .so real de RE
   auto *replicationListener = new ReplicationListener(&app);
 
-  trackService->setReplicationEngine(replicationEngine);
+  // Wiring de la librería real (ADR-001: enlace estático, mismo proceso).
+  // Orden de construcción según ICD §8/§9.2: el listener se registra en el
+  // bridge ANTES de construir el engine.
+  auto replicationStorage   = std::make_unique<replication_engine::ObjectStorage>("tactical_db.db");
+  auto replicationTransport = std::make_unique<replication_engine::DDSTransport>();
+  auto replicationResolver  = std::make_unique<replication_engine::ConflictResolver>();
+  auto replicationBridge    = std::make_unique<replication_engine::CallbackBridge>();
+  replicationBridge->registerListener(replicationListener);
+
+  auto replicationEngine = std::make_unique<replication_engine::ReplicationEngine>(
+      std::move(replicationStorage), std::move(replicationTransport),
+      std::move(replicationResolver), std::move(replicationBridge),
+      /*domain_id=*/0); // TODO: leer de configuración (RF-DDS-006, ADR-012) —
+                        // mismo estado provisorio que m_consoleId en TrackService.
+
+  trackService->setReplicationEngine(replicationEngine.get());
   ctx->trackService = trackService;
+
+  replicationEngine->start();
 
   // Bajada RE → DDM: el listener emite desde el Worker Thread de RE;
   // QueuedConnection entrega los slots en el hilo Qt (ICD §9.4).
@@ -247,5 +268,8 @@ int main(int argc, char *argv[]) {
   ioThread.start();
   const int code = app.exec();
   ioThread.wait();
+
+  replicationEngine->stop();
+
   return code;
 }
