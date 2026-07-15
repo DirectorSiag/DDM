@@ -36,6 +36,8 @@
 #include "ownshipcommand.h"
 #include "estacionamientocommand.h"
 #include "displaymodecommand.h"
+#include "canalCommand.h"
+#include "canalService.h"
 
 #include "addareacommand.h"
 #include "addpolygonocommand.h"
@@ -70,6 +72,7 @@ int main(int argc, char *argv[]) {
   auto *ctx = new CommandContext();
   auto *registry = new CommandRegistry();
   auto *parser = new CommandParser();
+  auto *canalService = new CanalService(ctx);
 
   // registrar comandos
   registry->registerCommand(QSharedPointer<ICommand>(new AddCommand()));
@@ -89,6 +92,8 @@ int main(int argc, char *argv[]) {
     registry->registerCommand(QSharedPointer<ICommand>(new AddCircleCommand()));
     registry->registerCommand(QSharedPointer<ICommand>(new DeleteAreaCommand()));
     registry->registerCommand(QSharedPointer<ICommand>(new DeleteCircleCommand()));
+    registry->registerCommand(QSharedPointer<ICommand>(new DeleteCircleCommand()));
+    registry->registerCommand(QSharedPointer<ICommand>(new CanalCommand()));
 
   CommandDispatcher dispatcher(registry, parser, *ctx);
 
@@ -133,9 +138,10 @@ int main(int argc, char *argv[]) {
   QTimer timer;
   QTimer updatePositionTimer;
   QObject::connect(&updatePositionTimer, &QTimer::timeout,
-                   [ctx, &updatePositionTimer]() {
+                   [ctx, canalService, &updatePositionTimer]() {
                      double deltaTime = updatePositionTimer.interval() / 1000.0;
                      ctx->updateTracks(deltaTime);
+                     canalService->update();
                    });
 
   QObject::connect(&timer, &QTimer::timeout, &timer,
