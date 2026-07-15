@@ -2,7 +2,7 @@
 
 #include "commandContext.h"
 #include "entities/track.h"
-#include "replicationEngine/iReplicationEngine.h"
+#include "ReplicationEngine/IReplicationEngine.h"
 #include "trackpppservice.h"
 #include <QDateTime>
 #include <QDebug>
@@ -212,7 +212,7 @@ void TrackService::publishUpsert(const std::string& guid, const Track& track)
         return; // Sin engine: operación solo local.
     }
 
-    ReplicatedObject envelope;
+    replication_engine::ReplicatedObject envelope;
     envelope.guid = guid;
     envelope.object_type = ReplicationData::Track;
     envelope.source_console_id = m_consoleId;

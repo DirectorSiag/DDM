@@ -12,7 +12,7 @@ void StubReplicationEngine::stop()
     qInfo() << "[StubRE] stop()";
 }
 
-void StubReplicationEngine::onLocalObjectUpserted(const ReplicatedObject& obj)
+void StubReplicationEngine::onLocalObjectUpserted(const replication_engine::ReplicatedObject& obj)
 {
     qInfo() << "[StubRE] onLocalObjectUpserted guid:" << QString::fromStdString(obj.guid)
             << "type:" << obj.object_type

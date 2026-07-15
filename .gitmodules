@@ -1,0 +1,4 @@
+[submodule "third_party/replicationengine"]
+	path = third_party/replicationengine
+	url = git@gitlabsiag.armada.mil.ar:rnavarro/replicationengine.git
+	branch = dev

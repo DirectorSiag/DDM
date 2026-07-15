@@ -5,13 +5,13 @@
 
 #include <string>
 
-#include "iReplicationListener.h"
+#include "ReplicationBridge/IReplicationListener.h"
 #include "trackservice.h"
 
 /*
  * ReplicationListener
  *
- * Implementación DDM de iReplicationListener (ICD §9.3).
+ * Implementación DDM de replication_engine::IReplicationListener (ICD §9.3).
  * Responsable de la lógica de comunicación RE → DDM: desempaqueta el
  * Envelope, valida object_type y json_payload, convierte el payload a
  * tipos de dominio (TrackCreateRequest) y rutea por señales.
@@ -29,14 +29,14 @@
  *           trackService, &TrackService::onReplicatedClearAll,
  *           Qt::QueuedConnection);
  */
-class ReplicationListener : public QObject, public iReplicationListener {
+class ReplicationListener : public QObject, public replication_engine::IReplicationListener {
     Q_OBJECT
 
 public:
     explicit ReplicationListener(QObject* parent = nullptr);
 
     // RE → DDM: objeto recibido de la red o repoblación desde disco
-    void onInjectObject(const ReplicatedObject& obj) override;
+    void onInjectObject(const replication_engine::ReplicatedObject& obj) override;
 
     // RE → DDM: borrado recibido de la red
     void onRemoveObject(const std::string& guid) override;

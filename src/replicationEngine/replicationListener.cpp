@@ -71,12 +71,12 @@ ReplicationListener::ReplicationListener(QObject* parent)
 }
 
 // ---------------------------------------------------------------------------
-// Callbacks de iReplicationListener — invocados desde el Worker Thread de RE.
+// Callbacks de replication_engine::IReplicationListener — invocados desde el Worker Thread de RE.
 // Emitir señales es thread-safe: la conexión encolada entrega el slot en el
 // hilo Qt del receptor (ICD §9.4).
 // ---------------------------------------------------------------------------
 
-void ReplicationListener::onInjectObject(const ReplicatedObject& obj)
+void ReplicationListener::onInjectObject(const replication_engine::ReplicatedObject& obj)
 {
     const QString guid = QString::fromStdString(obj.guid);
 
