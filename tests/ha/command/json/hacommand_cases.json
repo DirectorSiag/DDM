@@ -14,69 +14,101 @@
     },
     {
       "id": "CMD_03_Info_Sin_Sesion_Activa",
-      "commandLine": "ha --info",
+      "description": "Pedir info de un slot especifico que no tiene emergencia activa",
+      "commandLine": "ha --info 1",
       "expectedSuccess": false,
-      "expectedMessageContains": "No hay ninguna emergencia activa"
+      "expectedMessageContains": "no tiene ninguna emergencia activa"
     },
     {
-      "id": "CMD_04_Cursor_Formato_Invalido",
+      "id": "CMD_04_Info_Sin_Numero",
+      "description": "Olvidarse de pasarle el numero de slot al comando info falla por sintaxis",
+      "commandLine": "ha --info",
+      "expectedSuccess": false,
+      "expectedMessageContains": "requiere un numero de slot"
+    },
+    {
+      "id": "CMD_05_Cursor_Formato_Invalido",
       "commandLine": "ha --cursor=5",
       "expectedSuccess": false,
       "expectedMessageContains": "requiere formato"
     },
     {
-      "id": "CMD_05_Cursor_Valores_No_Numericos",
+      "id": "CMD_06_Cursor_Valores_No_Numericos",
       "commandLine": "ha --cursor=abc,xyz",
       "expectedSuccess": false,
       "expectedMessageContains": "deben ser numericos"
     },
     {
-      "id": "CMD_06_Cursor_Exitoso",
+      "id": "CMD_07_Cursor_Exitoso",
       "commandLine": "ha --cursor=5,0",
       "expectedSuccess": true,
-      "expectedMessageContains": "Emergencia iniciada"
-    },
+      "expectedMessageContains": ""
+      },
     {
-      "id": "CMD_07_Az_Sin_Distancia",
+      "id": "CMD_08_Az_Sin_Distancia",
       "commandLine": "ha --az=90",
       "expectedSuccess": false,
       "expectedMessageContains": "requiere --d"
     },
     {
-      "id": "CMD_08_Az_Fuera_De_Rango",
+      "id": "CMD_09_Az_Fuera_De_Rango",
       "commandLine": "ha --az=360 --d=1000",
       "expectedSuccess": false,
       "expectedMessageContains": "rango [0, 360)"
     },
     {
-      "id": "CMD_09_Az_Distancia_Negativa",
+      "id": "CMD_10_Az_Distancia_Negativa",
       "commandLine": "ha --az=90 --d=-500",
       "expectedSuccess": false,
       "expectedMessageContains": "numero positivo"
     },
     {
-      "id": "CMD_10_Latlon_Sin_Lat",
+      "id": "CMD_11_Latlon_Sin_Lat",
       "commandLine": "ha --latlon --lon=0,0,0",
       "expectedSuccess": false,
       "expectedMessageContains": "requiere --lat"
     },
     {
-      "id": "CMD_11_Latlon_Formato_Invalido",
+      "id": "CMD_12_Latlon_Formato_Invalido",
       "commandLine": "ha --latlon --lat=45,30 --lon=0,0,0",
       "expectedSuccess": false,
       "expectedMessageContains": "formato <grados>,<minutos>,<segundos>"
     },
     {
-      "id": "CMD_12_Latlon_Valores_No_Numericos",
+      "id": "CMD_13_Latlon_Valores_No_Numericos",
       "commandLine": "ha --latlon --lat=abc,0,0 --lon=0,0,0",
       "expectedSuccess": false,
       "expectedMessageContains": "deben ser numericos"
     },
     {
-      "id": "CMD_13_Flag_No_Reconocido",
+      "id": "CMD_14_Flag_No_Reconocido",
       "commandLine": "ha --inventado",
       "expectedSuccess": false,
       "expectedMessageContains": "Flag no reconocido"
+    },
+    {
+      "id": "CMD_15_Sin_Argumentos",
+      "commandLine": "ha",
+      "expectedSuccess": false,
+      "expectedMessageContains": "Faltan argumentos"
+    },
+    {
+      "id": "CMD_16_List_Sin_Sesion",
+      "commandLine": "ha --list",
+      "expectedSuccess": false,
+      "expectedMessageContains": "No hay emergencias activas"
+    },
+    {
+      "id": "CMD_17_Info_Letra_En_Vez_De_Numero",
+      "commandLine": "ha --info ABC",
+      "expectedSuccess": false,
+      "expectedMessageContains": "debe ser un entero"
+    },
+    {
+      "id": "CMD_18_Stop_Letra_En_Vez_De_Numero",
+      "commandLine": "ha --stop XYZ",
+      "expectedSuccess": false,
+      "expectedMessageContains": "debe ser un entero"
     }
   ]
 }

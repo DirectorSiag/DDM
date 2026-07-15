@@ -20,15 +20,15 @@ static QJsonArray loadCases()
                .object()["haServiceTestCases"].toArray();
 }
 
-// Inyecta el Track 0 (Buque Propio) en el contexto con posición (0,0)
-static void injectTrack0(CommandContext& ctx, double course = 90.0, double speedKnots = 10.0)
+// Inyecta el Track 0 (Buque Propio) en el contexto. Se agregaron X e Y para los nuevos tests.
+static void injectTrack0(CommandContext& ctx, double x = 0.0, double y = 0.0, double course = 90.0, double speedKnots = 10.0)
 {
     ctx.emplaceTrackFront(
         0,
         TrackData::SPC,
         TrackData::Pending,
         TrackData::Auto,
-        0.0f, 0.0f,
+        x, y,
         speedKnots,
         course,
         TrackData::SPC
@@ -75,9 +75,9 @@ private slots:
             tc["cursorX"].toDouble(), tc["cursorY"].toDouble());
 
         QVERIFY2(r.ok, qPrintable(r.message));
-        QCOMPARE(ctx.haSession.active,     exp["active"].toBool());
-        QCOMPARE(ctx.haSession.fallPointX, exp["fallPointX"].toDouble());
-        QCOMPARE(ctx.haSession.fallPointY, exp["fallPointY"].toDouble());
+        QCOMPARE(ctx.haSessions[0].active,     exp["active"].toBool());
+        QCOMPARE(ctx.haSessions[0].fallPointX, exp["fallPointX"].toDouble());
+        QCOMPARE(ctx.haSessions[0].fallPointY, exp["fallPointY"].toDouble());
     }
 
     // ── SVC_02 ───────────────────────────────────────────────────────────────
@@ -88,13 +88,12 @@ private slots:
         CommandContext ctx;
         HaService service(&ctx);
 
-        // Iniciamos primero para tener sesión activa
         service.startSessionAtCursor(5.0, 0.0);
-        QVERIFY(ctx.haSession.active);
+        QVERIFY(ctx.haSessions[0].active);
 
-        const HaOperationResult r = service.stopSession();
+        const HaOperationResult r = service.stopSession(-1); // -1 borra todos
         QVERIFY2(r.ok, qPrintable(r.message));
-        QCOMPARE(ctx.haSession.active, exp["active"].toBool());
+        QCOMPARE(ctx.haSessions[0].active, exp["active"].toBool());
     }
 
     // ── SVC_03 ───────────────────────────────────────────────────────────────
@@ -105,7 +104,7 @@ private slots:
         CommandContext ctx;
         HaService service(&ctx);
 
-        const HaOperationResult r = service.stopSession();
+        const HaOperationResult r = service.stopSession(-1);
         QCOMPARE(r.ok, exp["ok"].toBool());
     }
 
@@ -137,35 +136,88 @@ private slots:
         QCOMPARE(r.ok, exp["ok"].toBool());
     }
 
-    // ── SVC_06 ───────────────────────────────────────────────────────────────
-    void test_SVC_06_StartAtCursor_SobreescribeSesionPrevia() {
-        QJsonObject tc  = findCase("SVC_06_StartAtCursor_SobreescribeSesionPrevia");
+    // ── SVC_06 (Verifica el slot 2) ───────────────────────────────
+    void test_SVC_06_StartAtCursor_AsignaNuevoSlot() {
+        QJsonObject tc  = findCase("SVC_06_StartAtCursor_AsignaNuevoSlot");
         QJsonObject exp = tc["expected"].toObject();
+        QJsonArray expectedSessions = exp["haSessions"].toArray();
+        QJsonObject expSlot2 = expectedSessions[1].toObject();
 
         CommandContext ctx;
         HaService service(&ctx);
 
-        // Primera sesión
+        // Primera sesión ocupa el slot 1 (índice 0)
         service.startSessionAtCursor(1.0, 1.0);
-        QVERIFY(ctx.haSession.active);
+        QVERIFY(ctx.haSessions[0].active);
 
-        // Segunda sesión — sobreescribe
+        // Segunda sesión — ocupa el slot 2 (índice 1) sin pisar la primera
         const HaOperationResult r = service.startSessionAtCursor(
             tc["cursorX"].toDouble(), tc["cursorY"].toDouble());
 
         QVERIFY2(r.ok, qPrintable(r.message));
-        QCOMPARE(ctx.haSession.active,     exp["active"].toBool());
-        QCOMPARE(ctx.haSession.fallPointX, exp["fallPointX"].toDouble());
-        QCOMPARE(ctx.haSession.fallPointY, exp["fallPointY"].toDouble());
+
+        // Verificamos que el slot 1 sigue intacto
+        QVERIFY(ctx.haSessions[0].active);
+        QCOMPARE(ctx.haSessions[0].fallPointX, 1.0);
+        QCOMPARE(ctx.haSessions[0].fallPointY, 1.0);
+
+        // Verificamos que el slot 2 tiene los datos nuevos del JSON
+        QVERIFY(ctx.haSessions[1].active);
+        QCOMPARE(ctx.haSessions[1].slotIndex, expSlot2["slotIndex"].toInt());
+        QCOMPARE(ctx.haSessions[1].fallPointX, expSlot2["fallPointX"].toDouble());
+        QCOMPARE(ctx.haSessions[1].fallPointY, expSlot2["fallPointY"].toDouble());
+
+        // Verificamos que se auto-seleccionó el slot 2
+        QCOMPARE(ctx.activeHaSlot, exp["activeHaSlot"].toInt());
     }
 
     // ── SVC_07 ───────────────────────────────────────────────────────────────
-    void test_SVC_07_LatLon_SinGeoposicion_Falla() {
-        QJsonObject tc  = findCase("SVC_07_LatLon_SinGeoposicion_Falla");
+    void test_SVC_07_StartAtOwnShip() {
+        QJsonObject tc  = findCase("SVC_07_StartAtOwnShip");
+        QJsonObject setup = tc["setup"].toObject();
+        QJsonObject exp = tc["expected"].toObject();
+        QJsonObject expSlot1 = exp["haSessions"].toArray()[0].toObject();
+
+        CommandContext ctx;
+        // Inyectamos el BP en la coordenada específica del JSON
+        injectTrack0(ctx, setup["ownShipX"].toDouble(), setup["ownShipY"].toDouble());
+        HaService service(&ctx);
+
+        const HaOperationResult r = service.startSessionAtOwnShip();
+
+        QVERIFY2(r.ok, qPrintable(r.message));
+        QVERIFY(ctx.haSessions[0].active);
+        QCOMPARE(ctx.haSessions[0].fallPointX, expSlot1["fallPointX"].toDouble());
+        QCOMPARE(ctx.haSessions[0].fallPointY, expSlot1["fallPointY"].toDouble());
+    }
+
+    // ── SVC_08 ───────────────────────────────────────────────────────────────
+    void test_SVC_08_StartAtBearing() {
+        QJsonObject tc  = findCase("SVC_08_StartAtBearing");
+        QJsonObject setup = tc["setup"].toObject();
+        QJsonObject exp = tc["expected"].toObject();
+        QJsonObject expSlot1 = exp["haSessions"].toArray()[0].toObject();
+
+        CommandContext ctx;
+        injectTrack0(ctx, setup["ownShipX"].toDouble(), setup["ownShipY"].toDouble());
+        HaService service(&ctx);
+
+        const HaOperationResult r = service.startSessionAtBearing(
+            tc["azimuthDeg"].toDouble(), tc["distanceYards"].toDouble());
+
+        QVERIFY2(r.ok, qPrintable(r.message));
+        QVERIFY(ctx.haSessions[0].active);
+        // Usamos qFuzzyCompare o qRound si hay errores de punto flotante por trigonometría
+        QCOMPARE(qRound(ctx.haSessions[0].fallPointX), qRound(expSlot1["fallPointX"].toDouble()));
+        QCOMPARE(qRound(ctx.haSessions[0].fallPointY), qRound(expSlot1["fallPointY"].toDouble()));
+    }
+
+    // ── SVC_09 ───────────────────────────────────────────────────────
+    void test_SVC_09_LatLon_SinGeoposicion_Falla() {
+        QJsonObject tc  = findCase("SVC_09_LatLon_SinGeoposicion_Falla");
         QJsonObject exp = tc["expected"].toObject();
 
         CommandContext ctx;
-        // No seteamos geo-posición en ownShip → bpHasGeo será false
         HaService service(&ctx);
 
         const HaOperationResult r = service.startSessionAtLatLonDms(
@@ -173,6 +225,37 @@ private slots:
             tc["lonDeg"].toInt(), tc["lonMin"].toInt(), tc["lonSec"].toDouble());
 
         QCOMPARE(r.ok, exp["ok"].toBool());
+    }
+
+    // ── SVC_10 ─────────────────────────────────────────────────────────
+    void test_SVC_10_MaxSlotsLimit() {
+        QJsonObject tc  = findCase("SVC_10_MaxSlotsLimit");
+        QJsonObject exp = tc["expected"].toObject();
+
+        CommandContext ctx;
+        HaService service(&ctx);
+
+        // 1. Llenamos los 10 slots permitidos
+        for(int i = 0; i < CommandContext::kMaxHaSessions; ++i) {
+            service.startSessionAtCursor(double(i), double(i));
+            QVERIFY(ctx.haSessions[i].active);
+        }
+
+        // 2. Intentamos crear la emergencia nro 11 leyendo las coords del JSON
+        service.startSessionAtCursor(
+            tc["overflowCursorX"].toDouble(),
+            tc["overflowCursorY"].toDouble()
+            );
+
+        // 3. Verificamos que NO pisó el primer slot (debería seguir en 0.0)
+        QCOMPARE(ctx.haSessions[0].fallPointX, exp["firstSlotOriginalX"].toDouble());
+
+        // 4. Verificamos que todos siguen activos y el conteo es exactamente 10
+        int activeCount = 0;
+        for(int i = 0; i < CommandContext::kMaxHaSessions; ++i) {
+            if (ctx.haSessions[i].active) activeCount++;
+        }
+        QCOMPARE(activeCount, exp["activeCount"].toInt());
     }
 };
 

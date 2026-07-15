@@ -44,23 +44,81 @@
       }
     },
     {
-      "id": "SVC_06_StartAtCursor_SobreescribeSesionPrevia",
-      "description": "Segunda startSession sobreescribe la anterior",
+      "id": "SVC_06_StartAtCursor_AsignaNuevoSlot",
+      "description": "Segunda startSession no sobreescribe, usa el Slot 2",
       "cursorX": 10.0,
       "cursorY": 20.0,
       "expected": {
-        "active": true,
-        "fallPointX": 10.0,
-        "fallPointY": 20.0
+        "activeHaSlot": 2,
+        "haSessions": [
+          {
+            "slotIndex": 1,
+            "active": true
+          },
+          {
+            "slotIndex": 2,
+            "active": true,
+            "fallPointX": 10.0,
+            "fallPointY": 20.0
+          }
+        ]
       }
     },
     {
-      "id": "SVC_07_LatLon_SinGeoposicion_Falla",
+      "id": "SVC_07_StartAtOwnShip",
+      "description": "Inicia HA en la posición exacta del buque propio",
+      "setup": {
+        "ownShipX": 50.0,
+        "ownShipY": -25.0
+      },
+      "expected": {
+        "haSessions": [
+          {
+            "slotIndex": 1,
+            "active": true,
+            "fallPointX": 50.0,
+            "fallPointY": -25.0
+          }
+        ]
+      }
+    },
+    {
+      "id": "SVC_08_StartAtBearing",
+      "description": "Inicia HA a 90 grados y 2000 yardas del buque (1 DM al Este)",
+      "setup": {
+        "ownShipX": 0.0,
+        "ownShipY": 0.0
+      },
+      "azimuthDeg": 90.0,
+      "distanceYards": 2000.0,
+      "expected": {
+        "haSessions": [
+          {
+            "slotIndex": 1,
+            "active": true,
+            "fallPointX": 1.0,
+            "fallPointY": 0.0
+          }
+        ]
+      }
+    },
+    {
+      "id": "SVC_09_LatLon_SinGeoposicion_Falla",
       "description": "disparador latlon sin geo-posición del BP → falla",
       "latDeg": -38, "latMin": 47, "latSec": 0.0,
       "lonDeg": -62, "lonMin": 18, "lonSec": 0.0,
       "expected": {
         "ok": false
+      }
+    },
+    {
+      "id": "SVC_10_MaxSlotsLimit",
+      "description": "Llenar los 10 slots y verificar que el 11 no pisa datos ni rompe",
+      "overflowCursorX": 99.0,
+      "overflowCursorY": 99.0,
+      "expected": {
+        "activeCount": 10,
+        "firstSlotOriginalX": 0.0
       }
     }
   ]

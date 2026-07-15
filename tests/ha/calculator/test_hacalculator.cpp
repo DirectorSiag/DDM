@@ -113,7 +113,7 @@ private slots:
         HaSessionState s = runCalculator(tc);
         QJsonObject exp = tc["expected"].toObject();
         QVERIFY2(std::abs(s.relativeBearingDeg - exp["relativeBearingDeg_approx"].toDouble()) < exp["tolerance"].toDouble(),
-                 qPrintable(QString("relativeBearingDeg=%1 esperado ~90°").arg(s.relativeBearingDeg)));
+                 qPrintable(QString("relativeBearingDeg=%1 esperado ~270°").arg(s.relativeBearingDeg)));
         QCOMPARE(s.banda, exp["banda"].toString());
     }
 

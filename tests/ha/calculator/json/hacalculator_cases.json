@@ -70,12 +70,12 @@
     },
     {
       "id": "CALC_07_MarcacionRelativa_PuntoEnBabor",
-      "description": "Punto al Oeste con rumbo 0° → marcación relativa 90° (BABOR)",
+      "description": "Punto al Oeste con rumbo 0° → marcación relativa 270° (BABOR)",
       "ownX": 0.0, "ownY": 0.0,
       "ownCourse": 0.0, "ownSpeed": 10.0,
       "fallX": -5.0, "fallY": 0.0,
       "expected": {
-        "relativeBearingDeg_approx": 90.0,
+        "relativeBearingDeg_approx": 270.0,
         "tolerance": 0.5,
         "banda": "BABOR"
       }
