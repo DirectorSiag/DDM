@@ -10,11 +10,12 @@ build_linux:
   image: stateoftheartio/qt6:6.7-gcc-aqt
   tags:
     - ddm-linux-local
-  rules:
-    - if: '$CI_COMMIT_TAG =~ /-linux$/ || $CI_COMMIT_TAG =~ /-win$/'
-      when: never
-    - if: '$CI_COMMIT_BRANCH == "develop"'
-    - if: '$CI_COMMIT_TAG'
+  only:
+    - develop
+    - tags
+  except:
+    - /-win$/
+    - /-linux$/
   script:
     - echo "Preparando entorno de Linux instalando dependencias gráficas..."
     - sudo apt-get update -qq && sudo apt-get install -y libgl1-mesa-dev libglu1-mesa-dev
@@ -23,10 +24,22 @@ build_linux:
     - cd build_linux
     - qmake ../DDM.pro CONFIG+=release
     - make -j$(nproc)
+    - echo "Empaquetando librerías de Qt (deploy manual, equivalente a windeployqt)..."
+    - mkdir -p ../deploy_linux/lib
+    - cp DDM ../deploy_linux/
+    - ldd DDM | grep "=> /" | awk '{print $3}' | grep -i qt | xargs -I{} cp -v {} ../deploy_linux/lib/
+    - |
+      cat > ../deploy_linux/run_ddm.sh << 'EOF'
+      #!/bin/bash
+      DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+      export LD_LIBRARY_PATH="$DIR/lib:$LD_LIBRARY_PATH"
+      "$DIR/DDM" "$@"
+      EOF
+    - chmod +x ../deploy_linux/run_ddm.sh ../deploy_linux/DDM
   artifacts:
     name: "DDM-Linux-v$CI_COMMIT_TAG"
     paths:
-      - build_linux/
+      - deploy_linux/
 
 #Release para linux
 release_linux:
