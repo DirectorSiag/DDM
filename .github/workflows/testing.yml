@@ -14,7 +14,7 @@ jobs:
     - name: Instalar dependencias base
       run: |
         apt-get update -qq
-        apt-get install -y git curl libgl1-mesa-dev libglu1-mesa-dev build-essential
+        apt-get install -y sudo git curl libgl1-mesa-dev libglu1-mesa-dev build-essential
 
     - name: Descargar código
       uses: actions/checkout@v4
