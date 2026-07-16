@@ -31,6 +31,12 @@ private:
     void initSession(double xDm, double yDm);
     HaOperationResult startSessionAtLatLon(double lat, double lon);
 
+    // Publica/borra en el radar (via GeometryService) el circulo del punto de
+    // caida. Figura estatica: se crea una vez al iniciar la sesion y se borra
+    // al finalizarla, sin reposicionamiento por tick.
+    void createFigure(HaSessionState& session);
+    void deleteFigure(HaSessionState& session);
+
     int nextFreeSlot() const;
 
     CommandContext* m_ctx;

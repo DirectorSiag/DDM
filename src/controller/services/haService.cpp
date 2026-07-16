@@ -4,6 +4,15 @@
 #include <cmath>
 #include "model/ha/haCalculator.h"
 #include "obmservice.h"
+#include "geometryservice.h"
+
+namespace {
+// Circulo de prueba para marcar el punto de caida en el radar: chico pero
+// visible. El simbolo definitivo de HA queda pendiente.
+constexpr int    kHaCircleType      = 0;
+constexpr double kHaCircleRadiusYds = 100.0;
+const QString    kHaColor           = QStringLiteral("#FF0000");
+}
 
 HaService::HaService(CommandContext* ctx, ObmService* obmService)
     : m_ctx(ctx), m_obmService(obmService)
@@ -109,6 +118,8 @@ void HaService::initSession(double xDm, double yDm) {
     m_ctx->haSessions[idx].fallTimeLocal = m_ctx->haSessions[idx].timer.fallTimeLocal();
     m_ctx->haSessions[idx].fallTimeUtc   = m_ctx->haSessions[idx].timer.fallTimeUtc();
 
+    createFigure(m_ctx->haSessions[idx]);
+
     // Seleccionar automáticamente el slot recién creado
     m_ctx->activeHaSlot = slot;
 
@@ -125,6 +136,9 @@ HaOperationResult HaService::stopSession(int slotIndex) {
         bool anyActive = false;
         for (int i = 0; i < CommandContext::kMaxHaSessions; ++i) {
             if (m_ctx->haSessions[i].active) {
+                // Borrar la figura antes del reset(): el reset pisa el circleId
+                // y dejaria el circulo huerfano en el radar.
+                deleteFigure(m_ctx->haSessions[i]);
                 m_ctx->haSessions[i].reset();
                 anyActive = true;
             }
@@ -143,6 +157,7 @@ HaOperationResult HaService::stopSession(int slotIndex) {
     if (!m_ctx->haSessions[idx].active)
         return { false, QStringLiteral("[HA] El slot %1 no tiene ninguna emergencia activa.").arg(slotIndex) };
 
+    deleteFigure(m_ctx->haSessions[idx]);
     m_ctx->haSessions[idx].reset();
 
     if (m_ctx->activeHaSlot == slotIndex)
@@ -223,4 +238,20 @@ void HaService::update() {
 
         m_ctx->haSessions[i].elapsedTime = m_ctx->haSessions[i].timer.elapsedTime();
     }
+}
+
+void HaService::createFigure(HaSessionState& session) {
+    GeometryService geometry(m_ctx);
+    const GeometryResult r = geometry.createCircle(
+        QPointF(session.fallPointX, session.fallPointY),
+        RadarMath::yardsToDm(kHaCircleRadiusYds), kHaCircleType, kHaColor);
+    session.circleId = r.success ? r.id : HaSessionState::NO_CIRCLE;
+}
+
+void HaService::deleteFigure(HaSessionState& session) {
+    if (session.circleId == HaSessionState::NO_CIRCLE) return;
+
+    GeometryService geometry(m_ctx);
+    geometry.deleteCircle(session.circleId);
+    session.circleId = HaSessionState::NO_CIRCLE;
 }

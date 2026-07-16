@@ -29,6 +29,10 @@ struct HaSessionState {
     // ── Para el radar (LPD) ───────────────────────────────────────────────
     QPointF haIconCenter;
 
+    // NO_CIRCLE mientras la figura del punto de caida todavia no fue creada.
+    static constexpr int NO_CIRCLE = -1;
+    int circleId = NO_CIRCLE;
+
     // ── Timer de la sesión (compartido entre todas las instancias de HaService) ──
     HaSessionTimer timer;
 
