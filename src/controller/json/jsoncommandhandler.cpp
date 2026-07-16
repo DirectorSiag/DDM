@@ -7,6 +7,7 @@
 #include "../services/cpaservice.h"
 #include "../services/estacionamientoservice.h"
 #include "../services/fondeoservice.h"
+#include "../services/haService.h"
 #include "../services/obmservice.h"
 #include "../services/TwoWService.h"
 #include "jsonresponsebuilder.h"
@@ -14,6 +15,7 @@
 #include "network/iTransport.h"
 #include "model/fondeo/fondeoSessionState.h"
 #include "model/fondeo/fondeoTiposUnidad.h"
+#include "model/ha/haSessionState.h"
 #include <QJsonArray>
 
 #include <QDebug>
@@ -38,6 +40,7 @@ JsonCommandHandler::JsonCommandHandler(CommandContext* context, ITransport* tran
     m_estacionamientoService = std::make_unique<EstacionamientoService>(m_context);
     m_fondeoService = std::make_unique<FondeoService>(m_context);
     m_twoWService = std::make_unique<TwoWService>(m_context);
+    m_haService = std::make_unique<HaService>(m_context, m_obmService);
 
     initializeCommandMap();
 }
@@ -214,6 +217,26 @@ void JsonCommandHandler::initializeCommandMap()
 
     m_commandMap[QStringLiteral("2w_set_stations")] = [this](const QJsonObject& args) {
         return handleTwoWSetStations(args);
+    };
+
+    m_commandMap[QStringLiteral("ha_start")] = [this](const QJsonObject& args) {
+        return handleHaStart(args);
+    };
+
+    m_commandMap[QStringLiteral("ha_stop")] = [this](const QJsonObject& args) {
+        return handleHaStop(args);
+    };
+
+    m_commandMap[QStringLiteral("ha_info")] = [this](const QJsonObject& args) {
+        return handleHaInfo(args);
+    };
+
+    m_commandMap[QStringLiteral("ha_list")] = [this](const QJsonObject& args) {
+        return handleHaList(args);
+    };
+
+    m_commandMap[QStringLiteral("ha_select")] = [this](const QJsonObject& args) {
+        return handleHaSelect(args);
     };
 }
 
@@ -921,4 +944,169 @@ QByteArray JsonCommandHandler::handleTwoWSetStations(const QJsonObject& args)
     responseArgs[QStringLiteral("ally_circle_ids")] = allyIdsArray;
 
     return JsonResponseBuilder::buildSuccessResponse(QStringLiteral("2w_set_stations"), responseArgs);
+}
+
+QByteArray JsonCommandHandler::handleHaStart(const QJsonObject& args)
+{
+    const QString mode = args.value(QStringLiteral("mode")).toString();
+
+    HaOperationResult result;
+
+    if (mode == QStringLiteral("popa")) {
+        result = m_haService->startSessionAtOwnShip();
+    } else if (mode == QStringLiteral("cursor")) {
+        result = m_haService->startSessionAtCursor();
+    } else if (mode == QStringLiteral("latlon")) {
+        static const QStringList latLonFields = {
+            QStringLiteral("lat_deg"), QStringLiteral("lat_min"), QStringLiteral("lat_sec"),
+            QStringLiteral("lon_deg"), QStringLiteral("lon_min"), QStringLiteral("lon_sec")
+        };
+        for (const QString& field : latLonFields) {
+            if (!args.contains(field)) {
+                return JsonResponseBuilder::buildValidationErrorResponse(
+                    QStringLiteral("ha_start"),
+                    field,
+                    QString(),
+                    QStringLiteral("obligatorio para mode=latlon (lat_deg/lat_min/lat_sec/lon_deg/lon_min/lon_sec)")
+                );
+            }
+        }
+        result = m_haService->startSessionAtLatLonDms(
+            args.value(QStringLiteral("lat_deg")).toInt(),
+            args.value(QStringLiteral("lat_min")).toInt(),
+            args.value(QStringLiteral("lat_sec")).toDouble(),
+            args.value(QStringLiteral("lon_deg")).toInt(),
+            args.value(QStringLiteral("lon_min")).toInt(),
+            args.value(QStringLiteral("lon_sec")).toDouble()
+        );
+    } else if (mode == QStringLiteral("bearing")) {
+        if (!args.contains(QStringLiteral("az_deg")) || !args.contains(QStringLiteral("distance_yd"))) {
+            return JsonResponseBuilder::buildValidationErrorResponse(
+                QStringLiteral("ha_start"),
+                QStringLiteral("az_deg/distance_yd"),
+                QString(),
+                QStringLiteral("obligatorios para mode=bearing")
+            );
+        }
+        result = m_haService->startSessionAtBearing(
+            args.value(QStringLiteral("az_deg")).toDouble(),
+            args.value(QStringLiteral("distance_yd")).toDouble()
+        );
+    } else {
+        return JsonResponseBuilder::buildValidationErrorResponse(
+            QStringLiteral("ha_start"),
+            QStringLiteral("mode"),
+            mode,
+            QStringLiteral("debe ser uno de: popa, cursor, latlon, bearing")
+        );
+    }
+
+    if (!result.ok) {
+        return JsonResponseBuilder::buildErrorResponse(
+            QStringLiteral("ha_start"),
+            QStringLiteral("VALIDATION_ERROR"),
+            result.message
+        );
+    }
+
+    QJsonObject responseArgs;
+    responseArgs[QStringLiteral("slot")] = m_context->activeHaSlot;
+    responseArgs[QStringLiteral("message")] = result.message;
+    return JsonResponseBuilder::buildSuccessResponse(QStringLiteral("ha_start"), responseArgs);
+}
+
+QByteArray JsonCommandHandler::handleHaStop(const QJsonObject& args)
+{
+    const int slot = args.value(QStringLiteral("slot")).toInt(-1);
+    const HaOperationResult result = m_haService->stopSession(slot);
+    if (!result.ok) {
+        return JsonResponseBuilder::buildErrorResponse(
+            QStringLiteral("ha_stop"),
+            QStringLiteral("NO_ACTIVE_SESSION"),
+            result.message
+        );
+    }
+
+    QJsonObject responseArgs;
+    responseArgs[QStringLiteral("message")] = result.message;
+    return JsonResponseBuilder::buildSuccessResponse(QStringLiteral("ha_stop"), responseArgs);
+}
+
+QByteArray JsonCommandHandler::handleHaInfo(const QJsonObject& args)
+{
+    const int slot = args.value(QStringLiteral("slot")).toInt(-1);
+    if (slot < 1 || slot > CommandContext::kMaxHaSessions) {
+        return JsonResponseBuilder::buildValidationErrorResponse(
+            QStringLiteral("ha_info"),
+            QStringLiteral("slot"),
+            QString::number(slot),
+            QStringLiteral("required, must be between 1 and 10")
+        );
+    }
+
+    const int idx = slot - 1;
+    const HaSessionState& s = m_context->haSessions[idx];
+    if (!s.active) {
+        return JsonResponseBuilder::buildErrorResponse(
+            QStringLiteral("ha_info"),
+            QStringLiteral("SESSION_NOT_FOUND"),
+            QStringLiteral("No existe emergencia HA activa para el slot %1").arg(slot)
+        );
+    }
+
+    QJsonObject responseArgs;
+    responseArgs[QStringLiteral("slot")] = slot;
+    responseArgs[QStringLiteral("active")] = s.active;
+    responseArgs[QStringLiteral("fall_point_x_dm")] = s.fallPointX;
+    responseArgs[QStringLiteral("fall_point_y_dm")] = s.fallPointY;
+    responseArgs[QStringLiteral("true_azimuth_deg")] = s.trueAzimuthDeg;
+    responseArgs[QStringLiteral("relative_bearing_deg")] = s.relativeBearingDeg;
+    responseArgs[QStringLiteral("banda")] = s.banda;
+    responseArgs[QStringLiteral("distance_yards")] = s.distanceYards;
+    responseArgs[QStringLiteral("eta_valid")] = s.etaValid;
+    responseArgs[QStringLiteral("time_to_arrival_min")] = s.timeToArrivalMin;
+    responseArgs[QStringLiteral("fall_time_local")] = s.fallTimeLocal;
+    responseArgs[QStringLiteral("fall_time_utc")] = s.fallTimeUtc;
+    responseArgs[QStringLiteral("elapsed_time")] = s.elapsedTime;
+
+    return JsonResponseBuilder::buildSuccessResponse(QStringLiteral("ha_info"), responseArgs);
+}
+
+QByteArray JsonCommandHandler::handleHaList(const QJsonObject& /*args*/)
+{
+    QJsonArray sessionsArray;
+    for (int i = 0; i < CommandContext::kMaxHaSessions; ++i) {
+        const HaSessionState& s = m_context->haSessions[i];
+        if (!s.active) continue;
+
+        QJsonObject sessionObj;
+        sessionObj[QStringLiteral("slot")] = i + 1;
+        sessionObj[QStringLiteral("fall_point_x_dm")] = s.fallPointX;
+        sessionObj[QStringLiteral("fall_point_y_dm")] = s.fallPointY;
+        sessionObj[QStringLiteral("fall_time_local")] = s.fallTimeLocal;
+        sessionsArray.append(sessionObj);
+    }
+
+    QJsonObject responseArgs;
+    responseArgs[QStringLiteral("sessions")] = sessionsArray;
+    responseArgs[QStringLiteral("active_slot")] = m_context->activeHaSlot;
+    return JsonResponseBuilder::buildSuccessResponse(QStringLiteral("ha_list"), responseArgs);
+}
+
+QByteArray JsonCommandHandler::handleHaSelect(const QJsonObject& args)
+{
+    const int slot = args.value(QStringLiteral("slot")).toInt(-1);
+    const HaOperationResult result = m_haService->selectSlot(slot);
+    if (!result.ok) {
+        return JsonResponseBuilder::buildErrorResponse(
+            QStringLiteral("ha_select"),
+            QStringLiteral("SESSION_NOT_FOUND"),
+            result.message
+        );
+    }
+
+    QJsonObject responseArgs;
+    responseArgs[QStringLiteral("slot")] = slot;
+    responseArgs[QStringLiteral("message")] = result.message;
+    return JsonResponseBuilder::buildSuccessResponse(QStringLiteral("ha_select"), responseArgs);
 }

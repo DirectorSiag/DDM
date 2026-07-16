@@ -44,6 +44,7 @@ HEADERS += \
     src/controller/commands/displaymodecommand.h \
     src/controller/commands/estacionamientocommand.h \
     src/controller/commands/fondeoCommand.h \
+    src/controller/commands/haCommand.h \
     src/controller/commands/ownshipcommand.h \
     src/controller/commands/deleteCommand.h \
     src/controller/commands/deletecursorscommand.h \
@@ -62,6 +63,7 @@ HEADERS += \
     src/controller/handlers/geometrycommandhandler.h \
     src/controller/services/cursorservice.h \
     src/controller/services/fondeoservice.h \
+    src/controller/services/haService.h \
     src/controller/services/geometryservice.h \
     src/controller/services/sitrepservice.h \
     src/controller/services/trackpppservice.h \
@@ -83,6 +85,9 @@ HEADERS += \
     src/model/fondeo/fondeoCalculator.h \
     src/model/fondeo/fondeoSessionState.h \
     src/model/fondeo/fondeoTiposUnidad.h \
+    src/model/ha/haCalculator.h \
+    src/model/ha/haSessionState.h \
+    src/model/ha/haSessionTimer.h \
     src/model/pppcalculator.h \
     src/model/estacionamientocalculator.h \
     src/model/decoders/concDecoder.h \
@@ -137,6 +142,7 @@ SOURCES += \
     src/controller/commands/estacionamientocommand.cpp \
     src/controller/commands/delete_area_command.cpp \
     src/controller/commands/fondeoCommand.cpp \
+    src/controller/commands/haCommand.cpp \
     src/controller/commands/ownshipcommand.cpp \
     src/controller/services/TwoWService.cpp \
     src/controller/services/centerservice.cpp \
@@ -155,6 +161,7 @@ SOURCES += \
     src/controller/handlers/geometrycommandhandler.cpp \
     src/controller/services/cursorservice.cpp \
     src/controller/services/fondeoservice.cpp \
+    src/controller/services/haService.cpp \
     src/controller/services/geometryservice.cpp \
     src/controller/services/sitrepservice.cpp \
     src/controller/services/trackpppservice.cpp \
@@ -172,6 +179,8 @@ SOURCES += \
     src/model/2w/twoWCalculator.cpp \
     src/model/cpa.cpp \
     src/model/fondeo/fondeoCalculator.cpp \
+    src/model/ha/haCalculator.cpp \
+    src/model/ha/haSessionTimer.cpp \
     src/model/pppcalculator.cpp \
     src/model/estacionamientocalculator.cpp \
     src/model/decoders/concDecoder.cpp \
