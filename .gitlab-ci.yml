@@ -4,7 +4,7 @@ stages:
   - build
   - release
 
-#Compilacion en linux, develop, tags y rama de test
+#Compilacion en linux, develop, tags
 build_linux:
   stage: build
   image: stateoftheartio/qt6:6.7-gcc-aqt
@@ -44,4 +44,4 @@ release_linux:
       release-cli create --name "DDM Linux $CI_COMMIT_TAG" \
         --description "Binarios oficiales para Linux Debian" \
         --tag-name "$CI_COMMIT_TAG-linux" \
-        --assets-link "{\"name\":\"Descargar-DDM-Linux-Release\",\"url\":\"${CI_PROJECT_URL}/-/jobs/artifacts/${CI_COMMIT_TAG}/download?job=build_linux}"
+        --assets-link "{\"name\":\"Descargar-DDM-Linux-Release\",\"url\":\"${CI_PROJECT_URL}/-/jobs/artifacts/${CI_COMMIT_TAG}/download?job=build_linux\"}"
