@@ -1,6 +1,7 @@
 #ifndef FONDEO_SESSION_STATE_H
 #define FONDEO_SESSION_STATE_H
 
+#include <QList>
 #include <QPointF>
 #include <QString>
 
@@ -38,10 +39,16 @@ struct AsesoramientoMovimiento {
 };
 
 struct FondeoSessionState {
-    // ---- Datos estáticos    
+    static constexpr int NO_CIRCLE = -1;
+
+    // ---- Datos estáticos
     FondeoConfig config;
     QPointF puntoFondeo;
     QPointF puntoAuxiliar;
+
+    // ---- Figuras publicadas (IDs de CircleEntity; ver docs/modules/planFondeo.md)
+    QList<int> anillosCircleIds; // 5 anillos de marcha, orden paralelo a r1..r5
+    int paCircleId = NO_CIRCLE;
 
     // ---- Datos dinámicos
     bool active = false;

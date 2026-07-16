@@ -1,0 +1,137 @@
+#include "TwoWCommand.h"
+#include "../services/TwoWService.h"
+#include <QStringList>
+
+CommandResult TwoWCommand::execute(const CommandInvocation& inv, CommandContext& ctx) const
+{
+    if (inv.args.isEmpty()) {
+        return { false, QStringLiteral("Faltan argumentos.\n%1").arg(usage()) };
+    }
+
+    QMap<QString, QString> opts;
+    for (const QString& token : inv.args) {
+        const int eq = token.indexOf('=');
+        if (eq > 0) {
+            QString key = token.left(eq);
+            while (key.startsWith('-')) key.remove(0, 1);
+            opts.insert(key.toLower(), token.mid(eq + 1).trimmed());
+        } else {
+            QString key = token;
+            while (key.startsWith('-')) key.remove(0, 1);
+            opts.insert(key.toLower(), QStringLiteral("true"));
+        }
+    }
+
+    TwoWService service(&ctx);
+
+    // 2w --info
+    if (opts.contains(QStringLiteral("info"))) {
+        if (!ctx.twoWSession.active) {
+            return { false, QStringLiteral("[2W] La Disposicion 2W no se encuentra activa en este momento.\n") };
+        }
+
+        const TwoWSessionState& s = ctx.twoWSession;
+        QString response;
+
+        response += QStringLiteral("\n======================================================\n");
+        response += QStringLiteral("               SITUACION 2W\n");
+        response += QStringLiteral("======================================================\n");
+        response += QStringLiteral("Guia Track ID: %1  |  Estacion BP Asignada: %2\n")
+                        .arg(s.guideTrackId)
+                        .arg(s.bpStation);
+        response += QStringLiteral("------------------------------------------------------\n");
+        response += QStringLiteral("Circulo Guia (id): %1  |  Circulo Propio (id): %2\n")
+                        .arg(s.guideCircleId)
+                        .arg(s.ownCircleId);
+        {
+            QStringList allyIds;
+            for (int id : s.allyCircleIds) allyIds << QString::number(id);
+            response += QStringLiteral("Circulos Aliadas (ids): [%1]\n").arg(allyIds.join(QStringLiteral(", ")));
+        }
+        response += QStringLiteral("------------------------------------------------------\n");
+        response += QStringLiteral("Marcacion Real al Guia: %1 grados | Tabla A: %2 grados\n")
+                        .arg(s.currentAzimuthDeg, 0, 'f', 1)
+                        .arg(s.expectedAzimuthDeg, 0, 'f', 1);
+        response += QStringLiteral("Distancia Real al Guia: %1 MN | Tabla A: %2 MN\n")
+                        .arg(s.currentDistanceNm, 0, 'f', 2)
+                        .arg(s.expectedDistanceNm, 0, 'f', 2);
+        response += QStringLiteral("\n--> RUMBO RECOMENDADO (INTERCEPCION DIRECTA): %1 grados\n")
+                        .arg(s.courseToStationDeg, 0, 'f', 1);
+        response += QStringLiteral("------------------------------------------------------\n");
+        if (s.etaValid) {
+            response += QStringLiteral("--> ETA: %1 minutos\n").arg(s.timeToStationMin, 0, 'f', 1);
+        } else {
+            response += QStringLiteral("--> ETA: Indeterminado (Buque Propio detenido o sin velocidad)\n");
+        }
+        response += QStringLiteral("======================================================\n\n");
+
+        return { true, response };
+    }
+
+    // 2w --stop
+    if (opts.contains(QStringLiteral("stop"))) {
+        const TwoWOperationResult r = service.stopSession();
+        return { r.ok, r.message };
+    }
+
+    // 2w --aliadas=<est1,est2,...> (standalone, sin --guia/--est): actualiza
+    // solo las estaciones aliadas graficadas, requiere sesion ya activa.
+    if (opts.contains(QStringLiteral("aliadas"))
+        && !opts.contains(QStringLiteral("guia"))
+        && !opts.contains(QStringLiteral("est"))) {
+        const QString raw = opts.value(QStringLiteral("aliadas"));
+        QList<int> aliadas;
+        if (!raw.isEmpty()) {
+            const QStringList parts = raw.split(',');
+            for (const QString& part : parts) {
+                bool okA = false;
+                const int est = part.trimmed().toInt(&okA);
+                if (!okA) {
+                    return { false, QStringLiteral("--aliadas: todos los valores deben ser enteros.") };
+                }
+                aliadas.append(est);
+            }
+        }
+        const TwoWOperationResult r = service.setStations(aliadas);
+        return { r.ok, r.message };
+    }
+
+    // 2w --guia=<id> --est=<estacion> [--radio=<mn>]
+    if (!opts.contains(QStringLiteral("guia")) || !opts.contains(QStringLiteral("est"))) {
+        return { false, QStringLiteral("Faltan --guia y --est.\n%1").arg(usage()) };
+    }
+
+    bool okGuia = false, okEst = false;
+    const int guiaId = opts.value("guia").toInt(&okGuia);
+    const int bpEst  = opts.value("est").toInt(&okEst);
+
+    if (!okGuia || !okEst) {
+        return { false, QStringLiteral("--guia y --est deben ser enteros.") };
+    }
+
+    double radio = 1.0;
+    if (opts.contains(QStringLiteral("radio"))) {
+        bool okR = false;
+        const double r = opts.value("radio").toDouble(&okR);
+        if (!okR) {
+            return { false, QStringLiteral("--radio debe ser un numero positivo.") };
+        }
+        radio = r;
+    }
+
+    QList<int> aliadas;
+    if (opts.contains(QStringLiteral("aliadas"))) {
+        const QStringList parts = opts.value(QStringLiteral("aliadas")).split(',');
+        for (const QString& part : parts) {
+            bool okA = false;
+            const int est = part.trimmed().toInt(&okA);
+            if (!okA) {
+                return { false, QStringLiteral("--aliadas: todos los valores deben ser enteros.") };
+            }
+            aliadas.append(est);
+        }
+    }
+
+    const TwoWOperationResult r = service.startSession(guiaId, bpEst, radio, aliadas);
+    return { r.ok, r.message };
+}

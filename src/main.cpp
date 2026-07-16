@@ -6,6 +6,7 @@
 #include "messagerouter.h"
 #include "obmHandler.h"
 #include "obmservice.h"
+#include <qfloat16.h>
 #include "overlayHandler.h"
 #include "json/jsoncommandhandler.h"
 #include <QCoreApplication>
@@ -38,6 +39,8 @@
 #include "displaymodecommand.h"
 #include "fondeoCommand.h"
 #include "fondeoservice.h"
+#include "TwoWCommand.h"
+#include "TwoWService.h"
 
 #include "addareacommand.h"
 #include "addpolygonocommand.h"
@@ -47,26 +50,24 @@
 #include "addSectorCommand.h"
 #include "deleteSectorCommand.h"
 
-#ifdef Q_OS_WIN
-static void enableAnsiColorsOnWindows() {
-  DWORD mode = 0;
-  HANDLE hOut = GetStdHandle(STD_OUTPUT_HANDLE);
-  if (hOut != INVALID_HANDLE_VALUE && GetConsoleMode(hOut, &mode)) {
-    mode |= 0x0004; // ENABLE_VIRTUAL_TERMINAL_PROCESSING
-    SetConsoleMode(hOut, mode);
-  }
-  HANDLE hErr = GetStdHandle(STD_ERROR_HANDLE);
-  if (hErr != INVALID_HANDLE_VALUE && GetConsoleMode(hErr, &mode)) {
-    mode |= 0x0004;
-    SetConsoleMode(hErr, mode);
-  }
-}
-#endif
+// static void enableAnsiColorsOnWindows() {
+//   DWORD mode = 0;
+//   HANDLE hOut = GetStdHandle(STD_OUTPUT_HANDLE);
+//   if (hOut != INVALID_HANDLE_VALUE && GetConsoleMode(hOut, &mode)) {
+//     mode |= 0x0004; // ENABLE_VIRTUAL_TERMINAL_PROCESSING
+//     SetConsoleMode(hOut, mode);
+//   }
+//   HANDLE hErr = GetStdHandle(STD_ERROR_HANDLE);
+//   if (hErr != INVALID_HANDLE_VALUE && GetConsoleMode(hErr, &mode)) {
+//     mode |= 0x0004;
+//     SetConsoleMode(hErr, mode);
+//   }
+// }
 
 int main(int argc, char *argv[]) {
 
 #ifdef Q_OS_WIN
-  enableAnsiColorsOnWindows();
+  // enableAnsiColorsOnWindows();
   SetConsoleCP(CP_UTF8);
   SetConsoleOutputCP(CP_UTF8);
 #endif
@@ -77,6 +78,7 @@ int main(int argc, char *argv[]) {
   auto *registry = new CommandRegistry();
   auto *parser = new CommandParser();
   auto *fondeoService = new FondeoService(ctx);
+  auto *twoWService = new TwoWService(ctx);
 
   // registrar comandos
   registry->registerCommand(QSharedPointer<ICommand>(new AddCommand()));
@@ -99,6 +101,7 @@ int main(int argc, char *argv[]) {
   registry->registerCommand(QSharedPointer<ICommand>(new AddSectorCommand()));
   registry->registerCommand(QSharedPointer<ICommand>(new DeleteSectorCommand()));
   registry->registerCommand(QSharedPointer<ICommand>(new FondeoCommand()));
+  registry->registerCommand(QSharedPointer<ICommand>(new TwoWCommand()));
 
   CommandDispatcher dispatcher(registry, parser, *ctx);
 
@@ -143,10 +146,11 @@ int main(int argc, char *argv[]) {
   QTimer timer;
   QTimer updatePositionTimer;
   QObject::connect(&updatePositionTimer, &QTimer::timeout,
-                   [ctx, fondeoService, &updatePositionTimer]() {
+                   [ctx, fondeoService, twoWService, &updatePositionTimer]() {
                      double deltaTime = updatePositionTimer.interval() / 1000.0;
                      ctx->updateTracks(deltaTime);
                      fondeoService->update();
+                     twoWService->update();
                    });
 
   QObject::connect(&timer, &QTimer::timeout, &timer,
@@ -178,9 +182,10 @@ int main(int argc, char *argv[]) {
 
   // conectar señales del decoder con ownCurse
   QObject::connect(decoder, &ConcDecoder::newHandWheel, ownCurs,
-                   [ownCurs](const QPair<float, float>& hw) {
-                       ownCurs->updateHandwheel(
-                           QPair<qfloat16, qfloat16>(qfloat16(hw.first), qfloat16(hw.second)));
+                   [ownCurs](QPair<float, float> delta) {
+                     ownCurs->updateHandwheel(QPair<qfloat16, qfloat16>(
+                         static_cast<qfloat16>(delta.first),
+                         static_cast<qfloat16>(delta.second)));
                    });
   QObject::connect(decoder, &ConcDecoder::cuOrOffCentLeft, ownCurs,
                    &OwnCurs::cuOrOffCent);

@@ -44,6 +44,11 @@ CommandResult FondeoCommand::execute(const CommandInvocation& inv, CommandContex
         response += QStringLiteral("------------------------------------------------------\n");
         response += QStringLiteral("MOV. ACTUAL: %1\n").arg(s.movimientoActual.label);
         response += QStringLiteral("PROXIMO MOV: %1\n").arg(s.proximoMovimiento.label);
+        response += QStringLiteral("------------------------------------------------------\n");
+        QStringList anillosIds;
+        for (int id : s.anillosCircleIds) anillosIds << QString::number(id);
+        response += QStringLiteral("ANILLOS (r1..r5): %1 | PA: %2\n")
+                        .arg(anillosIds.join(QStringLiteral(","))).arg(s.paCircleId);
         response += QStringLiteral("======================================================\n\n");
 
         return { true, response };

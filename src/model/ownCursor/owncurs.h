@@ -8,7 +8,7 @@
 #include "entities/cursorEntity.h"  // Usa setters y tipos de CursorEntity
 #include "commandContext.h"
 #include "obmHandler.h"
-#define ORIGIN {0.0,0.0}
+#define ORIGIN QPair<qfloat16, qfloat16>(qfloat16(0.0), qfloat16(0.0))
 
 class OwnCurs : public QObject {
     Q_OBJECT

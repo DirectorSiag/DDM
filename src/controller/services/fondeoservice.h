@@ -16,5 +16,8 @@ public:
     void update();
 
 private:
+    void createFigures();
+    void deleteFigures();
+
     CommandContext* m_ctx;
 };
