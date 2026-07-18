@@ -30,7 +30,7 @@ enum class TextColor {
     Amarillo,
     Blanco,
     Purpura,
-    MarronAnaranjado
+    Naranja
 };
 
 enum class TextPositionMethod {

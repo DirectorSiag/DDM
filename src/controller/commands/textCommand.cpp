@@ -16,34 +16,6 @@ bool parseGmsTriplet(const QString& val, int& deg, int& min, double& sec)
     return ok;
 }
 
-TextColor stringToColor(const QString& s, bool& ok)
-{
-    ok = true;
-    const QString key = s.trimmed().toLower();
-    if (key == QStringLiteral("rojo"))      return TextColor::Rojo;
-    if (key == QStringLiteral("verde"))     return TextColor::Verde;
-    if (key == QStringLiteral("azul"))      return TextColor::Azul;
-    if (key == QStringLiteral("cian"))      return TextColor::Cian;
-    if (key == QStringLiteral("magenta"))   return TextColor::Magenta;
-    if (key == QStringLiteral("amarillo"))  return TextColor::Amarillo;
-    if (key == QStringLiteral("blanco"))    return TextColor::Blanco;
-    if (key == QStringLiteral("purpura"))   return TextColor::Purpura;
-    if (key == QStringLiteral("marron"))    return TextColor::MarronAnaranjado;
-    ok = false;
-    return TextColor::Blanco;
-}
-
-TextFontSize stringToFontSize(const QString& s, bool& ok)
-{
-    ok = true;
-    const QString key = s.trimmed().toLower();
-    if (key == QStringLiteral("xs")) return TextFontSize::XS;
-    if (key == QStringLiteral("md")) return TextFontSize::MD;
-    if (key == QStringLiteral("lg")) return TextFontSize::LG;
-    ok = false;
-    return TextFontSize::MD;
-}
-
 }
 
 CommandResult TextCommand::execute(const CommandInvocation& inv, CommandContext& ctx) const
@@ -92,16 +64,21 @@ CommandResult TextCommand::execute(const CommandInvocation& inv, CommandContext&
         return { r.ok, r.message };
     }
 
-    // texto --editar=<tn> [--texto=<str>]
+    // texto --editar=<tn> [--texto=<str>] [--tamano=<xs|md|lg>]
+    //                     [--color=<c>] [--fondo=<c>] [--borde=<c>]
     if (opts.contains(QStringLiteral("editar"))) {
         bool ok = false;
         const int tn = opts.value(QStringLiteral("editar")).toInt(&ok);
         if (!ok) return { false, QStringLiteral("--editar requiere un TN numerico.") };
+
+        // Se pasa el mapa completo de opts -- TextService::editLabel()
+        // busca las claves que le interesan (texto, tamano, color,
+        // fondo, borde) e ignora el resto (editar, etc.).
         const TextOperationResult r = service.editLabel(tn, opts);
         return { r.ok, r.message };
     }
 
-    // texto --altrack=<trackId> --tn=<tn>   (asociar posterior a la creacion)
+    // texto --altrack=<trackId> --tn=<tn>
     if (opts.contains(QStringLiteral("altrack")) && opts.contains(QStringLiteral("tn"))) {
         bool okTrack = false, okTn = false;
         const int trackId = opts.value(QStringLiteral("altrack")).toInt(&okTrack);
@@ -112,7 +89,7 @@ CommandResult TextCommand::execute(const CommandInvocation& inv, CommandContext&
         return { r.ok, r.message };
     }
 
-    // texto --deltrack --tn=<tn>   (desasociar posterior a la creacion)
+    // texto --deltrack --tn=<tn>
     if (opts.contains(QStringLiteral("deltrack")) && opts.contains(QStringLiteral("tn"))
         && !opts.contains(QStringLiteral("nuevo"))) {
         bool ok = false;
@@ -131,31 +108,28 @@ CommandResult TextCommand::execute(const CommandInvocation& inv, CommandContext&
         TextCreateParams params;
         params.texto = opts.value(QStringLiteral("texto"));
 
-        // Tamano (opcional, default MD)
         if (opts.contains(QStringLiteral("tamano"))) {
             bool ok = false;
-            params.fontSize = stringToFontSize(opts.value(QStringLiteral("tamano")), ok);
+            params.fontSize = TextService::stringToFontSize(opts.value(QStringLiteral("tamano")), ok);
             if (!ok) return { false, QStringLiteral("--tamano invalido. Usar xs, md o lg.") };
         }
 
-        // Color (opcional, default Blanco)
         if (opts.contains(QStringLiteral("color"))) {
             bool ok = false;
-            params.fontColor = stringToColor(opts.value(QStringLiteral("color")), ok);
+            params.fontColor = TextService::stringToColor(opts.value(QStringLiteral("color")), ok);
             if (!ok) return { false, QStringLiteral("--color invalido.") };
         }
         if (opts.contains(QStringLiteral("borde"))) {
             bool ok = false;
-            params.borderColor = stringToColor(opts.value(QStringLiteral("borde")), ok);
+            params.borderColor = TextService::stringToColor(opts.value(QStringLiteral("borde")), ok);
             if (!ok) return { false, QStringLiteral("--borde invalido.") };
         }
         if (opts.contains(QStringLiteral("fondo"))) {
             bool ok = false;
-            params.backgroundColor = stringToColor(opts.value(QStringLiteral("fondo")), ok);
+            params.backgroundColor = TextService::stringToColor(opts.value(QStringLiteral("fondo")), ok);
             if (!ok) return { false, QStringLiteral("--fondo invalido.") };
         }
 
-        // Sección B — un solo método, mutuamente excluyente
         int methodCount = 0;
         if (opts.contains(QStringLiteral("man")))      methodCount++;
         if (opts.contains(QStringLiteral("az")))       methodCount++;
@@ -222,7 +196,6 @@ CommandResult TextCommand::execute(const CommandInvocation& inv, CommandContext&
             params.refTrackId = trackId;
         }
 
-        // Sección C — asociación opcional al crear
         if (opts.contains(QStringLiteral("altrack"))) {
             bool ok = false;
             const int trackId = opts.value(QStringLiteral("altrack")).toInt(&ok);

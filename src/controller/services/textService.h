@@ -22,20 +22,16 @@ struct TextCreateParams {
     // Sección B — solo uno de estos métodos debe estar poblado
     TextPositionMethod positionMethod = TextPositionMethod::Manual;
 
-    // Para Manual
     double manXDm = 0.0;
     double manYDm = 0.0;
 
-    // Para AzimutDist
     double azimuthDeg   = 0.0;
     double distanceDm   = 0.0;
-    bool   useVerdadero = true;   // true = V, false = R
+    bool   useVerdadero = true;
 
-    // Para LatLon (ya convertido a decimal por el Command)
     double latDecimal = 0.0;
     double lonDecimal = 0.0;
 
-    // Para DelTrack
     int refTrackId = -1;
 
     // Sección C — opcional
@@ -58,6 +54,12 @@ public:
     TextOperationResult infoLabel(int tn) const;
 
     void update();
+
+    // ── Helpers de conversión string <-> enum ────────────────────────────
+    // Públicos y estáticos para que TextCommand los reutilice al parsear
+    // los flags de --nuevo y --editar, sin duplicar la lógica.
+    static TextColor    stringToColor(const QString& s, bool& ok);
+    static TextFontSize stringToFontSize(const QString& s, bool& ok);
 
 private:
     CommandContext* m_ctx;

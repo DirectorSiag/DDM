@@ -7,7 +7,35 @@ TextService::TextService(CommandContext* ctx)
     : m_ctx(ctx)
 {}
 
-// ── Helpers de conversión a string (para reportes) ──────────────────────
+// ── Helpers de conversión string <-> enum (públicos, reutilizables) ──────
+
+TextColor TextService::stringToColor(const QString& s, bool& ok) {
+    ok = true;
+    const QString key = s.trimmed().toLower();
+    if (key == QStringLiteral("rojo"))      return TextColor::Rojo;
+    if (key == QStringLiteral("verde"))     return TextColor::Verde;
+    if (key == QStringLiteral("azul"))      return TextColor::Azul;
+    if (key == QStringLiteral("cian"))      return TextColor::Cian;
+    if (key == QStringLiteral("magenta"))   return TextColor::Magenta;
+    if (key == QStringLiteral("amarillo"))  return TextColor::Amarillo;
+    if (key == QStringLiteral("blanco"))    return TextColor::Blanco;
+    if (key == QStringLiteral("purpura"))   return TextColor::Purpura;
+    if (key == QStringLiteral("naranja"))    return TextColor::Naranja;
+    ok = false;
+    return TextColor::Blanco;
+}
+
+TextFontSize TextService::stringToFontSize(const QString& s, bool& ok) {
+    ok = true;
+    const QString key = s.trimmed().toLower();
+    if (key == QStringLiteral("xs")) return TextFontSize::XS;
+    if (key == QStringLiteral("md")) return TextFontSize::MD;
+    if (key == QStringLiteral("lg")) return TextFontSize::LG;
+    ok = false;
+    return TextFontSize::MD;
+}
+
+// ── Helpers de conversión enum -> string (privados, para reportes) ───────
 
 QString TextService::fontSizeToString(TextFontSize size) {
     switch (size) {
@@ -28,7 +56,7 @@ QString TextService::colorToString(TextColor color) {
         case TextColor::Amarillo:         return QStringLiteral("AMARILLO");
         case TextColor::Blanco:           return QStringLiteral("BLANCO");
         case TextColor::Purpura:          return QStringLiteral("PURPURA");
-        case TextColor::MarronAnaranjado: return QStringLiteral("MARRON_ANARANJADO");
+        case TextColor::Naranja:          return QStringLiteral("NARANJA");
     }
     return QStringLiteral("BLANCO");
 }
@@ -46,22 +74,18 @@ QString TextService::positionMethodToString(TextPositionMethod method) {
 // ── Crear ────────────────────────────────────────────────────────────────
 
 TextOperationResult TextService::createLabel(const TextCreateParams& params) {
-    // Validación de texto (Sección A)
     if (params.texto.isEmpty()) {
         return { false, QStringLiteral("[TEXTO] El campo texto no puede estar vacio.") };
     }
     if (params.texto.length() > 20) {
         return { false, QStringLiteral("[TEXTO] El texto no puede superar los 20 caracteres.") };
     }
-
-    // Advertencia de contraste (REQ-TXT-UI-006)
     if (params.fontColor == params.backgroundColor) {
         return { false, QStringLiteral(
             "[TEXTO] Color y Fondo no pueden ser iguales (falta de contraste). "
             "Elegi combinaciones distintas.") };
     }
 
-    // Resolver posición base según el método (Sección B)
     double xDm = 0.0, yDm = 0.0;
 
     switch (params.positionMethod) {
@@ -116,7 +140,6 @@ TextOperationResult TextService::createLabel(const TextCreateParams& params) {
     }
     }
 
-    // Crear el label
     TextLabel label;
     label.tn              = m_ctx->textSession.nextTn++;
     label.texto           = params.texto;
@@ -130,7 +153,6 @@ TextOperationResult TextService::createLabel(const TextCreateParams& params) {
     label.currentXDm      = xDm;
     label.currentYDm      = yDm;
 
-    // Sección C — asociación opcional al crear
     if (params.asociarAlCrear) {
         const Track* track = m_ctx->findTrackById(params.trackToAssociate);
         if (!track) {
@@ -149,6 +171,10 @@ TextOperationResult TextService::createLabel(const TextCreateParams& params) {
 }
 
 // ── Editar ───────────────────────────────────────────────────────────────
+// Soporta los cinco campos editables: texto, tamano, color, fondo, borde.
+// La regla de contraste (color != fondo) se valida sobre el resultado
+// FINAL antes de aplicar ningun cambio, para que el label nunca quede
+// a medio editar si la validacion falla.
 
 TextOperationResult TextService::editLabel(int tn, const QMap<QString, QString>& fields) {
     TextLabel* label = m_ctx->textSession.findByTn(tn);
@@ -156,17 +182,60 @@ TextOperationResult TextService::editLabel(int tn, const QMap<QString, QString>&
         return { false, QStringLiteral("[TEXTO] No existe ningun texto con TN %1.").arg(tn) };
     }
 
+    // ── Texto ────────────────────────────────────────────────────────────
+    QString newText = label->texto;
     if (fields.contains(QStringLiteral("texto"))) {
-        const QString newText = fields.value(QStringLiteral("texto"));
+        newText = fields.value(QStringLiteral("texto"));
+        if (newText.isEmpty()) {
+            return { false, QStringLiteral("[TEXTO] El campo texto no puede estar vacio.") };
+        }
         if (newText.length() > 20) {
             return { false, QStringLiteral("[TEXTO] El texto no puede superar los 20 caracteres.") };
         }
-        label->texto = newText;
     }
 
-    // Los cambios de color/tamano/borde/fondo se aplicarian de forma
-    // similar, mapeando el string a los enums correspondientes.
-    // Se omite el detalle completo aqui por brevedad -- mismo patron.
+    // ── Tamano ───────────────────────────────────────────────────────────
+    TextFontSize newSize = label->fontSize;
+    if (fields.contains(QStringLiteral("tamano"))) {
+        bool ok = false;
+        newSize = stringToFontSize(fields.value(QStringLiteral("tamano")), ok);
+        if (!ok) {
+            return { false, QStringLiteral("[TEXTO] --tamano invalido. Usar xs, md o lg.") };
+        }
+    }
+
+    // ── Color, Fondo, Borde ──────────────────────────────────────────────
+    TextColor newFontColor   = label->fontColor;
+    TextColor newBgColor     = label->backgroundColor;
+    TextColor newBorderColor = label->borderColor;
+
+    if (fields.contains(QStringLiteral("color"))) {
+        bool ok = false;
+        newFontColor = stringToColor(fields.value(QStringLiteral("color")), ok);
+        if (!ok) return { false, QStringLiteral("[TEXTO] --color invalido.") };
+    }
+    if (fields.contains(QStringLiteral("fondo"))) {
+        bool ok = false;
+        newBgColor = stringToColor(fields.value(QStringLiteral("fondo")), ok);
+        if (!ok) return { false, QStringLiteral("[TEXTO] --fondo invalido.") };
+    }
+    if (fields.contains(QStringLiteral("borde"))) {
+        bool ok = false;
+        newBorderColor = stringToColor(fields.value(QStringLiteral("borde")), ok);
+        if (!ok) return { false, QStringLiteral("[TEXTO] --borde invalido.") };
+    }
+
+    if (newFontColor == newBgColor) {
+        return { false, QStringLiteral(
+            "[TEXTO] Color y Fondo no pueden ser iguales (falta de contraste).") };
+    }
+
+    // Todas las validaciones pasaron -- recién ahora se aplica todo junto.
+    label->texto           = newText;
+    label->fontSize         = newSize;
+    label->fontColor        = newFontColor;
+    label->backgroundColor  = newBgColor;
+    label->borderColor      = newBorderColor;
 
     return { true, QStringLiteral("[TEXTO] Texto TN %1 actualizado.").arg(tn) };
 }
@@ -193,8 +262,6 @@ TextOperationResult TextService::associateTrack(int textTn, int trackId) {
         return { false, QStringLiteral("[TEXTO] El track %1 no existe.").arg(trackId) };
     }
 
-    // El offset se calcula respecto a la posicion actual del texto,
-    // preservando la separacion geometrica solicitada (REQ-TXT-CAL-003)
     label->associated        = true;
     label->associatedTrackId = trackId;
     label->offsetXDm         = label->currentXDm - track->getX();
@@ -214,7 +281,6 @@ TextOperationResult TextService::dissociateTrack(int textTn) {
                             .arg(textTn) };
     }
 
-    // Al desasociar, la posicion actual queda congelada como nueva base
     label->associated        = false;
     label->associatedTrackId = -1;
     label->offsetXDm         = 0.0;
@@ -283,9 +349,6 @@ void TextService::update() {
 
         const Track* track = m_ctx->findTrackById(label.associatedTrackId);
         if (!track) {
-            // El track asociado desaparecio -- el texto se congela
-            // en su ultima posicion conocida (no se desasocia
-            // automaticamente, requiere accion explicita del operador).
             continue;
         }
 
