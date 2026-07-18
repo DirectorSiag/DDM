@@ -15,13 +15,14 @@ public:
             "(--man=<x>,<y> | --az=<g> --dt=<dm> (--v|--r) | "
             "--lat=<g>,<m>,<s> --lon=<g>,<m>,<s> | --deltrack=<tn>) "
             "[--altrack=<tn>]\n"
-            "texto --editar=<tn> [--texto=<str>]\n"
+            "texto --editar=<tn> [--texto=<str>] [--tamano=<xs|md|lg>] [--color=<c>] "
+            "[--fondo=<c>] [--borde=<c>]\n"
             "texto --borrar=<tn>\n"
             "texto --altrack=<trackId> --tn=<tn>\n"
             "texto --deltrack --tn=<tn>\n"
             "texto --info=<tn>\n"
             "texto --list\n"
-        );
+            );
     }
     CommandResult execute(const CommandInvocation& inv, CommandContext& ctx) const override;
 };
