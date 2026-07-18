@@ -33,7 +33,7 @@ Una etiqueta puede permanecer estática en el punto donde fue creada, o asociars
 | Comando | Descripción |
 |---|---|
 | `texto --nuevo --texto=<str> --tamano=<xs\|md\|lg> --color=<c> [--borde=<c>] [--fondo=<c>] (--man=<x>,<y> \| --az=<g> --dt=<dm> (--v\|--r) \| --lat=<g>,<m>,<s> --lon=<g>,<m>,<s> \| --deltrack=<tn>) [--altrack=<tn>]` | Crea una etiqueta nueva. |
-| `texto --editar=<tn> [--texto=<str>]` | Edita una etiqueta existente. |
+| `texto --editar=<tn> [--texto=<str>] [--tamano=<xs\|md\|lg>] [--color=<c>] [--fondo=<c>] [--borde=<c>]` | Edita una etiqueta existente (uno o más campos; valida contraste `color != fondo` sobre el resultado final antes de aplicar). |
 | `texto --borrar=<tn>` | Elimina una etiqueta. |
 | `texto --altrack=<trackId> --tn=<tn>` | Asocia una etiqueta existente a un track. |
 | `texto --deltrack --tn=<tn>` | Desasocia una etiqueta de su track. |
@@ -213,7 +213,7 @@ flowchart TD
 | Amarillo | Texto / Borde / Fondo |
 | Blanco | Texto / Borde / Fondo |
 | Púrpura | Texto / Borde / Fondo |
-| Marrón-anaranjado | Texto / Borde / Fondo |
+| Naranja | Texto / Borde / Fondo |
 
 ---
 
