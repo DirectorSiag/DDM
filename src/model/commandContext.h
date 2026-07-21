@@ -22,6 +22,7 @@
 #include "model/fondeo/fondeoSessionState.h"
 #include "model/2w/twoWSessionState.h"
 #include "ha/haSessionState.h"
+#include "texto/textSessionState.h"
 #include <array>
 
 struct CommandContext {
@@ -110,6 +111,7 @@ struct CommandContext {
 
     FondeoSessionState fondeoSession;
     TwoWSessionState twoWSession;
+    TextSessionState textSession;
 
     static constexpr int kMaxHaSessions = 10;
     std::array<HaSessionState, kMaxHaSessions> haSessions;

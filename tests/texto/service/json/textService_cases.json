@@ -1,0 +1,213 @@
+{
+  "textServiceTestCases": [
+
+    {
+      "id": "SVC_01_CreateLabel_Manual_Exitoso",
+      "description": "createLabel en modo Manual con todos los campos válidos",
+      "inputs": { "texto": "ETA 2000", "tamano": "md", "color": "rojo", "fondo": "blanco", "borde": "azul", "method": "manual", "manX": 5.0, "manY": 3.0 },
+      "expected": { "success": true, "messageContains": "creado" }
+    },
+    {
+      "id": "SVC_02_CreateLabel_TextoVacio_Error",
+      "description": "createLabel falla si el texto está vacío",
+      "inputs": { "texto": "", "tamano": "md", "color": "rojo", "fondo": "blanco", "method": "manual", "manX": 0.0, "manY": 0.0 },
+      "expected": { "success": false, "messageContains": "no puede estar vacio" }
+    },
+    {
+      "id": "SVC_03_CreateLabel_TextoDemasiadoLargo_Error",
+      "description": "createLabel falla si el texto supera 20 caracteres",
+      "inputs": { "texto": "ABCDEFGHIJKLMNOPQRSTU", "tamano": "md", "color": "rojo", "fondo": "blanco", "method": "manual", "manX": 0.0, "manY": 0.0 },
+      "expected": { "success": false, "messageContains": "no puede superar" }
+    },
+    {
+      "id": "SVC_04_CreateLabel_ColorIgualFondo_Error",
+      "description": "createLabel falla si color y fondo coinciden (falta de contraste)",
+      "inputs": { "texto": "X", "tamano": "md", "color": "rojo", "fondo": "rojo", "method": "manual", "manX": 0.0, "manY": 0.0 },
+      "expected": { "success": false, "messageContains": "no pueden ser iguales" }
+    },
+    {
+      "id": "SVC_05_CreateLabel_AzimutDist_Verdadero_Exitoso",
+      "description": "createLabel modo AZ/DT verdadero, con BP (track id=0) presente en el contexto",
+      "inputs": { "texto": "X", "tamano": "md", "color": "rojo", "fondo": "blanco", "method": "azimut", "az": 90.0, "dt": 2.0, "verdadero": true, "bpX": 0.0, "bpY": 0.0 },
+      "expected": { "success": true, "messageContains": "creado" }
+    },
+    {
+      "id": "SVC_06_CreateLabel_AzimutDist_SinBP_Error",
+      "description": "createLabel modo AZ/DT falla si no existe el track id=0 (Buque Propio)",
+      "inputs": { "texto": "X", "tamano": "md", "color": "rojo", "fondo": "blanco", "method": "azimut", "az": 90.0, "dt": 2.0, "verdadero": true },
+      "expected": { "success": false, "messageContains": "no se encontro el Buque Propio" }
+    },
+    {
+      "id": "SVC_07_CreateLabel_AzimutDist_Relativo_Exitoso",
+      "description": "createLabel modo AZ/DT relativo: usa el rumbo del BP para calcular el azimut efectivo",
+      "inputs": { "texto": "X", "tamano": "md", "color": "rojo", "fondo": "blanco", "method": "azimut", "az": 0.0, "dt": 2.0, "verdadero": false, "bpX": 0.0, "bpY": 0.0, "bpCourse": 90.0 },
+      "expected": { "success": true, "messageContains": "creado" }
+    },
+    {
+      "id": "SVC_08_CreateLabel_LatLon_Exitoso",
+      "description": "createLabel modo LAT/LON con BP con coordenadas geográficas válidas",
+      "inputs": { "texto": "X", "tamano": "md", "color": "rojo", "fondo": "blanco", "method": "latlon", "lat": -34.5, "lon": -58.4, "injectOwnShipGeo": true, "ownShipLat": -34.6, "ownShipLon": -58.4 },
+      "expected": { "success": true, "messageContains": "creado" }
+    },
+    {
+      "id": "SVC_09_CreateLabel_LatLon_SinGeoBP_Error",
+      "description": "createLabel modo LAT/LON falla si el BP no tiene coordenadas geográficas reales",
+      "inputs": { "texto": "X", "tamano": "md", "color": "rojo", "fondo": "blanco", "method": "latlon", "lat": -34.5, "lon": -58.4 },
+      "expected": { "success": false, "messageContains": "no tiene coordenadas geograficas reales" }
+    },
+    {
+      "id": "SVC_10_CreateLabel_DelTrack_Exitoso",
+      "description": "createLabel modo DEL_TRACK con track de referencia existente",
+      "inputs": { "texto": "X", "tamano": "md", "color": "rojo", "fondo": "blanco", "method": "deltrack", "refTrackId": 5, "refTrackX": 2.0, "refTrackY": 2.0 },
+      "expected": { "success": true, "messageContains": "creado" }
+    },
+    {
+      "id": "SVC_11_CreateLabel_DelTrack_TrackInexistente_Error",
+      "description": "createLabel modo DEL_TRACK falla si el track de referencia no existe",
+      "inputs": { "texto": "X", "tamano": "md", "color": "rojo", "fondo": "blanco", "method": "deltrack", "refTrackId": 5 },
+      "expected": { "success": false, "messageContains": "no existe" }
+    },
+    {
+      "id": "SVC_12_CreateLabel_AsociarAlCrear_TrackInexistente_Error",
+      "description": "createLabel con --altrack falla si el track a asociar no existe (aunque la posición manual sea válida)",
+      "inputs": { "texto": "X", "tamano": "md", "color": "rojo", "fondo": "blanco", "method": "manual", "manX": 0.0, "manY": 0.0, "asociarAlCrear": true, "trackToAssociate": 9 },
+      "expected": { "success": false, "messageContains": "no existe" }
+    },
+    {
+      "id": "SVC_13_CreateLabel_AsociarAlCrear_Exitoso",
+      "description": "createLabel con --altrack exitoso: crea y asocia en la misma operación",
+      "inputs": { "texto": "X", "tamano": "md", "color": "rojo", "fondo": "blanco", "method": "manual", "manX": 0.0, "manY": 0.0, "asociarAlCrear": true, "trackToAssociate": 9, "assocTrackX": 1.0, "assocTrackY": 1.0 },
+      "expected": { "success": true, "messageContains": "creado" }
+    },
+    {
+      "id": "SVC_14_CreateLabel_PersistePosicionManual",
+      "description": "Después de createLabel Manual, baseXDm/baseYDm/currentXDm/currentYDm quedan en (manX, manY)",
+      "inputs": { "texto": "X", "tamano": "md", "color": "rojo", "fondo": "blanco", "method": "manual", "manX": 5.0, "manY": 3.0 },
+      "expected": { "x": 5.0, "y": 3.0 }
+    },
+    {
+      "id": "SVC_15_CreateLabel_AsignaTnIncremental",
+      "description": "Dos createLabel consecutivos asignan TN 1 y TN 2 (nextTn se incrementa)",
+      "inputs": {},
+      "expected": { "firstTn": 1, "secondTn": 2 }
+    },
+
+    {
+      "id": "SVC_16_EditLabel_CambiaTexto_Exitoso",
+      "description": "editLabel actualiza el campo texto de un label existente",
+      "setup": { "texto": "OLD", "tamano": "md", "color": "rojo", "fondo": "blanco", "method": "manual", "manX": 0.0, "manY": 0.0 },
+      "edit": { "texto": "NUEVO TEXTO" },
+      "expected": { "success": true, "messageContains": "actualizado" }
+    },
+    {
+      "id": "SVC_17_EditLabel_NoExiste_Error",
+      "description": "editLabel falla si el TN no existe",
+      "setup": null,
+      "edit": { "texto": "X" },
+      "expected": { "success": false, "messageContains": "No existe ningun texto" }
+    },
+    {
+      "id": "SVC_18_EditLabel_ColorIgualFondoFinal_Error",
+      "description": "editLabel falla si el color editado coincide con el fondo existente",
+      "setup": { "texto": "X", "tamano": "md", "color": "rojo", "fondo": "verde", "method": "manual", "manX": 0.0, "manY": 0.0 },
+      "edit": { "color": "verde" },
+      "expected": { "success": false, "messageContains": "no pueden ser iguales" }
+    },
+    {
+      "id": "SVC_19_EditLabel_TamanoInvalido_Error",
+      "description": "editLabel falla si --tamano no es xs/md/lg",
+      "setup": { "texto": "X", "tamano": "md", "color": "rojo", "fondo": "blanco", "method": "manual", "manX": 0.0, "manY": 0.0 },
+      "edit": { "tamano": "xx" },
+      "expected": { "success": false, "messageContains": "tamano invalido" }
+    },
+
+    {
+      "id": "SVC_20_DeleteLabel_Exitoso",
+      "description": "deleteLabel elimina un label existente",
+      "setup": { "texto": "X", "tamano": "md", "color": "rojo", "fondo": "blanco", "method": "manual", "manX": 0.0, "manY": 0.0 },
+      "expected": { "success": true, "messageContains": "eliminado" }
+    },
+    {
+      "id": "SVC_21_DeleteLabel_NoExiste_Error",
+      "description": "deleteLabel falla si el TN no existe",
+      "setup": null,
+      "expected": { "success": false, "messageContains": "No existe ningun texto" }
+    },
+
+    {
+      "id": "SVC_22_AssociateTrack_Exitoso",
+      "description": "associateTrack vincula un label existente a un track existente",
+      "setup": { "texto": "X", "tamano": "md", "color": "rojo", "fondo": "blanco", "method": "manual", "manX": 0.0, "manY": 0.0 },
+      "associate": { "trackId": 7, "trackX": 3.0, "trackY": 3.0 },
+      "expected": { "success": true, "messageContains": "asociado al track" }
+    },
+    {
+      "id": "SVC_23_AssociateTrack_LabelNoExiste_Error",
+      "description": "associateTrack falla si el TN del label no existe",
+      "setup": null,
+      "associate": { "trackId": 7, "trackX": 3.0, "trackY": 3.0 },
+      "expected": { "success": false, "messageContains": "No existe ningun texto" }
+    },
+    {
+      "id": "SVC_24_AssociateTrack_TrackNoExiste_Error",
+      "description": "associateTrack falla si el track a asociar no existe",
+      "setup": { "texto": "X", "tamano": "md", "color": "rojo", "fondo": "blanco", "method": "manual", "manX": 0.0, "manY": 0.0 },
+      "associate": { "trackId": 77 },
+      "expected": { "success": false, "messageContains": "no existe" }
+    },
+
+    {
+      "id": "SVC_25_DissociateTrack_Exitoso",
+      "description": "dissociateTrack desvincula un label previamente asociado",
+      "setup": { "texto": "X", "tamano": "md", "color": "rojo", "fondo": "blanco", "method": "manual", "manX": 0.0, "manY": 0.0 },
+      "associate": { "trackId": 7, "trackX": 3.0, "trackY": 3.0 },
+      "expected": { "success": true, "messageContains": "desasociado" }
+    },
+    {
+      "id": "SVC_26_DissociateTrack_NoAsociado_Error",
+      "description": "dissociateTrack falla si el label no está asociado a ningún track",
+      "setup": { "texto": "X", "tamano": "md", "color": "rojo", "fondo": "blanco", "method": "manual", "manX": 0.0, "manY": 0.0 },
+      "expected": { "success": false, "messageContains": "no esta asociado" }
+    },
+
+    {
+      "id": "SVC_27_ListLabels_Vacio",
+      "description": "listLabels devuelve false si no hay textos activos",
+      "setup": null,
+      "expected": { "success": false, "messageContains": "No hay textos activos" }
+    },
+    {
+      "id": "SVC_28_ListLabels_ConTextos",
+      "description": "listLabels devuelve true y lista los textos activos",
+      "setup": { "texto": "X", "tamano": "md", "color": "rojo", "fondo": "blanco", "method": "manual", "manX": 0.0, "manY": 0.0 },
+      "expected": { "success": true, "messageContains": "Textos activos" }
+    },
+
+    {
+      "id": "SVC_29_InfoLabel_NoExiste_Error",
+      "description": "infoLabel falla si el TN no existe",
+      "setup": null,
+      "expected": { "success": false, "messageContains": "No existe ningun texto" }
+    },
+    {
+      "id": "SVC_30_InfoLabel_Exitoso",
+      "description": "infoLabel devuelve el detalle completo de un label existente",
+      "setup": { "texto": "X", "tamano": "md", "color": "rojo", "fondo": "blanco", "method": "manual", "manX": 0.0, "manY": 0.0 },
+      "expected": { "success": true, "messageContains": "Texto:" }
+    },
+
+    {
+      "id": "SVC_31_Update_RecalculaPosicionAsociada",
+      "description": "update() recalcula currentXDm/currentYDm de un label asociado, sumando su offset a la nueva posición del track",
+      "inputs": { "trackId": 7, "initialTrackX": 0.0, "initialTrackY": 0.0, "offsetX": 2.0, "offsetY": 1.0, "movedTrackX": 5.0, "movedTrackY": 5.0 },
+      "expected": { "x": 7.0, "y": 6.0 }
+    },
+    {
+      "id": "SVC_32_Update_NoAsociado_NoCambia",
+      "description": "update() no modifica la posición de un label que no está asociado a ningún track",
+      "inputs": { "x": 10.0, "y": 10.0 },
+      "expected": { "x": 10.0, "y": 10.0 }
+    }
+
+  ]
+}

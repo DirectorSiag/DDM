@@ -1,0 +1,204 @@
+{
+  "textCommandTestCases": [
+
+    {
+      "id": "CMD_01_Nuevo_Manual_Exitoso",
+      "commandLine": "texto --nuevo --texto=ETA 2000 --tamano=md --color=rojo --fondo=blanco --man=5,3",
+      "expectedSuccess": true,
+      "expectedMessageContains": "creado"
+    },
+    {
+      "id": "CMD_02_Error_SinArgumentos",
+      "commandLine": "texto",
+      "expectedSuccess": false,
+      "expectedMessageContains": "Faltan argumentos"
+    },
+    {
+      "id": "CMD_03_Error_Nuevo_Sin_Texto",
+      "commandLine": "texto --nuevo --man=0,0",
+      "expectedSuccess": false,
+      "expectedMessageContains": "requiere --texto"
+    },
+    {
+      "id": "CMD_04_Error_Nuevo_Sin_Metodo",
+      "commandLine": "texto --nuevo --texto=HI",
+      "expectedSuccess": false,
+      "expectedMessageContains": "metodo de posicion"
+    },
+    {
+      "id": "CMD_05_Error_Nuevo_DosMetodos",
+      "commandLine": "texto --nuevo --texto=HI --man=0,0 --az=90 --dt=1 --v",
+      "expectedSuccess": false,
+      "expectedMessageContains": "Solo se permite un metodo"
+    },
+    {
+      "id": "CMD_06_Error_Man_FormatoInvalido",
+      "commandLine": "texto --nuevo --texto=HI --man=5",
+      "expectedSuccess": false,
+      "expectedMessageContains": "formato"
+    },
+    {
+      "id": "CMD_07_Error_Man_NoNumerico",
+      "commandLine": "texto --nuevo --texto=HI --man=a,b",
+      "expectedSuccess": false,
+      "expectedMessageContains": "deben ser numericos"
+    },
+    {
+      "id": "CMD_08_Error_Az_SinDt",
+      "commandLine": "texto --nuevo --texto=HI --az=90 --v",
+      "expectedSuccess": false,
+      "expectedMessageContains": "--dt=<distancia_dm>"
+    },
+    {
+      "id": "CMD_09_Error_Az_SinVR",
+      "commandLine": "texto --nuevo --texto=HI --az=90 --dt=1",
+      "expectedSuccess": false,
+      "expectedMessageContains": "--v (Verdadero) o --r"
+    },
+    {
+      "id": "CMD_10_Error_Az_VyR_Simultaneos",
+      "commandLine": "texto --nuevo --texto=HI --az=90 --dt=1 --v --r",
+      "expectedSuccess": false,
+      "expectedMessageContains": "mutuamente excluyentes"
+    },
+    {
+      "id": "CMD_11_Camino_Exitoso_Az_Verdadero",
+      "commandLine": "texto --nuevo --texto=HI --color=rojo --fondo=blanco --az=90 --dt=2 --v",
+      "expectedSuccess": true,
+      "expectedMessageContains": "creado"
+    },
+    {
+      "id": "CMD_12_Camino_Exitoso_Az_Relativo",
+      "commandLine": "texto --nuevo --texto=HI --color=rojo --fondo=blanco --az=0 --dt=2 --r",
+      "expectedSuccess": true,
+      "expectedMessageContains": "creado"
+    },
+    {
+      "id": "CMD_13_Error_Tamano_Invalido",
+      "commandLine": "texto --nuevo --texto=HI --man=0,0 --tamano=xxl",
+      "expectedSuccess": false,
+      "expectedMessageContains": "--tamano invalido"
+    },
+    {
+      "id": "CMD_14_Error_Color_Invalido",
+      "commandLine": "texto --nuevo --texto=HI --man=0,0 --color=rosa",
+      "expectedSuccess": false,
+      "expectedMessageContains": "--color invalido"
+    },
+    {
+      "id": "CMD_15_Error_Borde_Invalido",
+      "commandLine": "texto --nuevo --texto=HI --man=0,0 --borde=fucsia",
+      "expectedSuccess": false,
+      "expectedMessageContains": "--borde invalido"
+    },
+    {
+      "id": "CMD_16_Error_Fondo_Invalido",
+      "commandLine": "texto --nuevo --texto=HI --man=0,0 --fondo=dorado",
+      "expectedSuccess": false,
+      "expectedMessageContains": "--fondo invalido"
+    },
+    {
+      "id": "CMD_17_Error_Lat_SinLon",
+      "commandLine": "texto --nuevo --texto=HI --lat=10,20,30",
+      "expectedSuccess": false,
+      "expectedMessageContains": "--lat requiere --lon"
+    },
+    {
+      "id": "CMD_18_Error_Lat_FormatoInvalido",
+      "commandLine": "texto --nuevo --texto=HI --lat=10,20 --lon=10,20,30",
+      "expectedSuccess": false,
+      "expectedMessageContains": "grados"
+    },
+    {
+      "id": "CMD_19_Error_DelTrack_NoNumerico",
+      "commandLine": "texto --nuevo --texto=HI --deltrack=abc",
+      "expectedSuccess": false,
+      "expectedMessageContains": "ID de track numerico"
+    },
+    {
+      "id": "CMD_20_Camino_Exitoso_DelTrack",
+      "commandLine": "texto --nuevo --texto=HI --color=rojo --fondo=blanco --deltrack=5",
+      "expectedSuccess": true,
+      "expectedMessageContains": "creado"
+    },
+    {
+      "id": "CMD_21_Error_AlTrack_NoNumerico",
+      "commandLine": "texto --nuevo --texto=HI --man=0,0 --altrack=abc",
+      "expectedSuccess": false,
+      "expectedMessageContains": "ID de track numerico"
+    },
+    {
+      "id": "CMD_22_Camino_Exitoso_Nuevo_Con_AlTrack",
+      "commandLine": "texto --nuevo --texto=HI --color=rojo --fondo=blanco --man=0,0 --altrack=9",
+      "expectedSuccess": true,
+      "expectedMessageContains": "creado"
+    },
+    {
+      "id": "CMD_23_Error_Editar_TnNoNumerico",
+      "commandLine": "texto --editar=abc --texto=NUEVO",
+      "expectedSuccess": false,
+      "expectedMessageContains": "--editar requiere un TN numerico"
+    },
+    {
+      "id": "CMD_24_Camino_Exitoso_Editar",
+      "commandLine": "texto --editar=1 --texto=NUEVO TEXTO",
+      "expectedSuccess": true,
+      "expectedMessageContains": "actualizado"
+    },
+    {
+      "id": "CMD_25_Error_Borrar_TnNoNumerico",
+      "commandLine": "texto --borrar=abc",
+      "expectedSuccess": false,
+      "expectedMessageContains": "--borrar requiere un TN numerico"
+    },
+    {
+      "id": "CMD_26_Camino_Exitoso_Borrar",
+      "commandLine": "texto --borrar=1",
+      "expectedSuccess": true,
+      "expectedMessageContains": "eliminado"
+    },
+    {
+      "id": "CMD_27_Camino_Exitoso_AlTrack_Standalone",
+      "commandLine": "texto --altrack=7 --tn=1",
+      "expectedSuccess": true,
+      "expectedMessageContains": "asociado al track"
+    },
+    {
+      "id": "CMD_28_Camino_Exitoso_DelTrack_Standalone",
+      "commandLine": "texto --deltrack --tn=1",
+      "expectedSuccess": true,
+      "expectedMessageContains": "desasociado"
+    },
+    {
+      "id": "CMD_29_Error_Info_TnNoNumerico",
+      "commandLine": "texto --info=abc",
+      "expectedSuccess": false,
+      "expectedMessageContains": "--info requiere un TN numerico"
+    },
+    {
+      "id": "CMD_30_Camino_Exitoso_Info",
+      "commandLine": "texto --info=1",
+      "expectedSuccess": true,
+      "expectedMessageContains": "TEXTO — TN 1"
+    },
+    {
+      "id": "CMD_31_Camino_Exitoso_List_Vacio",
+      "commandLine": "texto --list",
+      "expectedSuccess": false,
+      "expectedMessageContains": "No hay textos activos"
+    },
+    {
+      "id": "CMD_32_Camino_Exitoso_List_ConDatos",
+      "commandLine": "texto --list",
+      "expectedSuccess": true,
+      "expectedMessageContains": "Textos activos"
+    },
+    {
+      "id": "CMD_33_Error_Flag_No_Reconocido",
+      "commandLine": "texto --foo=bar",
+      "expectedSuccess": false,
+      "expectedMessageContains": "Flag no reconocido"
+    }
+
+  ]
+}

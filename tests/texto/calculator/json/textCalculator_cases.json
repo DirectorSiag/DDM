@@ -1,0 +1,76 @@
+{
+  "textCalculatorTestCases": [
+    {
+      "id": "CALC_01_ResolveBearing_Az90_Este_Verdadero",
+      "description": "resolveFromBearing verdadero: az=90° desplaza solo en X. ref=(0,0), dt=2.0 → x=2.0, y=0.0",
+      "inputs": { "refX": 0.0, "refY": 0.0, "az": 90.0, "dt": 2.0, "verdadero": true, "ownCourse": 0.0 },
+      "expected": { "x": 2.0, "y": 0.0 }
+    },
+    {
+      "id": "CALC_02_ResolveBearing_Az0_Norte_Verdadero",
+      "description": "resolveFromBearing verdadero: az=0° desplaza solo en Y. ref=(0,0), dt=3.0 → x=0.0, y=3.0",
+      "inputs": { "refX": 0.0, "refY": 0.0, "az": 0.0, "dt": 3.0, "verdadero": true, "ownCourse": 0.0 },
+      "expected": { "x": 0.0, "y": 3.0 }
+    },
+    {
+      "id": "CALC_03_ResolveBearing_Az180_Sur_Verdadero",
+      "description": "resolveFromBearing verdadero: az=180° desplaza en -Y. ref=(0,0), dt=1.0 → x=0.0, y<0",
+      "inputs": { "refX": 0.0, "refY": 0.0, "az": 180.0, "dt": 1.0, "verdadero": true, "ownCourse": 0.0 },
+      "expected": { "x": 0.0, "yIsNegative": true, "y": -1.0 }
+    },
+    {
+      "id": "CALC_04_ResolveBearing_DistanciaCero",
+      "description": "resolveFromBearing: dt=0 → resultado coincide con referencePos sin importar el azimut",
+      "inputs": { "refX": 5.0, "refY": 5.0, "az": 45.0, "dt": 0.0, "verdadero": true, "ownCourse": 0.0 },
+      "expected": { "x": 5.0, "y": 5.0 }
+    },
+    {
+      "id": "CALC_05_ResolveBearing_Relativo_SumaCourse",
+      "description": "resolveFromBearing relativo (R): az=0° respecto a la proa + ownCourse=90° → azimut efectivo=90° este. ref=(0,0), dt=4.0",
+      "inputs": { "refX": 0.0, "refY": 0.0, "az": 0.0, "dt": 4.0, "verdadero": false, "ownCourse": 90.0 },
+      "expected": { "x": 4.0, "y": 0.0 }
+    },
+    {
+      "id": "CALC_06_ResolveBearing_Relativo_WrapAround",
+      "description": "resolveFromBearing relativo: az=350°+ownCourse=30° = 380° → normaliza a 20°. dt=1.0",
+      "inputs": { "refX": 0.0, "refY": 0.0, "az": 350.0, "dt": 1.0, "verdadero": false, "ownCourse": 30.0 },
+      "expected": { "x": 0.342, "y": 0.9397 }
+    },
+    {
+      "id": "CALC_07_ResolveLatLon_MismaPosicion",
+      "description": "resolveFromLatLon: target coincide con origin → (0,0)",
+      "inputs": { "originLat": -34.6, "originLon": -58.4, "targetLat": -34.6, "targetLon": -58.4 },
+      "expected": { "x": 0.0, "y": 0.0 }
+    },
+    {
+      "id": "CALC_08_ResolveLatLon_TargetAlNorte",
+      "description": "resolveFromLatLon: target al norte del origin (misma longitud) → yDm positivo, xDm≈0",
+      "inputs": { "originLat": -34.6, "originLon": -58.4, "targetLat": -34.5, "targetLon": -58.4 },
+      "expected": { "xIsZero": true, "yIsPositive": true }
+    },
+    {
+      "id": "CALC_09_ResolveLatLon_TargetAlEste",
+      "description": "resolveFromLatLon: target al este del origin (misma latitud) → xDm positivo, yDm≈0",
+      "inputs": { "originLat": -34.6, "originLon": -58.5, "targetLat": -34.6, "targetLon": -58.4 },
+      "expected": { "yIsZero": true, "xIsPositive": true }
+    },
+    {
+      "id": "CALC_10_ResolveAssociated_OffsetPositivo",
+      "description": "resolveAssociatedPosition: trackPos=(5,5) + offset=(2,-3) → (7,2)",
+      "inputs": { "trackX": 5.0, "trackY": 5.0, "offsetX": 2.0, "offsetY": -3.0 },
+      "expected": { "x": 7.0, "y": 2.0 }
+    },
+    {
+      "id": "CALC_11_ResolveAssociated_OffsetCero",
+      "description": "resolveAssociatedPosition: offset=(0,0) → resultado coincide con trackPos",
+      "inputs": { "trackX": 3.0, "trackY": 4.0, "offsetX": 0.0, "offsetY": 0.0 },
+      "expected": { "x": 3.0, "y": 4.0 }
+    },
+    {
+      "id": "CALC_12_ResolveAssociated_OffsetNegativo",
+      "description": "resolveAssociatedPosition: trackPos=(0,0) + offset=(-5,-5) → (-5,-5)",
+      "inputs": { "trackX": 0.0, "trackY": 0.0, "offsetX": -5.0, "offsetY": -5.0 },
+      "expected": { "x": -5.0, "y": -5.0 }
+    }
+  ]
+}
