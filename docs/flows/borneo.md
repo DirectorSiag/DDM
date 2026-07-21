@@ -180,4 +180,4 @@ Datos ingresados por el operador, inmutables durante el cálculo:
 
 ## Módulos Relacionados
 
-
+- *(Nota: el módulo de Círculo de Borneo todavía no tiene dependencia implementada con Fondeo. Existe un `TODO` comentado en `BorneoService::startSessionInternal` para validar la existencia de un punto de Fondeo activo antes de iniciar sesión. Por indicación de los responsables del proyecto, esta dependencia se mantiene deshabilitada de forma intencional y momentánea: el sistema permite iniciar una sesión de Borneo sin verificar la existencia de un Fondeo activo. La integración queda pendiente.)*
