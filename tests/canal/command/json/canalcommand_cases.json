@@ -1,0 +1,79 @@
+{
+  "canalCommandTestCases": [
+
+    {
+      "id": "CANCMD_01_Info_SinSesionActiva",
+      "description": "canal --info sin ninguna sesion activa → success=true, las 4 columnas se muestran vacias",
+      "inputs": { "args": ["--info"], "tracks": [] },
+      "expected": { "success": true, "messageContains": "VACIA" }
+    },
+
+    {
+      "id": "CANCMD_08_Error_SinArgumentos",
+      "description": "canal sin argumentos → error, muestra el usage",
+      "inputs": { "args": [], "tracks": [] },
+      "expected": { "success": false, "messageContains": "Faltan argumentos" }
+    },
+
+    {
+      "id": "CANCMD_09_Error_ComandoNoReconocido",
+      "description": "canal --foo (flag desconocida, no matchea ningun modo) → error",
+      "inputs": { "args": ["--foo"], "tracks": [] },
+      "expected": { "success": false, "messageContains": "Comando no reconocido" }
+    },
+
+    {
+      "id": "CANCMD_04_Borrar_SinSesionActiva",
+      "description": "canal --borrar sin sesion activa → error",
+      "inputs": { "args": ["--borrar"], "tracks": [] },
+      "expected": { "success": false, "messageContains": "No hay ningún asesoramiento" }
+    },
+
+    {
+      "id": "CANCMD_06_Start_ColumnaA_Exitosa",
+      "description": "canal --start --a=1 con track 1 existente → exito",
+      "inputs": {
+        "args": ["--start", "--a=1"],
+        "tracks": [ {"id": 1, "x": 0.0, "y": 5.0} ]
+      },
+      "expected": { "success": true, "messageContains": "iniciado correctamente" }
+    },
+
+    {
+      "id": "CANCMD_07_Start_MultiplesColumnas",
+      "description": "canal --start --a=1 --b=2 --c=3 --d=4 con todos los tracks existentes → exito",
+      "inputs": {
+        "args": ["--start", "--a=1", "--b=2", "--c=3", "--d=4"],
+        "tracks": [
+          {"id": 1, "x": 0.0, "y": 1.0},
+          {"id": 2, "x": 0.0, "y": 2.0},
+          {"id": 3, "x": 0.0, "y": 3.0},
+          {"id": 4, "x": 0.0, "y": 4.0}
+        ]
+      },
+      "expected": { "success": true, "messageContains": "iniciado correctamente" }
+    },
+
+    {
+      "id": "CANCMD_10_Error_Start_SinColumnas",
+      "description": "canal --start sin ninguna columna (--a/--b/--c/--d) → error",
+      "inputs": { "args": ["--start"], "tracks": [] },
+      "expected": { "success": false, "messageContains": "al menos una columna" }
+    },
+
+    {
+      "id": "CANCMD_11_Error_Start_ValorNoEntero_ColumnaA",
+      "description": "canal --start --a (sin '=', el valor cae como 'true' y falla el parseo a entero) → error",
+      "inputs": { "args": ["--start", "--a"], "tracks": [] },
+      "expected": { "success": false, "messageContains": "El valor para --a debe ser un número entero" }
+    },
+
+    {
+      "id": "CANCMD_12_Error_Start_TrackInexistente",
+      "description": "canal --start --a=99 con track 99 inexistente → error propagado desde el Service",
+      "inputs": { "args": ["--start", "--a=99"], "tracks": [] },
+      "expected": { "success": false, "messageContains": "no existe" }
+    }
+
+  ]
+}

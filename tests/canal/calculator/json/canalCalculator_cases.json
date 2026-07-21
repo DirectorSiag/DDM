@@ -1,0 +1,244 @@
+{
+  "canalCalculatorTestCases": [
+
+    {
+      "id": "CANCALC_01_Cinematica_Basica_Norte",
+      "description": "calculateCinematica: boya al norte (az=0), mismo rumbo que el BP → rv=0, marcacionRelativa=0, ETA valida",
+      "inputs": {
+        "ownX": 0.0, "ownY": 0.0, "ownCourse": 0.0, "ownSpeedDm": 10.0,
+        "buoyX": 0.0, "buoyY": 5.0
+      },
+      "expected": {
+        "distanciaYardas": 10000.0,
+        "azimutVerdadero": 0.0,
+        "rumboVerdadero": 0.0,
+        "marcacionRelativa": 0.0,
+        "etaValid": true,
+        "timeToArrivalMin": 30.0
+      }
+    },
+
+    {
+      "id": "CANCALC_02_Cinematica_Este_SinVelocidad",
+      "description": "calculateCinematica: boya al este (az=90), ownSpeedDm=0 → ETA invalida (velocidad cero)",
+      "inputs": {
+        "ownX": 0.0, "ownY": 0.0, "ownCourse": 0.0, "ownSpeedDm": 0.0,
+        "buoyX": 5.0, "buoyY": 0.0
+      },
+      "expected": {
+        "distanciaYardas": 10000.0,
+        "azimutVerdadero": 90.0,
+        "rumboVerdadero": 90.0,
+        "marcacionRelativa": 90.0,
+        "etaValid": false,
+        "timeToArrivalMin": 0.0
+      }
+    },
+
+    {
+      "id": "CANCALC_03_Cinematica_ClampPositivo_RamaMayor180",
+      "description": "calculateCinematica: az=270, course=10 → raw=260 (>180) dispara la rama 'rv-=360' → rv=-100. marcacionRelativa NO se clampea, queda en 260. Ilustra la divergencia entre ambos campos.",
+      "inputs": {
+        "ownX": 0.0, "ownY": 0.0, "ownCourse": 10.0, "ownSpeedDm": 10.0,
+        "buoyX": -5.0, "buoyY": 0.0
+      },
+      "expected": {
+        "distanciaYardas": 10000.0,
+        "azimutVerdadero": 270.0,
+        "rumboVerdadero": -100.0,
+        "marcacionRelativa": 260.0,
+        "etaValid": true,
+        "timeToArrivalMin": 30.0
+      }
+    },
+
+    {
+      "id": "CANCALC_04_Cinematica_ClampNegativo_RamaMenorMenos180",
+      "description": "calculateCinematica: az=90, course=350 → raw=-260 (<-180) dispara la rama 'rv+=360' → rv=100. Aca coincide con marcacionRelativa=100 (caso donde ambas ramas dan el mismo valor).",
+      "inputs": {
+        "ownX": 0.0, "ownY": 0.0, "ownCourse": 350.0, "ownSpeedDm": 10.0,
+        "buoyX": 5.0, "buoyY": 0.0
+      },
+      "expected": {
+        "distanciaYardas": 10000.0,
+        "azimutVerdadero": 90.0,
+        "rumboVerdadero": 100.0,
+        "marcacionRelativa": 100.0,
+        "etaValid": true,
+        "timeToArrivalMin": 30.0
+      }
+    },
+
+    {
+      "id": "CANCALC_05_Cinematica_SinClamp_ValorDiagonal",
+      "description": "calculateCinematica: az=90, course=45 → raw=45, sin necesidad de clamp. ETA con velocidad distinta (20).",
+      "inputs": {
+        "ownX": 0.0, "ownY": 0.0, "ownCourse": 45.0, "ownSpeedDm": 20.0,
+        "buoyX": 5.0, "buoyY": 0.0
+      },
+      "expected": {
+        "distanciaYardas": 10000.0,
+        "azimutVerdadero": 90.0,
+        "rumboVerdadero": 45.0,
+        "marcacionRelativa": 45.0,
+        "etaValid": true,
+        "timeToArrivalMin": 15.0
+      }
+    },
+
+    {
+      "id": "CANCALC_06_ETA_Invalida_VelocidadCero",
+      "description": "calculateCinematica: ownSpeedDm=0 con distancia>0 → etaValid=false, timeToArrivalMin=0",
+      "inputs": {
+        "ownX": 0.0, "ownY": 0.0, "ownCourse": 0.0, "ownSpeedDm": 0.0,
+        "buoyX": 0.0, "buoyY": 5.0
+      },
+      "expected": {
+        "distanciaYardas": 10000.0,
+        "etaValid": false,
+        "timeToArrivalMin": 0.0
+      }
+    },
+
+    {
+      "id": "CANCALC_07_ETA_Invalida_DistanciaCero",
+      "description": "calculateCinematica: buoyPos coincide con ownPos (distancia=0) con velocidad>0 → etaValid=false, timeToArrivalMin=0. No se verifica azimut (indefinido en el origen).",
+      "inputs": {
+        "ownX": 0.0, "ownY": 0.0, "ownCourse": 0.0, "ownSpeedDm": 10.0,
+        "buoyX": 0.0, "buoyY": 0.0
+      },
+      "expected": {
+        "distanciaYardas": 0.0,
+        "etaValid": false,
+        "timeToArrivalMin": 0.0
+      }
+    },
+
+    {
+      "id": "CANCALC_08_AlarmWindow_LimiteInferiorEstribor",
+      "description": "isWithinAlarmWindow: 85.0° (limite inferior inclusive de la ventana de estribor) → true",
+      "inputs": { "relativeBearing": 85.0 },
+      "expected": { "result": true }
+    },
+
+    {
+      "id": "CANCALC_09_AlarmWindow_JustoAntesEstribor",
+      "description": "isWithinAlarmWindow: 84.9° (justo antes del limite) → false",
+      "inputs": { "relativeBearing": 84.9 },
+      "expected": { "result": false }
+    },
+
+    {
+      "id": "CANCALC_10_AlarmWindow_CentroEstribor",
+      "description": "isWithinAlarmWindow: 90.0° (traves de estribor exacto) → true",
+      "inputs": { "relativeBearing": 90.0 },
+      "expected": { "result": true }
+    },
+
+    {
+      "id": "CANCALC_11_AlarmWindow_LimiteSuperiorEstribor",
+      "description": "isWithinAlarmWindow: 95.0° (limite superior inclusive) → true",
+      "inputs": { "relativeBearing": 95.0 },
+      "expected": { "result": true }
+    },
+
+    {
+      "id": "CANCALC_12_AlarmWindow_JustoDespuesEstribor",
+      "description": "isWithinAlarmWindow: 95.1° (justo despues del limite) → false",
+      "inputs": { "relativeBearing": 95.1 },
+      "expected": { "result": false }
+    },
+
+    {
+      "id": "CANCALC_13_AlarmWindow_LimiteInferiorBabor",
+      "description": "isWithinAlarmWindow: 265.0° (limite inferior inclusive de la ventana de babor) → true",
+      "inputs": { "relativeBearing": 265.0 },
+      "expected": { "result": true }
+    },
+
+    {
+      "id": "CANCALC_14_AlarmWindow_CentroBabor",
+      "description": "isWithinAlarmWindow: 270.0° (traves de babor exacto) → true",
+      "inputs": { "relativeBearing": 270.0 },
+      "expected": { "result": true }
+    },
+
+    {
+      "id": "CANCALC_15_AlarmWindow_LimiteSuperiorBabor",
+      "description": "isWithinAlarmWindow: 275.0° (limite superior inclusive) → true",
+      "inputs": { "relativeBearing": 275.0 },
+      "expected": { "result": true }
+    },
+
+    {
+      "id": "CANCALC_16_AlarmWindow_JustoDespuesBabor",
+      "description": "isWithinAlarmWindow: 275.1° (justo despues del limite) → false",
+      "inputs": { "relativeBearing": 275.1 },
+      "expected": { "result": false }
+    },
+
+    {
+      "id": "CANCALC_17_AlarmWindow_FueraDeRango_Popa",
+      "description": "isWithinAlarmWindow: 180.0° (popa, fuera de ambas ventanas) → false",
+      "inputs": { "relativeBearing": 180.0 },
+      "expected": { "result": false }
+    },
+
+    {
+      "id": "CANCALC_18_AlarmWindow_FueraDeRango_Proa",
+      "description": "isWithinAlarmWindow: 0.0° (proa, fuera de ambas ventanas) → false",
+      "inputs": { "relativeBearing": 0.0 },
+      "expected": { "result": false }
+    },
+
+    {
+      "id": "CANCALC_19_IsBehind_LimiteInferior_NoIncluido",
+      "description": "isBehind: 95.0° (limite inferior, condicion es '> 95.0' estricta) → false, NO incluido",
+      "inputs": { "relativeBearing": 95.0 },
+      "expected": { "result": false }
+    },
+
+    {
+      "id": "CANCALC_20_IsBehind_JustoDespuesLimiteInferior",
+      "description": "isBehind: 95.1° (justo despues del limite inferior) → true",
+      "inputs": { "relativeBearing": 95.1 },
+      "expected": { "result": true }
+    },
+
+    {
+      "id": "CANCALC_21_IsBehind_CentroAstern",
+      "description": "isBehind: 180.0° (popa exacta, centro de la zona 'detras del traves') → true",
+      "inputs": { "relativeBearing": 180.0 },
+      "expected": { "result": true }
+    },
+
+    {
+      "id": "CANCALC_22_IsBehind_LimiteSuperior_NoIncluido",
+      "description": "isBehind: 265.0° (limite superior, condicion es '< 265.0' estricta) → false, NO incluido",
+      "inputs": { "relativeBearing": 265.0 },
+      "expected": { "result": false }
+    },
+
+    {
+      "id": "CANCALC_23_IsBehind_JustoAntesLimiteSuperior",
+      "description": "isBehind: 264.9° (justo antes del limite superior) → true",
+      "inputs": { "relativeBearing": 264.9 },
+      "expected": { "result": true }
+    },
+
+    {
+      "id": "CANCALC_24_IsBehind_FueraDeRango_Proa",
+      "description": "isBehind: 0.0° (proa, la boya todavia esta adelante, no puede estar 'detras') → false",
+      "inputs": { "relativeBearing": 0.0 },
+      "expected": { "result": false }
+    },
+
+    {
+      "id": "CANCALC_25_IsBehind_FueraDeRango_HemisferioProaBabor",
+      "description": "isBehind: 350.0° (dentro del hemisferio de proa, aun no llego a la ventana de babor) → false",
+      "inputs": { "relativeBearing": 350.0 },
+      "expected": { "result": false }
+    }
+
+  ]
+}

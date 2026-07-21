@@ -1,0 +1,5 @@
+<RCC>
+    <qresource prefix="/json">
+        <file>json/canalcommand_cases.json</file>
+    </qresource>
+</RCC>

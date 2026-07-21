@@ -1,0 +1,64 @@
+{
+  "canalServiceTestCases": [
+
+    {
+      "id": "CANSVC_01_StartSession_ColumnaA_Exitosa",
+      "description": "startSession con solo la columna A seteada y track existente → exito, columna A activa",
+      "inputs": {
+        "setA": true, "trackA": 1,
+        "tracks": [ {"id": 1, "x": 0.0, "y": 5.0} ]
+      },
+      "expected": { "success": true, "messageContains": "iniciado correctamente" }
+    },
+
+    {
+      "id": "CANSVC_02_StartSession_MultiplesColumnas",
+      "description": "startSession con las 4 columnas seteadas y todos los tracks existentes → exito",
+      "inputs": {
+        "setA": true, "trackA": 1,
+        "setB": true, "trackB": 2,
+        "setC": true, "trackC": 3,
+        "setD": true, "trackD": 4,
+        "tracks": [
+          {"id": 1, "x": 0.0, "y": 1.0},
+          {"id": 2, "x": 0.0, "y": 2.0},
+          {"id": 3, "x": 0.0, "y": 3.0},
+          {"id": 4, "x": 0.0, "y": 4.0}
+        ]
+      },
+      "expected": { "success": true, "messageContains": "iniciado correctamente" }
+    },
+
+    {
+      "id": "CANSVC_03_Error_TrackInexistente_ColumnaB",
+      "description": "startSession con columna B apuntando a un track que no existe en el contexto → error",
+      "inputs": {
+        "setB": true, "trackB": 99,
+        "tracks": []
+      },
+      "expected": { "success": false, "messageContains": "no existe" }
+    },
+
+    {
+      "id": "CANSVC_05_StartSession_NingunaColumnaSeteada",
+      "description": "NOTA (comportamiento observado, no necesariamente deseado): startSession con un CanalConfig totalmente en false no falla; activa la sesion global sin tocar ninguna columna. Esta validacion (hasUpdates) solo vive en CanalCommand, no en el Service.",
+      "inputs": { "tracks": [] },
+      "expected": { "success": true, "messageContains": "iniciado correctamente" }
+    },
+
+    {
+      "id": "CANSVC_06_StopSession_ConSesionActiva",
+      "description": "stopSession con sesion activa → exito, mensaje de confirmacion",
+      "inputs": {},
+      "expected": { "success": true, "messageContains": "borradas" }
+    },
+
+    {
+      "id": "CANSVC_07_StopSession_SinSesionActiva",
+      "description": "stopSession sin sesion activa → error",
+      "inputs": {},
+      "expected": { "success": false, "messageContains": "No hay ningún asesoramiento" }
+    }
+
+  ]
+}
