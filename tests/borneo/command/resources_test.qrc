@@ -1,0 +1,5 @@
+<RCC>
+    <qresource prefix="/jsons">
+        <file>json/borneocommand_cases.json</file>
+    </qresource>
+</RCC>

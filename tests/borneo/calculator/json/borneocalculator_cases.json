@@ -1,0 +1,88 @@
+{
+  "borneoCalculatorTestCases": [
+    {
+      "id": "CALC_01_Radio_Meko360_DosGrilletes",
+      "description": "Caso nominal equivalente a MEKO_360: eslora=125m, 2 grilletes, profundidad=25m. Resultado esperado 164.86m.",
+      "inputs": {
+        "eslora": 125.0,
+        "grilletes": 2,
+        "profundidad": 25.0
+      },
+      "expected": {
+        "radio": 164.86
+      }
+    },
+    {
+      "id": "CALC_02_Radio_EsloraManual",
+      "description": "Caso nominal con eslora manual de 90m, 2 grilletes y profundidad de 25m.",
+      "inputs": {
+        "eslora": 90.0,
+        "grilletes": 2,
+        "profundidad": 25.0
+      },
+      "expected": {
+        "radio": 129.86
+      }
+    },
+    {
+      "id": "CALC_03_Radio_ProfundidadDecimal",
+      "description": "Verifica calculo con valores decimales: eslora=91.2m, 3 grilletes y profundidad=15.5m.",
+      "inputs": {
+        "eslora": 91.2,
+        "grilletes": 3,
+        "profundidad": 15.5
+      },
+      "expected": {
+        "radio": 167.99
+      }
+    },
+    {
+      "id": "CALC_04_Radio_CeroGrilletes",
+      "description": "Con cero grilletes la componente de cadena debe ser cero.",
+      "inputs": {
+        "eslora": 90.0,
+        "grilletes": 0,
+        "profundidad": 25.0
+      },
+      "expected": {
+        "radio": 75.0
+      }
+    },
+    {
+      "id": "CALC_05_Radio_ProfundidadCero",
+      "description": "Con profundidad cero no se descuenta profundidad al radio.",
+      "inputs": {
+        "eslora": 90.0,
+        "grilletes": 2,
+        "profundidad": 0.0
+      },
+      "expected": {
+        "radio": 154.86
+      }
+    },
+    {
+      "id": "CALC_06_Radio_ExactamenteCero",
+      "description": "Caso limite: eslora=15, grilletes=0 y profundidad=25 producen exactamente radio=0.",
+      "inputs": {
+        "eslora": 15.0,
+        "grilletes": 0,
+        "profundidad": 25.0
+      },
+      "expected": {
+        "radio": 0.0
+      }
+    },
+    {
+      "id": "CALC_07_Radio_Negativo",
+      "description": "El calculador puro puede producir radio negativo. La responsabilidad de rechazarlo pertenece a BorneoService.",
+      "inputs": {
+        "eslora": 20.0,
+        "grilletes": 0,
+        "profundidad": 100.0
+      },
+      "expected": {
+        "radio": -70.0
+      }
+    }
+  ]
+}

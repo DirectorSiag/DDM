@@ -1,0 +1,181 @@
+{
+  "borneoCommandTestCases": [
+
+    {
+      "id": "CMD_01_Exitoso_PorClase_Meko360",
+      "commandLine": "borneo --clase=MEKO_360 --grilletes=2 --profundidad=25",
+      "setupActiveSession": false,
+      "expectedSuccess": true,
+      "expectedMessageContains": "Radio: 164.86"
+    },
+
+    {
+      "id": "CMD_02_Exitoso_EsloraManual",
+      "commandLine": "borneo --eslora=90 --grilletes=2 --profundidad=25",
+      "setupActiveSession": false,
+      "expectedSuccess": true,
+      "expectedMessageContains": "Radio: 129.86"
+    },
+
+    {
+      "id": "CMD_03_Error_Clase_Y_Eslora_Simultaneas",
+      "commandLine": "borneo --clase=MEKO_360 --eslora=90 --grilletes=2 --profundidad=25",
+      "setupActiveSession": false,
+      "expectedSuccess": false,
+      "expectedMessageContains": "exactamente uno"
+    },
+
+    {
+      "id": "CMD_04_Error_Sin_Clase_Ni_Eslora",
+      "commandLine": "borneo --grilletes=2 --profundidad=25",
+      "setupActiveSession": false,
+      "expectedSuccess": false,
+      "expectedMessageContains": "exactamente uno"
+    },
+
+    {
+      "id": "CMD_05_Error_Falta_Grilletes",
+      "commandLine": "borneo --clase=MEKO_360 --profundidad=25",
+      "setupActiveSession": false,
+      "expectedSuccess": false,
+      "expectedMessageContains": "Parametros requeridos"
+    },
+
+    {
+      "id": "CMD_06_Error_Falta_Profundidad",
+      "commandLine": "borneo --clase=MEKO_360 --grilletes=2",
+      "setupActiveSession": false,
+      "expectedSuccess": false,
+      "expectedMessageContains": "Parametros requeridos"
+    },
+
+    {
+      "id": "CMD_07_Error_Grilletes_NoNumerico",
+      "commandLine": "borneo --clase=MEKO_360 --grilletes=abc --profundidad=25",
+      "setupActiveSession": false,
+      "expectedSuccess": false,
+      "expectedMessageContains": "deben ser numericos"
+    },
+
+    {
+      "id": "CMD_08_Error_Profundidad_NoNumerica",
+      "commandLine": "borneo --clase=MEKO_360 --grilletes=2 --profundidad=abc",
+      "setupActiveSession": false,
+      "expectedSuccess": false,
+      "expectedMessageContains": "deben ser numericos"
+    },
+
+    {
+      "id": "CMD_09_Error_Eslora_NoNumerica",
+      "commandLine": "borneo --eslora=abc --grilletes=2 --profundidad=25",
+      "setupActiveSession": false,
+      "expectedSuccess": false,
+      "expectedMessageContains": "eslora debe ser numerico"
+    },
+
+    {
+      "id": "CMD_10_Error_Clase_Inexistente",
+      "commandLine": "borneo --clase=MEKO_500 --grilletes=2 --profundidad=25",
+      "setupActiveSession": false,
+      "expectedSuccess": false,
+      "expectedMessageContains": "Clase de buque no reconocida"
+    },
+
+    {
+      "id": "CMD_11_Error_Grilletes_Negativos",
+      "commandLine": "borneo --eslora=90 --grilletes=-1 --profundidad=25",
+      "setupActiveSession": false,
+      "expectedSuccess": false,
+      "expectedMessageContains": "Grilletes al agua"
+    },
+
+    {
+      "id": "CMD_12_Error_Profundidad_Negativa",
+      "commandLine": "borneo --eslora=90 --grilletes=2 --profundidad=-1",
+      "setupActiveSession": false,
+      "expectedSuccess": false,
+      "expectedMessageContains": "Profundidad debe ser mayor o igual a 0"
+    },
+
+    {
+      "id": "CMD_13_Error_Eslora_Cero",
+      "commandLine": "borneo --eslora=0 --grilletes=2 --profundidad=25",
+      "setupActiveSession": false,
+      "expectedSuccess": false,
+      "expectedMessageContains": "Eslora debe ser mayor a 0"
+    },
+
+    {
+      "id": "CMD_14_Error_Eslora_Negativa",
+      "commandLine": "borneo --eslora=-90 --grilletes=2 --profundidad=25",
+      "setupActiveSession": false,
+      "expectedSuccess": false,
+      "expectedMessageContains": "Eslora debe ser mayor a 0"
+    },
+
+    {
+      "id": "CMD_15_Error_Radio_ExactamenteCero",
+      "commandLine": "borneo --eslora=15 --grilletes=0 --profundidad=25",
+      "setupActiveSession": false,
+      "expectedSuccess": false,
+      "expectedMessageContains": "radio de Borneo invalido"
+    },
+
+    {
+      "id": "CMD_16_Error_Radio_Negativo",
+      "commandLine": "borneo --eslora=20 --grilletes=0 --profundidad=100",
+      "setupActiveSession": false,
+      "expectedSuccess": false,
+      "expectedMessageContains": "radio de Borneo invalido"
+    },
+
+    {
+      "id": "CMD_17_Exitoso_Clase_Minusculas",
+      "commandLine": "borneo --clase=meko_360 --grilletes=2 --profundidad=25",
+      "setupActiveSession": false,
+      "expectedSuccess": true,
+      "expectedMessageContains": "Radio: 164.86"
+    },
+
+    {
+      "id": "CMD_18_Info_SinSesionActiva",
+      "commandLine": "borneo --info",
+      "setupActiveSession": false,
+      "expectedSuccess": true,
+      "expectedMessageContains": "sin sesion activa"
+    },
+
+    {
+      "id": "CMD_19_Info_ConSesionActiva",
+      "commandLine": "borneo --info",
+      "setupActiveSession": true,
+      "expectedSuccess": true,
+      "expectedMessageContains": "Radio: 129.86"
+    },
+
+    {
+      "id": "CMD_20_Stop_SinSesionActiva",
+      "commandLine": "borneo --stop",
+      "setupActiveSession": false,
+      "expectedSuccess": false,
+      "expectedMessageContains": "No hay sesion de Borneo activa"
+    },
+
+    {
+      "id": "CMD_21_Stop_ConSesionActiva",
+      "commandLine": "borneo --stop",
+      "setupActiveSession": true,
+      "expectedSuccess": true,
+      "expectedMessageContains": "finalizada"
+    },
+
+    {
+      "id": "CMD_22_Exitoso_ValoresCeroPermitidos",
+      "commandLine": "borneo --eslora=90 --grilletes=0 --profundidad=0",
+      "setupActiveSession": false,
+      "expectedSuccess": true,
+      "expectedMessageContains": "Radio: 100.00"
+    }
+
+  ]
+}

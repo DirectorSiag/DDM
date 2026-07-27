@@ -1,0 +1,257 @@
+{
+  "borneoServiceTestCases": [
+
+    {
+      "id": "SVC_01_StartSession_Exitoso_Manual",
+      "description": "Inicio exitoso con eslora manual y parametros validos.",
+      "inputs": {
+        "eslora": 90.0,
+        "grilletes": 2,
+        "profundidad": 25.0
+      },
+      "expected": {
+        "success": true,
+        "messageContains": "iniciada"
+      }
+    },
+
+    {
+      "id": "SVC_02_StartSessionByClase_Exitoso",
+      "description": "Inicio exitoso resolviendo MEKO_360 mediante catalogo.",
+      "inputs": {
+        "clase": "MEKO_360",
+        "grilletes": 2,
+        "profundidad": 25.0
+      },
+      "expected": {
+        "success": true,
+        "messageContains": "iniciada"
+      }
+    },
+
+    {
+      "id": "SVC_03_StartSession_Error_EsloraCero",
+      "description": "Eslora exactamente cero debe ser rechazada.",
+      "inputs": {
+        "eslora": 0.0,
+        "grilletes": 2,
+        "profundidad": 25.0
+      },
+      "expected": {
+        "success": false,
+        "messageContains": "Eslora debe ser mayor a 0"
+      }
+    },
+
+    {
+      "id": "SVC_04_StartSession_Error_EsloraNegativa",
+      "description": "Eslora negativa debe ser rechazada.",
+      "inputs": {
+        "eslora": -90.0,
+        "grilletes": 2,
+        "profundidad": 25.0
+      },
+      "expected": {
+        "success": false,
+        "messageContains": "Eslora debe ser mayor a 0"
+      }
+    },
+
+    {
+      "id": "SVC_05_StartSession_Error_GrilletesNegativos",
+      "description": "Cantidad negativa de grilletes debe ser rechazada.",
+      "inputs": {
+        "eslora": 90.0,
+        "grilletes": -1,
+        "profundidad": 25.0
+      },
+      "expected": {
+        "success": false,
+        "messageContains": "Grilletes al agua"
+      }
+    },
+
+    {
+      "id": "SVC_06_StartSession_Error_ProfundidadNegativa",
+      "description": "Profundidad negativa debe ser rechazada.",
+      "inputs": {
+        "eslora": 90.0,
+        "grilletes": 2,
+        "profundidad": -1.0
+      },
+      "expected": {
+        "success": false,
+        "messageContains": "Profundidad debe ser mayor o igual a 0"
+      }
+    },
+
+    {
+      "id": "SVC_07_StartSession_RadioExactamenteCero",
+      "description": "Caso limite: CB=15+0+10-25=0. Debe rechazarse por radio <= 0.",
+      "inputs": {
+        "eslora": 15.0,
+        "grilletes": 0,
+        "profundidad": 25.0
+      },
+      "expected": {
+        "success": false,
+        "messageContains": "radio de Borneo invalido"
+      }
+    },
+
+    {
+      "id": "SVC_08_StartSession_RadioNegativo",
+      "description": "Radio negativo debe impedir el inicio de la sesion.",
+      "inputs": {
+        "eslora": 20.0,
+        "grilletes": 0,
+        "profundidad": 100.0
+      },
+      "expected": {
+        "success": false,
+        "messageContains": "radio de Borneo invalido"
+      }
+    },
+
+    {
+      "id": "SVC_09_StartSessionByClase_ClaseInexistente",
+      "description": "Una clase inexistente debe ser rechazada antes de calcular.",
+      "inputs": {
+        "clase": "MEKO_500",
+        "grilletes": 2,
+        "profundidad": 25.0
+      },
+      "expected": {
+        "success": false,
+        "messageContains": "Clase de buque no reconocida"
+      }
+    },
+
+    {
+      "id": "SVC_10_StartSession_ActivaSesion",
+      "description": "Una sesion valida debe dejar active=true.",
+      "inputs": {
+        "eslora": 90.0,
+        "grilletes": 2,
+        "profundidad": 25.0
+      },
+      "expected": {
+        "active": true
+      }
+    },
+
+    {
+      "id": "SVC_11_StartSession_PersisteConfig",
+      "description": "La configuracion ingresada debe quedar persistida.",
+      "inputs": {
+        "eslora": 90.0,
+        "grilletes": 2,
+        "profundidad": 25.0
+      },
+      "expected": {
+        "eslora": 90.0,
+        "grilletes": 2,
+        "profundidad": 25.0
+      }
+    },
+
+    {
+      "id": "SVC_12_StartSession_PersisteRadio",
+      "description": "El radio calculado debe persistirse en BorneoSessionState.",
+      "inputs": {
+        "eslora": 90.0,
+        "grilletes": 2,
+        "profundidad": 25.0
+      },
+      "expected": {
+        "radio": 129.86
+      }
+    },
+
+    {
+      "id": "SVC_13_StartSessionByClase_PersisteEsloraResuelta",
+      "description": "Al iniciar por clase MEKO_140 se debe persistir eslora=91.2.",
+      "inputs": {
+        "clase": "MEKO_140",
+        "grilletes": 3,
+        "profundidad": 15.5
+      },
+      "expected": {
+        "eslora": 91.2,
+        "radio": 167.99
+      }
+    },
+
+    {
+      "id": "SVC_14_StartSession_SobrescribeSesionPrevia",
+      "description": "Una segunda sesion valida reemplaza config y radio sin necesidad de stop previo.",
+      "inputs": {},
+      "expected": {
+        "eslora": 100.0,
+        "grilletes": 1,
+        "profundidad": 20.0,
+        "radio": 117.43,
+        "active": true
+      }
+    },
+
+    {
+      "id": "SVC_15_StartFallido_NoActivaSesion",
+      "description": "Una configuracion invalida sobre contexto limpio no debe activar la sesion.",
+      "inputs": {
+        "eslora": 20.0,
+        "grilletes": 0,
+        "profundidad": 100.0
+      },
+      "expected": {
+        "active": false
+      }
+    },
+
+    {
+      "id": "SVC_16_StartFallido_NoModificaSesionPrevia",
+      "description": "Un nuevo inicio invalido no debe destruir una sesion valida existente.",
+      "inputs": {},
+      "expected": {
+        "active": true,
+        "eslora": 90.0,
+        "radio": 129.86
+      }
+    },
+
+    {
+      "id": "SVC_17_StopSession_ConSesionActiva",
+      "description": "stopSession debe finalizar una sesion activa.",
+      "inputs": {},
+      "expected": {
+        "success": true,
+        "messageContains": "finalizada",
+        "active": false
+      }
+    },
+
+    {
+      "id": "SVC_18_StopSession_SinSesionActiva",
+      "description": "stopSession debe fallar cuando no existe sesion activa.",
+      "inputs": {},
+      "expected": {
+        "success": false,
+        "messageContains": "No hay sesion de Borneo activa"
+      }
+    },
+
+    {
+      "id": "SVC_19_StopSession_ConservaDatosActuales",
+      "description": "Comportamiento actual: stopSession solo cambia active=false y conserva config y radio.",
+      "inputs": {},
+      "expected": {
+        "active": false,
+        "eslora": 90.0,
+        "grilletes": 2,
+        "profundidad": 25.0,
+        "radio": 129.86
+      }
+    }
+
+  ]
+}

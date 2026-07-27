@@ -1,0 +1,100 @@
+{
+  "buqueClaseCatalogTestCases": [
+    {
+      "id": "CAT_01_Resolve_Meko360",
+      "description": "Resuelve MEKO_360 con su eslora configurada en catalogo.",
+      "inputs": {
+        "clase": "MEKO_360",
+        "initialOutEslora": -1.0
+      },
+      "expected": {
+        "success": true,
+        "eslora": 125.0
+      }
+    },
+    {
+      "id": "CAT_02_Resolve_Meko140",
+      "description": "Resuelve MEKO_140 con su eslora configurada en catalogo.",
+      "inputs": {
+        "clase": "MEKO_140",
+        "initialOutEslora": -1.0
+      },
+      "expected": {
+        "success": true,
+        "eslora": 91.2
+      }
+    },
+    {
+      "id": "CAT_03_Resolve_Patagonia",
+      "description": "Resuelve PATAGONIA con su eslora configurada en catalogo.",
+      "inputs": {
+        "clase": "PATAGONIA",
+        "initialOutEslora": -1.0
+      },
+      "expected": {
+        "success": true,
+        "eslora": 157.8
+      }
+    },
+    {
+      "id": "CAT_04_Resolve_Minusculas",
+      "description": "La busqueda debe ser independiente de mayusculas y minusculas.",
+      "inputs": {
+        "clase": "meko_360",
+        "initialOutEslora": -1.0
+      },
+      "expected": {
+        "success": true,
+        "eslora": 125.0
+      }
+    },
+    {
+      "id": "CAT_05_Resolve_EspaciosLaterales",
+      "description": "La clase debe resolverse aunque posea espacios al principio y al final.",
+      "inputs": {
+        "clase": "   MEKO_140   ",
+        "initialOutEslora": -1.0
+      },
+      "expected": {
+        "success": true,
+        "eslora": 91.2
+      }
+    },
+    {
+      "id": "CAT_06_ClaseInexistente",
+      "description": "Una clase inexistente debe devolver false y no modificar outEslora.",
+      "inputs": {
+        "clase": "MEKO_500",
+        "initialOutEslora": 999.0
+      },
+      "expected": {
+        "success": false,
+        "eslora": 999.0
+      }
+    },
+    {
+      "id": "CAT_07_ClaseVacia",
+      "description": "Una cadena vacia no pertenece al catalogo y no debe modificar outEslora.",
+      "inputs": {
+        "clase": "",
+        "initialOutEslora": 777.0
+      },
+      "expected": {
+        "success": false,
+        "eslora": 777.0
+      }
+    },
+    {
+      "id": "CAT_08_MinusculasConEspacios",
+      "description": "Verifica simultaneamente trimmed y toUpper.",
+      "inputs": {
+        "clase": "  patagonia  ",
+        "initialOutEslora": -1.0
+      },
+      "expected": {
+        "success": true,
+        "eslora": 157.8
+      }
+    }
+  ]
+}
