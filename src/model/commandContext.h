@@ -23,6 +23,7 @@
 #include "model/2w/twoWSessionState.h"
 #include "ha/haSessionState.h"
 #include <array>
+#include "borneo/borneoSessionState.h"
 
 struct CommandContext {
     enum MotionMode {
@@ -107,6 +108,7 @@ struct CommandContext {
     std::deque<SectorEntity> sectors;
     std::deque<CpaMarkerState> cpaMarkers;
     std::map<int, StationingSession> stationingSessions;
+    BorneoSessionState borneoSession;
 
     FondeoSessionState fondeoSession;
     TwoWSessionState twoWSession;

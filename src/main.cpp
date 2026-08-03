@@ -44,6 +44,7 @@
 #include "TwoWService.h"
 #include "haCommand.h"
 #include "haService.h"
+#include "borneoCommand.h"
 #include "addareacommand.h"
 #include "addpolygonocommand.h"
 #include "addCircleCommand.h"
@@ -108,6 +109,12 @@ int main(int argc, char *argv[]) {
   registry->registerCommand(QSharedPointer<ICommand>(new FondeoCommand()));
   registry->registerCommand(QSharedPointer<ICommand>(new TwoWCommand()));
   registry->registerCommand(QSharedPointer<ICommand>(new HaCommand(obmService)));
+    registry->registerCommand(QSharedPointer<ICommand>(new AddAreaCommand()));
+    registry->registerCommand(QSharedPointer<ICommand>(new AddPolygonoCommand()));
+    registry->registerCommand(QSharedPointer<ICommand>(new AddCircleCommand()));
+    registry->registerCommand(QSharedPointer<ICommand>(new DeleteAreaCommand()));
+    registry->registerCommand(QSharedPointer<ICommand>(new DeleteCircleCommand()));
+    registry->registerCommand(QSharedPointer<ICommand>(new BorneoCommand()));
 
   CommandDispatcher dispatcher(registry, parser, *ctx);
 
