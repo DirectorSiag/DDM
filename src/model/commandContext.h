@@ -24,6 +24,7 @@
 #include "ha/haSessionState.h"
 #include <array>
 #include "borneo/borneoSessionState.h"
+#include "model/canal/canalSessionState.h"
 
 struct CommandContext {
     enum MotionMode {
@@ -116,6 +117,8 @@ struct CommandContext {
     static constexpr int kMaxHaSessions = 10;
     std::array<HaSessionState, kMaxHaSessions> haSessions;
     int activeHaSlot = -1;  // slot actualmente seleccionado para consulta (-1 = ninguno)
+
+    CanalSessionState canalSession;
 
     double centerX = 0.0;
     double centerY = 0.0;

@@ -39,6 +39,8 @@
 #include "displaymodecommand.h"
 #include "fondeoCommand.h"
 #include "fondeoservice.h"
+#include "canalCommand.h"
+#include "canalService.h"
 
 #include "TwoWCommand.h"
 #include "TwoWService.h"
@@ -85,6 +87,7 @@ int main(int argc, char *argv[]) {
   auto *fondeoService = new FondeoService(ctx);
   auto *twoWService = new TwoWService(ctx);
   auto *haService = new HaService(ctx, obmService);
+  auto *canalService = new CanalService(ctx);
 
   // registrar comandos
   registry->registerCommand(QSharedPointer<ICommand>(new AddCommand()));
@@ -109,12 +112,8 @@ int main(int argc, char *argv[]) {
   registry->registerCommand(QSharedPointer<ICommand>(new FondeoCommand()));
   registry->registerCommand(QSharedPointer<ICommand>(new TwoWCommand()));
   registry->registerCommand(QSharedPointer<ICommand>(new HaCommand(obmService)));
-    registry->registerCommand(QSharedPointer<ICommand>(new AddAreaCommand()));
-    registry->registerCommand(QSharedPointer<ICommand>(new AddPolygonoCommand()));
-    registry->registerCommand(QSharedPointer<ICommand>(new AddCircleCommand()));
-    registry->registerCommand(QSharedPointer<ICommand>(new DeleteAreaCommand()));
-    registry->registerCommand(QSharedPointer<ICommand>(new DeleteCircleCommand()));
-    registry->registerCommand(QSharedPointer<ICommand>(new BorneoCommand()));
+  registry->registerCommand(QSharedPointer<ICommand>(new BorneoCommand()));
+  registry->registerCommand(QSharedPointer<ICommand>(new CanalCommand()));
 
   CommandDispatcher dispatcher(registry, parser, *ctx);
 
@@ -159,12 +158,13 @@ int main(int argc, char *argv[]) {
   QTimer timer;
   QTimer updatePositionTimer;
   QObject::connect(&updatePositionTimer, &QTimer::timeout,
-                   [ctx, fondeoService, twoWService, haService, &updatePositionTimer]() {
+                   [ctx, fondeoService, twoWService, haService, canalService, &updatePositionTimer]() {
                      double deltaTime = updatePositionTimer.interval() / 1000.0;
                      ctx->updateTracks(deltaTime);
                      fondeoService->update();
                      twoWService->update();
                      haService->update();
+                     canalService->update();
                    });
 
   QObject::connect(&timer, &QTimer::timeout, &timer,
