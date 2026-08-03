@@ -27,6 +27,7 @@ class FondeoService;
 class BorneoService;
 class TwoWService;
 class HaService;
+class CanalService;
 struct CPATrackRef;
 
 class JsonCommandHandler : public QObject
@@ -57,6 +58,7 @@ private:
     std::unique_ptr<BorneoService> m_borneoService;
     std::unique_ptr<TwoWService> m_twoWService;
     std::unique_ptr<HaService> m_haService;
+    std::unique_ptr<CanalService> m_canalService;
     QMap<int, QString> m_cpaSlotSessions;
     QMap<QString, CommandHandler> m_commandMap;
     
@@ -87,6 +89,9 @@ private:
     QByteArray handleHaInfo(const QJsonObject& args);
     QByteArray handleHaList(const QJsonObject& args);
     QByteArray handleHaSelect(const QJsonObject& args);
+    QByteArray handleCanalStart(const QJsonObject& args);
+    QByteArray handleCanalStop(const QJsonObject& args);
+    QByteArray handleCanalInfo(const QJsonObject& args);
     QByteArray handlePppGraph(const QJsonObject& args);
     QByteArray handlePppFinish(const QJsonObject& args);
     QByteArray handlePppClearTrack(const QJsonObject& args);

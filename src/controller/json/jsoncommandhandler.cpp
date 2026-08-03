@@ -11,6 +11,7 @@
 #include "../services/haService.h"
 #include "../services/obmservice.h"
 #include "../services/TwoWService.h"
+#include "../services/canalService.h"
 #include "jsonresponsebuilder.h"
 #include "commandContext.h"
 #include "network/iTransport.h"
@@ -19,6 +20,7 @@
 #include "model/borneo/borneoSessionState.h"
 #include "model/borneo/buqueClaseCatalog.h"
 #include "model/ha/haSessionState.h"
+#include "model/canal/canalSessionState.h"
 #include <QJsonArray>
 
 #include <QDebug>
@@ -45,6 +47,7 @@ JsonCommandHandler::JsonCommandHandler(CommandContext* context, ITransport* tran
     m_borneoService = std::make_unique<BorneoService>(m_context);
     m_twoWService = std::make_unique<TwoWService>(m_context);
     m_haService = std::make_unique<HaService>(m_context, m_obmService);
+    m_canalService = std::make_unique<CanalService>(m_context);
 
     initializeCommandMap();
 }
@@ -257,6 +260,18 @@ void JsonCommandHandler::initializeCommandMap()
 
     m_commandMap[QStringLiteral("ha_select")] = [this](const QJsonObject& args) {
         return handleHaSelect(args);
+    };
+
+    m_commandMap[QStringLiteral("canal_start")] = [this](const QJsonObject& args) {
+        return handleCanalStart(args);
+    };
+
+    m_commandMap[QStringLiteral("canal_stop")] = [this](const QJsonObject& args) {
+        return handleCanalStop(args);
+    };
+
+    m_commandMap[QStringLiteral("canal_info")] = [this](const QJsonObject& args) {
+        return handleCanalInfo(args);
     };
 }
 
@@ -1223,4 +1238,95 @@ QByteArray JsonCommandHandler::handleHaSelect(const QJsonObject& args)
     responseArgs[QStringLiteral("slot")] = slot;
     responseArgs[QStringLiteral("message")] = result.message;
     return JsonResponseBuilder::buildSuccessResponse(QStringLiteral("ha_select"), responseArgs);
+}
+
+QByteArray JsonCommandHandler::handleCanalStart(const QJsonObject& args)
+{
+    CanalConfig config;
+
+    const struct { QLatin1String field; bool* setFlag; int* trackField; } kColumns[] = {
+        { QLatin1String("a"), &config.setA, &config.trackA },
+        { QLatin1String("b"), &config.setB, &config.trackB },
+        { QLatin1String("c"), &config.setC, &config.trackC },
+        { QLatin1String("d"), &config.setD, &config.trackD },
+    };
+
+    bool hasAny = false;
+    for (const auto& col : kColumns) {
+        const QJsonValue value = args.value(col.field);
+        if (value.isUndefined()) {
+            continue;
+        }
+        if (!value.isDouble()) {
+            return JsonResponseBuilder::buildValidationErrorResponse(
+                QStringLiteral("canal_start"), QString(col.field), QString(),
+                QStringLiteral("must be an integer track id")
+            );
+        }
+        *col.setFlag = true;
+        *col.trackField = value.toInt();
+        hasAny = true;
+    }
+
+    if (!hasAny) {
+        return JsonResponseBuilder::buildValidationErrorResponse(
+            QStringLiteral("canal_start"), QStringLiteral("a/b/c/d"), QString(),
+            QStringLiteral("se debe especificar al menos una columna (a, b, c o d)")
+        );
+    }
+
+    const CanalOperationResult result = m_canalService->startSession(config);
+    if (!result.success) {
+        return JsonResponseBuilder::buildErrorResponse(
+            QStringLiteral("canal_start"), QStringLiteral("VALIDATION_ERROR"), result.message
+        );
+    }
+
+    QJsonObject responseArgs;
+    responseArgs[QStringLiteral("message")] = result.message;
+    return JsonResponseBuilder::buildSuccessResponse(QStringLiteral("canal_start"), responseArgs);
+}
+
+QByteArray JsonCommandHandler::handleCanalStop(const QJsonObject& /*args*/)
+{
+    const CanalOperationResult result = m_canalService->stopSession();
+    if (!result.success) {
+        return JsonResponseBuilder::buildErrorResponse(
+            QStringLiteral("canal_stop"), QStringLiteral("NO_ACTIVE_SESSION"), result.message
+        );
+    }
+
+    QJsonObject responseArgs;
+    responseArgs[QStringLiteral("message")] = result.message;
+    return JsonResponseBuilder::buildSuccessResponse(QStringLiteral("canal_stop"), responseArgs);
+}
+
+QByteArray JsonCommandHandler::handleCanalInfo(const QJsonObject& /*args*/)
+{
+    const CanalSessionState& s = m_context->canalSession;
+    static const QString colNames[4] = {
+        QStringLiteral("A"), QStringLiteral("B"), QStringLiteral("C"), QStringLiteral("D")
+    };
+
+    QJsonArray columnas;
+    for (int i = 0; i < 4; ++i) {
+        const CanalSlot& slot = s.columnas[i];
+        QJsonObject col;
+        col[QStringLiteral("columna")] = colNames[i];
+        col[QStringLiteral("active")] = slot.active;
+        col[QStringLiteral("track_id")] = slot.trackId;
+        col[QStringLiteral("azimut_verdadero")] = slot.azimutVerdadero;
+        col[QStringLiteral("distancia_yardas")] = slot.distanciaYardas;
+        col[QStringLiteral("rumbo_verdadero")] = slot.rumboVerdadero;
+        col[QStringLiteral("time_to_arrival_min")] = slot.timeToArrivalMin;
+        col[QStringLiteral("eta_valid")] = slot.etaValid;
+        col[QStringLiteral("is_alarm_active")] = slot.isAlarmActive;
+        col[QStringLiteral("marcacion_relativa")] = slot.marcacionRelativa;
+        columnas.append(col);
+    }
+
+    QJsonObject responseArgs;
+    responseArgs[QStringLiteral("active")] = s.active;
+    responseArgs[QStringLiteral("columnas")] = columnas;
+    return JsonResponseBuilder::buildSuccessResponse(QStringLiteral("canal_info"), responseArgs);
 }
