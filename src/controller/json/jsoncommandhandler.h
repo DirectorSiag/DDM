@@ -24,6 +24,7 @@ class ObmService;
 class CPAService;
 class EstacionamientoService;
 class FondeoService;
+class BorneoService;
 class TwoWService;
 class HaService;
 struct CPATrackRef;
@@ -53,6 +54,7 @@ private:
     std::unique_ptr<CPAService> m_cpaService;
     std::unique_ptr<EstacionamientoService> m_estacionamientoService;
     std::unique_ptr<FondeoService> m_fondeoService;
+    std::unique_ptr<BorneoService> m_borneoService;
     std::unique_ptr<TwoWService> m_twoWService;
     std::unique_ptr<HaService> m_haService;
     QMap<int, QString> m_cpaSlotSessions;
@@ -72,6 +74,10 @@ private:
     QByteArray handleFondeoStop(const QJsonObject& args);
     QByteArray handleFondeoInfo(const QJsonObject& args);
     QByteArray handleFondeoTipos(const QJsonObject& args);
+    QByteArray handleBorneoStart(const QJsonObject& args);
+    QByteArray handleBorneoStop(const QJsonObject& args);
+    QByteArray handleBorneoInfo(const QJsonObject& args);
+    QByteArray handleBorneoTipos(const QJsonObject& args);
     QByteArray handleTwoWStart(const QJsonObject& args);
     QByteArray handleTwoWStop(const QJsonObject& args);
     QByteArray handleTwoWInfo(const QJsonObject& args);

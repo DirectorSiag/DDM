@@ -7,6 +7,7 @@
 #include "../services/cpaservice.h"
 #include "../services/estacionamientoservice.h"
 #include "../services/fondeoservice.h"
+#include "../services/borneoService.h"
 #include "../services/haService.h"
 #include "../services/obmservice.h"
 #include "../services/TwoWService.h"
@@ -15,6 +16,8 @@
 #include "network/iTransport.h"
 #include "model/fondeo/fondeoSessionState.h"
 #include "model/fondeo/fondeoTiposUnidad.h"
+#include "model/borneo/borneoSessionState.h"
+#include "model/borneo/buqueClaseCatalog.h"
 #include "model/ha/haSessionState.h"
 #include <QJsonArray>
 
@@ -39,6 +42,7 @@ JsonCommandHandler::JsonCommandHandler(CommandContext* context, ITransport* tran
     m_cpaService = std::make_unique<CPAService>(m_context);
     m_estacionamientoService = std::make_unique<EstacionamientoService>(m_context);
     m_fondeoService = std::make_unique<FondeoService>(m_context);
+    m_borneoService = std::make_unique<BorneoService>(m_context);
     m_twoWService = std::make_unique<TwoWService>(m_context);
     m_haService = std::make_unique<HaService>(m_context, m_obmService);
 
@@ -201,6 +205,22 @@ void JsonCommandHandler::initializeCommandMap()
 
     m_commandMap[QStringLiteral("fondeo_tipos")] = [this](const QJsonObject& args) {
         return handleFondeoTipos(args);
+    };
+
+    m_commandMap[QStringLiteral("borneo_start")] = [this](const QJsonObject& args) {
+        return handleBorneoStart(args);
+    };
+
+    m_commandMap[QStringLiteral("borneo_stop")] = [this](const QJsonObject& args) {
+        return handleBorneoStop(args);
+    };
+
+    m_commandMap[QStringLiteral("borneo_info")] = [this](const QJsonObject& args) {
+        return handleBorneoInfo(args);
+    };
+
+    m_commandMap[QStringLiteral("borneo_tipos")] = [this](const QJsonObject& args) {
+        return handleBorneoTipos(args);
     };
 
     m_commandMap[QStringLiteral("2w_start")] = [this](const QJsonObject& args) {
@@ -803,6 +823,100 @@ QByteArray JsonCommandHandler::handleFondeoTipos(const QJsonObject& /*args*/)
     QJsonObject responseArgs;
     responseArgs[QStringLiteral("tipos")] = tiposArray;
     return JsonResponseBuilder::buildSuccessResponse(QStringLiteral("fondeo_tipos"), responseArgs);
+}
+
+QByteArray JsonCommandHandler::handleBorneoStart(const QJsonObject& args)
+{
+    const bool hasClase = args.contains(QStringLiteral("clase"));
+    const bool hasEslora = args.contains(QStringLiteral("eslora"));
+
+    if (hasClase == hasEslora) {
+        return JsonResponseBuilder::buildValidationErrorResponse(
+            QStringLiteral("borneo_start"),
+            QStringLiteral("clase/eslora"),
+            QString(),
+            QStringLiteral("se debe especificar exactamente uno de los dos modos: clase (catalogo) o eslora (manual)")
+        );
+    }
+
+    if (!args.contains(QStringLiteral("grilletes")) || !args.contains(QStringLiteral("profundidad"))) {
+        return JsonResponseBuilder::buildValidationErrorResponse(
+            QStringLiteral("borneo_start"),
+            QStringLiteral("grilletes/profundidad"),
+            QString(),
+            QStringLiteral("obligatorios: grilletes y profundidad")
+        );
+    }
+    const int grilletes = args.value(QStringLiteral("grilletes")).toInt();
+    const double profundidad = args.value(QStringLiteral("profundidad")).toDouble();
+
+    BorneoOperationResult result{ false, QString() };
+    if (hasClase) {
+        result = m_borneoService->startSessionByClase(args.value(QStringLiteral("clase")).toString(), grilletes, profundidad);
+    } else {
+        BorneoConfig config;
+        config.eslora = args.value(QStringLiteral("eslora")).toDouble();
+        config.grilletes = grilletes;
+        config.profundidad = profundidad;
+        result = m_borneoService->startSession(config);
+    }
+
+    if (!result.success) {
+        return JsonResponseBuilder::buildErrorResponse(
+            QStringLiteral("borneo_start"),
+            QStringLiteral("VALIDATION_ERROR"),
+            result.message
+        );
+    }
+
+    QJsonObject responseArgs;
+    responseArgs[QStringLiteral("message")] = result.message;
+    return JsonResponseBuilder::buildSuccessResponse(QStringLiteral("borneo_start"), responseArgs);
+}
+
+QByteArray JsonCommandHandler::handleBorneoStop(const QJsonObject& /*args*/)
+{
+    const BorneoOperationResult result = m_borneoService->stopSession();
+    if (!result.success) {
+        return JsonResponseBuilder::buildErrorResponse(
+            QStringLiteral("borneo_stop"),
+            QStringLiteral("NO_ACTIVE_SESSION"),
+            result.message
+        );
+    }
+
+    QJsonObject responseArgs;
+    responseArgs[QStringLiteral("message")] = result.message;
+    return JsonResponseBuilder::buildSuccessResponse(QStringLiteral("borneo_stop"), responseArgs);
+}
+
+QByteArray JsonCommandHandler::handleBorneoInfo(const QJsonObject& /*args*/)
+{
+    const BorneoSessionState& s = m_context->borneoSession;
+
+    QJsonObject responseArgs;
+    responseArgs[QStringLiteral("active")] = s.active;
+    responseArgs[QStringLiteral("eslora")] = s.config.eslora;
+    responseArgs[QStringLiteral("grilletes")] = s.config.grilletes;
+    responseArgs[QStringLiteral("profundidad")] = s.config.profundidad;
+    responseArgs[QStringLiteral("radio_calculado")] = s.radioCalculado;
+
+    return JsonResponseBuilder::buildSuccessResponse(QStringLiteral("borneo_info"), responseArgs);
+}
+
+QByteArray JsonCommandHandler::handleBorneoTipos(const QJsonObject& /*args*/)
+{
+    QJsonArray tiposArray;
+    for (const auto& clase : BuqueClaseCatalog::allClases()) {
+        QJsonObject tipoObj;
+        tipoObj[QStringLiteral("nombre")] = clase.first;
+        tipoObj[QStringLiteral("eslora")] = clase.second;
+        tiposArray.append(tipoObj);
+    }
+
+    QJsonObject responseArgs;
+    responseArgs[QStringLiteral("tipos")] = tiposArray;
+    return JsonResponseBuilder::buildSuccessResponse(QStringLiteral("borneo_tipos"), responseArgs);
 }
 
 QByteArray JsonCommandHandler::handleTwoWStart(const QJsonObject& args)

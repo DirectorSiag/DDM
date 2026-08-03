@@ -25,3 +25,13 @@ bool BuqueClaseCatalog::resolveEslora(const QString& clase, double& outEslora)
     }
     return false;
 }
+
+QList<QPair<QString, double>> BuqueClaseCatalog::allClases()
+{
+    QList<QPair<QString, double>> result;
+    const auto& data = catalog();
+    for (auto it = data.constBegin(); it != data.constEnd(); ++it) {
+        result.append({ it.key(), it.value() });
+    }
+    return result;
+}
