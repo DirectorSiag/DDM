@@ -447,6 +447,7 @@ struct CommandContext {
             }
         }
         return false;
+        
     }
 
     inline bool deletePolygon(int polygonId) {
