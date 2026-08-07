@@ -111,7 +111,7 @@ int main(int argc, char *argv[]) {
   auto replicationEngine = std::make_unique<replication_engine::ReplicationEngine>(
       std::move(replicationStorage), std::move(replicationTransport),
       std::move(replicationResolver), std::move(replicationBridge),
-      Configuration::instance().domainId);
+      Configuration::instance().domainId, Configuration::instance().consoleId);
 
   trackService->setReplicationEngine(replicationEngine.get());
   trackService->setConsoleId(Configuration::instance().consoleId);
