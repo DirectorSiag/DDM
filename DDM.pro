@@ -91,6 +91,7 @@ HEADERS += \
     src/model/canal/canalSessionState.h \
     src/model/commandContext.h \
     src/model/cpa.h \
+    src/model/derrotas/futuraCalculator.h \
     src/model/fondeo/fondeoCalculator.h \
     src/model/fondeo/fondeoSessionState.h \
     src/model/fondeo/fondeoTiposUnidad.h \
@@ -194,6 +195,7 @@ SOURCES += \
     src/model/borneo/buqueClaseCatalog.cpp \
     src/model/canal/canalCalculator.cpp \
     src/model/cpa.cpp \
+    src/model/derrotas/futuraCalculator.cpp \
     src/model/fondeo/fondeoCalculator.cpp \
     src/model/ha/haCalculator.cpp \
     src/model/ha/haSessionTimer.cpp \
