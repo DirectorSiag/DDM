@@ -25,6 +25,7 @@
 #include <array>
 #include "borneo/borneoSessionState.h"
 #include "model/canal/canalSessionState.h"
+#include "model/derrotas/derrotasSessionState.h"
 
 struct CommandContext {
     enum MotionMode {
@@ -119,6 +120,7 @@ struct CommandContext {
     int activeHaSlot = -1;  // slot actualmente seleccionado para consulta (-1 = ninguno)
 
     CanalSessionState canalSession;
+    DerrotasSessionState derrotasSession;
 
     double centerX = 0.0;
     double centerY = 0.0;
