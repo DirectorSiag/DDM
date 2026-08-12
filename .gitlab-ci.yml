@@ -1,3 +1,9 @@
+workflow:
+  rules:
+    - if: '$CI_COMMIT_TAG =~ /-win$/ || $CI_COMMIT_TAG =~ /-linux$/'
+      when: never
+    - when: always
+
 variables:
   GIT_CLEAN_FLAGS: -ffdx
 stages:
@@ -12,9 +18,6 @@ build_linux:
   only:
     - develop
     - tags
-  except:
-    - /-win$/
-    - /-linux$/
   script:
     - echo "Preparando entorno de Linux instalando dependencias gráficas..."
     - sudo apt-get update -qq && sudo apt-get install -y libgl1-mesa-dev libglu1-mesa-dev
@@ -46,29 +49,29 @@ build_windows:
     - ddm-test-pc
   only:
     - tags
-  except:
-    - /-win$/
-    - /-linux$/
   script:
     - echo "Compilando versión RELEASE en Windows..."
     - $env:Path = "C:\Qt\6.7.3\mingw_64\bin;C:\Qt\Tools\mingw1120_64\bin;" + $env:Path
     - qmake DDM.pro CONFIG+=release
     - mingw32-make
     - windeployqt release\DDM.exe --compiler-runtime
+    - echo "Armando carpeta de deploy limpia, sin archivos intermedios..."
+    - New-Item -ItemType Directory -Force -Path deploy_windows | Out-Null
+    - Copy-Item release\DDM.exe deploy_windows\
+    - Copy-Item release\*.dll deploy_windows\ -ErrorAction SilentlyContinue
+    - if (Test-Path release\platforms) { Copy-Item release\platforms deploy_windows\platforms -Recurse }
+    - if (Test-Path release\styles) { Copy-Item release\styles deploy_windows\styles -Recurse }
+    - if (Test-Path release\imageformats) { Copy-Item release\imageformats deploy_windows\imageformats -Recurse }
   artifacts:
     name: "DDM-Windows-v$CI_COMMIT_TAG"
     paths:
-      - release/
+      - deploy_windows/
 
 release_linux:
   stage: release
   image: registry.gitlab.com/gitlab-org/release-cli:latest
   tags:
     - ddm-linux-local
-  rules:
-    - if: '$CI_COMMIT_TAG =~ /-linux$/'
-      when: never
-    - if: $CI_COMMIT_TAG
   script:
     - echo "Generando Release para Linux directamente desde el comando..."
     - |
@@ -81,10 +84,6 @@ release_windows:
   stage: release
   tags:
     - ddm-test-pc
-  rules:
-    - if: '$CI_COMMIT_TAG =~ /-win$/'
-      when: never
-    - if: $CI_COMMIT_TAG
   script:
     - echo "Generando Release para Windows usando Docker en PowerShell..."
     - |
