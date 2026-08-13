@@ -17,6 +17,7 @@ struct CPAComputationResult {
     QString sessionId;
     double tcpaSeconds = 0.0;
     double dcpaDm = 0.0;
+    double azDeg = 0.0;
     double cpaMidX = 0.0;
     double cpaMidY = 0.0;
 };
@@ -32,6 +33,8 @@ struct CPASession {
     CPATrackRef trackA;
     CPATrackRef trackB;
     State state = State::Active;
+    bool graphingEnabled = false;
+    int slotNumber = 0;
 };
 
 struct CPAClearResult {
@@ -52,12 +55,15 @@ class CPAService {
 public:
     explicit CPAService(CommandContext* context);
 
-    CPAComputationResult startCPA(const CPATrackRef& trackA, const CPATrackRef& trackB);
+    CPAComputationResult startCPA(const CPATrackRef& trackA, const CPATrackRef& trackB, int slotNumber);
     CPAComputationResult graphCPA(const QString& sessionId);
+    CPAComputationResult setGraphing(const QString& sessionId, bool enabled);
+    CPAComputationResult infoCPA(const QString& sessionId) const;
     CPAComputationResult computeCPA(const CPATrackRef& trackA, const CPATrackRef& trackB) const;
     bool finishCPA(const QString& sessionId);
     CPAClearResult clearTrack(const CPATrackRef& trackRef);
     bool isSessionActive(const QString& sessionId) const;
+    bool isGraphing(const QString& sessionId) const;
 
 private:
     CommandContext* m_context;
@@ -74,7 +80,8 @@ private:
                       const CPATrackRef& trackA,
                       const CPATrackRef& trackB,
                       double cpaMidX,
-                      double cpaMidY) const;
+                      double cpaMidY,
+                      int slotNumber) const;
     CPAComputationResult computeFromResolvedStates(const CPATrackRef& trackA,
                                                    const CPATrackRef& trackB,
                                                    double xADm,

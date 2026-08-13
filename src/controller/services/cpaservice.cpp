@@ -107,7 +107,8 @@ CPAComputationResult CPAService::computeFromResolvedStates(const CPATrackRef& tr
 
     out.valid = true;
     out.tcpaSeconds = tcpaHours * 3600.0;
-    out.dcpaDm = result.distanceDm;
+    out.dcpaDm = result.distanceDm * Track::kDmToNm; // expresado en millas nauticas
+    out.azDeg = result.azDeg;
     out.cpaMidX = (aXAtTcpa + bXAtTcpa) * 0.5;
     out.cpaMidY = (aYAtTcpa + bYAtTcpa) * 0.5;
     out.errorCode = result.status == PppCalculator::Result::DegenerateRelativeMotion
@@ -164,19 +165,21 @@ void CPAService::upsertMarker(const QString& sessionId,
                               const CPATrackRef& trackA,
                               const CPATrackRef& trackB,
                               double cpaMidX,
-                              double cpaMidY) const
+                              double cpaMidY,
+                              int slotNumber) const
 {
     CommandContext::CpaMarkerState marker;
     marker.sessionId = sessionId;
     marker.trackAId = trackA.isOwnShip ? -1 : trackA.trackId;
     marker.trackBId = trackB.isOwnShip ? -1 : trackB.trackId;
+    marker.slotNumber = slotNumber;
     marker.xDm = static_cast<float>(cpaMidX);
     marker.yDm = static_cast<float>(cpaMidY);
     marker.visible = true;
     m_context->upsertCpaMarker(marker);
 }
 
-CPAComputationResult CPAService::startCPA(const CPATrackRef& trackA, const CPATrackRef& trackB)
+CPAComputationResult CPAService::startCPA(const CPATrackRef& trackA, const CPATrackRef& trackB, int slotNumber)
 {
     CPAComputationResult result = computeCPA(trackA, trackB);
     if (!result.valid) {
@@ -190,6 +193,7 @@ CPAComputationResult CPAService::startCPA(const CPATrackRef& trackA, const CPATr
     session.trackA = trackA;
     session.trackB = trackB;
     session.state = CPASession::State::Active;
+    session.slotNumber = slotNumber;
     m_sessions[result.sessionId] = session;
     return result;
 }
@@ -216,12 +220,77 @@ CPAComputationResult CPAService::graphCPA(const QString& sessionId)
     out = computeCPA(session.trackA, session.trackB);
     if (out.valid) {
         out.sessionId = sessionId;
-        upsertMarker(sessionId, session.trackA, session.trackB, out.cpaMidX, out.cpaMidY);
+        upsertMarker(sessionId, session.trackA, session.trackB, out.cpaMidX, out.cpaMidY, session.slotNumber);
     } else if (out.errorCode == QStringLiteral("cpa_expired")) {
         it->state = CPASession::State::Expired;
         m_context->eraseCpaMarkerBySessionId(sessionId);
         out.sessionId = sessionId;
     }
+    return out;
+}
+
+CPAComputationResult CPAService::setGraphing(const QString& sessionId, bool enabled)
+{
+    CPAComputationResult out;
+    auto it = m_sessions.find(sessionId);
+    if (it == m_sessions.end()) {
+        out.errorCode = QStringLiteral("session_not_found");
+        out.errorMessage = QStringLiteral("No existe la sesión CPA");
+        return out;
+    }
+
+    if (!enabled) {
+        it->graphingEnabled = false;
+        m_context->eraseCpaMarkerBySessionId(sessionId);
+        out.valid = true;
+        out.sessionId = sessionId;
+        return out;
+    }
+
+    const CPASession& session = it.value();
+    if (session.state != CPASession::State::Active) {
+        out.errorCode = QStringLiteral("session_inactive");
+        out.errorMessage = (session.state == CPASession::State::Expired)
+            ? QStringLiteral("La sesión CPA ya expiró")
+            : QStringLiteral("La sesión CPA está inactiva");
+        return out;
+    }
+
+    out = computeCPA(session.trackA, session.trackB);
+    if (out.valid) {
+        out.sessionId = sessionId;
+        it->graphingEnabled = true;
+        upsertMarker(sessionId, session.trackA, session.trackB, out.cpaMidX, out.cpaMidY, session.slotNumber);
+    } else if (out.errorCode == QStringLiteral("cpa_expired")) {
+        it->state = CPASession::State::Expired;
+        it->graphingEnabled = false;
+        m_context->eraseCpaMarkerBySessionId(sessionId);
+        out.sessionId = sessionId;
+    }
+    return out;
+}
+
+CPAComputationResult CPAService::infoCPA(const QString& sessionId) const
+{
+    CPAComputationResult out;
+    auto it = m_sessions.find(sessionId);
+    if (it == m_sessions.end()) {
+        out.errorCode = QStringLiteral("session_not_found");
+        out.errorMessage = QStringLiteral("No existe la sesión CPA");
+        return out;
+    }
+
+    const CPASession& session = it.value();
+    if (session.state != CPASession::State::Active) {
+        out.errorCode = QStringLiteral("session_inactive");
+        out.errorMessage = (session.state == CPASession::State::Expired)
+            ? QStringLiteral("La sesión CPA ya expiró")
+            : QStringLiteral("La sesión CPA está inactiva");
+        return out;
+    }
+
+    out = computeCPA(session.trackA, session.trackB);
+    out.sessionId = sessionId;
     return out;
 }
 
@@ -269,4 +338,12 @@ bool CPAService::isSessionActive(const QString& sessionId) const
 {
     auto it = m_sessions.find(sessionId);
     return it != m_sessions.end() && it.value().state == CPASession::State::Active;
+}
+
+bool CPAService::isGraphing(const QString& sessionId) const
+{
+    auto it = m_sessions.find(sessionId);
+    return it != m_sessions.end()
+        && it.value().state == CPASession::State::Active
+        && it.value().graphingEnabled;
 }

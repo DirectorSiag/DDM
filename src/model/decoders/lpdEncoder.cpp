@@ -279,8 +279,10 @@ void encoderLPD::appendCpaMarkerMessage(QByteArray& dst, const CommandContext::C
     dst.append(static_cast<char>(0x00));
     dst.append(static_cast<char>(0x00));
 
-    // Numero de track simbolico para marcador CPA (4 digitos octales ASCII)
-    const int syntheticId = qBound(0, marker.trackAId, 4095);
+    // Numero simbolico para marcador CPA = numero de ranura PPP (4 digitos
+    // octales ASCII), no el track A (que suele ser -1/OwnShip y mostraba
+    // siempre 0000 sin importar el slot).
+    const int syntheticId = qBound(0, marker.slotNumber, 4095);
     dst.append(static_cast<char>('0' + ((syntheticId >> 9) & 0x7)));
     dst.append(static_cast<char>('0' + ((syntheticId >> 6) & 0x7)));
     dst.append(static_cast<char>('0' + ((syntheticId >> 3) & 0x7)));
