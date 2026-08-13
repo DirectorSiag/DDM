@@ -97,3 +97,13 @@ release_windows:
       $URL = "$env:CI_PROJECT_URL/-/jobs/artifacts/$TAG/download?job=build_windows"
       $ASSET_JSON = '{"name":"Descargar-DDM-Windows-Release","url":"' + $URL + '"}'
       docker run --rm -e CI_JOB_TOKEN=$env:CI_JOB_TOKEN -e CI_SERVER_URL=$env:CI_SERVER_URL -e CI_PROJECT_ID=$env:CI_PROJECT_ID registry.gitlab.com/gitlab-org/release-cli:latest release-cli create --name "DDM Windows $TAG" --description "Ejecutables oficiales para Windows" --tag-name "$TAG-win" --ref "$SHA" --assets-link $ASSET_JSON
+
+trigger_installer:
+  stage: .post
+  tags:
+    - ddm-linux-local
+  only:
+    - develop
+    - tags
+  script:
+    - curl -X POST -F token=$INSTALLER_TRIGGER_TOKEN -F ref=main "https://gitlabsiag.armada.mil.ar/api/v4/projects/251/trigger/pipeline"
