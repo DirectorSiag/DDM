@@ -95,6 +95,7 @@ private:
     QByteArray handlePppGraph(const QJsonObject& args);
     QByteArray handlePppFinish(const QJsonObject& args);
     QByteArray handlePppClearTrack(const QJsonObject& args);
+    QByteArray handlePppInfo(const QJsonObject& args);
 
     bool parseTrackRefValue(const QJsonValue& value, CPATrackRef& outRef, QString& errorReason) const;
     bool parseTrackPair(const QJsonObject& args, CPATrackRef& trackA, CPATrackRef& trackB, QString& errorField, QString& errorReason) const;

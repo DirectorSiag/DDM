@@ -78,6 +78,7 @@ struct CommandContext {
         QString sessionId;
         int trackAId = -1;
         int trackBId = -1;
+        int slotNumber = 0; // ranura PPP (1-10) — identifica el marcador en el LPD
         float xDm = 0.0f;
         float yDm = 0.0f;
         bool visible = true;

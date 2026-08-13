@@ -74,7 +74,7 @@ void JsonCommandHandler::refreshActiveCpaSessions()
 
     for (auto it = m_cpaSlotSessions.constBegin(); it != m_cpaSlotSessions.constEnd(); ++it) {
         const QString& sessionId = it.value();
-        if (!m_cpaService->isSessionActive(sessionId)) {
+        if (!m_cpaService->isGraphing(sessionId)) {
             continue;
         }
         const CPAComputationResult result = m_cpaService->graphCPA(sessionId);
@@ -184,6 +184,10 @@ void JsonCommandHandler::initializeCommandMap()
 
     m_commandMap[QStringLiteral("ppp_clear_track")] = [this](const QJsonObject& args) {
         return handlePppClearTrack(args);
+    };
+
+    m_commandMap[QStringLiteral("ppp_info")] = [this](const QJsonObject& args) {
+        return handlePppInfo(args);
     };
 
     m_commandMap[QStringLiteral("estacionamiento_calc")] = [this](const QJsonObject& args) {
@@ -415,9 +419,20 @@ QByteArray JsonCommandHandler::handleCpaStart(const QJsonObject& args)
         return JsonResponseBuilder::buildValidationErrorResponse(QStringLiteral("cpa_start"), errorField, QString(), errorReason);
     }
 
-    const CPAComputationResult result = m_cpaService->startCPA(trackA, trackB);
+    const CPAComputationResult result = m_cpaService->startCPA(trackA, trackB, calcIndex);
     if (!result.valid) {
         return JsonResponseBuilder::buildErrorResponse(QStringLiteral("cpa_start"), result.errorCode, result.errorMessage);
+    }
+
+    // Si el slot ya tenia una sesion previa con OTRO par de tracks (el
+    // usuario cambio Track-A/B y volvio a apretar INICIAR), esa sesion
+    // vieja queda huerfana: nada la referencia mas y su marcador se
+    // quedaria pegado para siempre en el LPD. Un slot solo puede tener un
+    // calculo activo a la vez, asi que la cerramos explicitamente antes de
+    // reemplazarla.
+    const auto previousSessionIt = m_cpaSlotSessions.find(calcIndex);
+    if (previousSessionIt != m_cpaSlotSessions.end() && previousSessionIt.value() != result.sessionId) {
+        m_cpaService->finishCPA(previousSessionIt.value());
     }
 
     // Mantener la relacion slot->session para comandos ppp_graph/finish/clear_track.
@@ -430,6 +445,7 @@ QByteArray JsonCommandHandler::handleCpaStart(const QJsonObject& args)
     responseArgs[QStringLiteral("track_b")] = trackB.isOwnShip ? QJsonValue(QStringLiteral("own_ship")) : QJsonValue(trackB.trackId);
     responseArgs[QStringLiteral("tcpa_sec")] = result.tcpaSeconds;
     responseArgs[QStringLiteral("dcpa_dm")] = result.dcpaDm;
+    responseArgs[QStringLiteral("az_deg")] = result.azDeg;
     responseArgs[QStringLiteral("cpa_mid_x")] = result.cpaMidX;
     responseArgs[QStringLiteral("cpa_mid_y")] = result.cpaMidY;
     responseArgs[QStringLiteral("status")] = QStringLiteral("active");
@@ -444,6 +460,8 @@ QByteArray JsonCommandHandler::handlePppGraph(const QJsonObject& args)
         return JsonResponseBuilder::buildValidationErrorResponse(QStringLiteral("ppp_graph"), QStringLiteral("calc_index"), QString(), QStringLiteral("required, must be >= 0"));
     }
 
+    const bool enabled = args.value(QStringLiteral("enabled")).toBool(true);
+
     const auto sessionIt = m_cpaSlotSessions.find(calcIndex);
     if (sessionIt == m_cpaSlotSessions.end()) {
         return JsonResponseBuilder::buildErrorResponse(
@@ -455,7 +473,7 @@ QByteArray JsonCommandHandler::handlePppGraph(const QJsonObject& args)
 
     const QString sessionId = sessionIt.value();
 
-    const CPAComputationResult result = m_cpaService->graphCPA(sessionId);
+    const CPAComputationResult result = m_cpaService->setGraphing(sessionId, enabled);
     if (!result.valid) {
         if (result.errorCode == QStringLiteral("cpa_expired")) {
             QJsonObject responseArgs;
@@ -471,12 +489,17 @@ QByteArray JsonCommandHandler::handlePppGraph(const QJsonObject& args)
     QJsonObject responseArgs;
     responseArgs[QStringLiteral("calc_index")] = calcIndex;
     responseArgs[QStringLiteral("id")] = sessionId;
-    responseArgs[QStringLiteral("tcpa_sec")] = result.tcpaSeconds;
-    responseArgs[QStringLiteral("dcpa_dm")] = result.dcpaDm;
-    responseArgs[QStringLiteral("cpa_mid_x")] = result.cpaMidX;
-    responseArgs[QStringLiteral("cpa_mid_y")] = result.cpaMidY;
-    responseArgs[QStringLiteral("symbol")] = QStringLiteral("C3F07");
-    responseArgs[QStringLiteral("main_symbol_byte")] = 0x26;
+    responseArgs[QStringLiteral("enabled")] = enabled;
+    responseArgs[QStringLiteral("status")] = enabled ? QStringLiteral("active") : QStringLiteral("hidden");
+    if (enabled) {
+        responseArgs[QStringLiteral("tcpa_sec")] = result.tcpaSeconds;
+        responseArgs[QStringLiteral("dcpa_dm")] = result.dcpaDm;
+        responseArgs[QStringLiteral("az_deg")] = result.azDeg;
+        responseArgs[QStringLiteral("cpa_mid_x")] = result.cpaMidX;
+        responseArgs[QStringLiteral("cpa_mid_y")] = result.cpaMidY;
+        responseArgs[QStringLiteral("symbol")] = QStringLiteral("C3F07");
+        responseArgs[QStringLiteral("main_symbol_byte")] = 0x26;
+    }
 
     return JsonResponseBuilder::buildSuccessResponse(QStringLiteral("ppp_graph"), responseArgs);
 }
@@ -553,6 +576,47 @@ QByteArray JsonCommandHandler::handlePppClearTrack(const QJsonObject& args)
     responseArgs[QStringLiteral("removed_markers")] = 1;
     responseArgs[QStringLiteral("status")] = QStringLiteral("cleared");
     return JsonResponseBuilder::buildSuccessResponse(QStringLiteral("ppp_clear_track"), responseArgs);
+}
+
+QByteArray JsonCommandHandler::handlePppInfo(const QJsonObject& args)
+{
+    const int calcIndex = args.value(QStringLiteral("calc_index")).toInt(-1);
+    if (calcIndex < 0) {
+        return JsonResponseBuilder::buildValidationErrorResponse(QStringLiteral("ppp_info"), QStringLiteral("calc_index"), QString(), QStringLiteral("required, must be >= 0"));
+    }
+
+    const auto sessionIt = m_cpaSlotSessions.find(calcIndex);
+    if (sessionIt == m_cpaSlotSessions.end()) {
+        return JsonResponseBuilder::buildErrorResponse(
+            QStringLiteral("ppp_info"),
+            QStringLiteral("SESSION_NOT_FOUND"),
+            QStringLiteral("No existe sesion CPA para calc_index %1. Ejecute cpa_start primero.").arg(calcIndex)
+        );
+    }
+
+    const QString sessionId = sessionIt.value();
+    const CPAComputationResult result = m_cpaService->infoCPA(sessionId);
+    if (!result.valid) {
+        if (result.errorCode == QStringLiteral("cpa_expired")) {
+            QJsonObject responseArgs;
+            responseArgs[QStringLiteral("calc_index")] = calcIndex;
+            responseArgs[QStringLiteral("id")] = sessionId;
+            responseArgs[QStringLiteral("status")] = QStringLiteral("cpa_expired");
+            responseArgs[QStringLiteral("message")] = result.errorMessage;
+            return JsonResponseBuilder::buildSuccessResponse(QStringLiteral("ppp_info"), responseArgs);
+        }
+        return JsonResponseBuilder::buildErrorResponse(QStringLiteral("ppp_info"), result.errorCode, result.errorMessage);
+    }
+
+    QJsonObject responseArgs;
+    responseArgs[QStringLiteral("calc_index")] = calcIndex;
+    responseArgs[QStringLiteral("id")] = sessionId;
+    responseArgs[QStringLiteral("tcpa_sec")] = result.tcpaSeconds;
+    responseArgs[QStringLiteral("dcpa_dm")] = result.dcpaDm;
+    responseArgs[QStringLiteral("az_deg")] = result.azDeg;
+    responseArgs[QStringLiteral("status")] = QStringLiteral("active");
+
+    return JsonResponseBuilder::buildSuccessResponse(QStringLiteral("ppp_info"), responseArgs);
 }
 
 QByteArray JsonCommandHandler::handleEstacionamiento(const QJsonObject& args)
