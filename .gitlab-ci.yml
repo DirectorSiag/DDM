@@ -48,6 +48,7 @@ build_windows:
   tags:
     - ddm-test-pc
   only:
+    - develop
     - tags
   script:
     - echo "Compilando versión RELEASE en Windows..."
