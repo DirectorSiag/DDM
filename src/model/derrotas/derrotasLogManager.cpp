@@ -104,53 +104,57 @@ bool DerrotasLogManager::exceededMaxDuration(const QDateTime& now) const
     return m_recordingStartTime.secsTo(now) >= (24 * 60 * 60);
 }
 
-bool DerrotasLogManager::loadLog(const QString& filePath, QList<DerrotasLogPoint>& out_points)
-{
-    QFile file(filePath);
-    if (!file.open(QIODevice::ReadOnly | QIODevice::Text)) {
-        return false;
-    }
+// NOTA: loadLog/loadLogs solo se usaban para "cargar/representar" derrotas
+// pasadas, funcion delegada a un programa externo con cartas nauticas
+// Comentado por si el alcance cambia mas adelante. Declaracion tambien comentada en derrotasLogManager.h.
 
-    QTextStream stream(&file);
-    stream.setEncoding(QStringConverter::Utf8);
-
-    bool firstLine = true;
-    while (!stream.atEnd()) {
-        const QString line = stream.readLine();
-        if (firstLine) {
-            // Salteamos el encabezado de columnas.
-            firstLine = false;
-            continue;
-        }
-        if (line.trimmed().isEmpty()) continue;
-
-        const QStringList cols = line.split('\t');
-        if (cols.size() < 6) continue; // linea corrupta/incompleta
-
-        DerrotasLogPoint p;
-        p.trackName = cols[0];
-        p.timestamp = QDateTime::fromString(cols[1], QStringLiteral("ddMMyy HH:mm:ss"));
-        p.latDeg    = cols[2].toDouble();
-        p.lonDeg    = cols[3].toDouble();
-        p.rvDeg     = cols[4].toDouble();
-        p.vdKn      = cols[5].toDouble();
-
-        out_points.append(p);
-    }
-
-    return true;
-}
-
-bool DerrotasLogManager::loadLogs(const QStringList& filePaths, QList<DerrotasLogPoint>& out_points)
-{
-    // lectura concatenada — permite graficar una derrota prolongada sin tener que abrir los segmentos uno por uno desde la UI.
-    out_points.clear();
-    for (const QString& path : filePaths) {
-        QList<DerrotasLogPoint> segment;
-        if (!loadLog(path, segment)) {
-            return false;
-        }
-        out_points += segment;
-    }
-    return true;
-}
+// bool DerrotasLogManager::loadLog(const QString& filePath, QList<DerrotasLogPoint>& out_points)
+// {
+//     QFile file(filePath);
+//     if (!file.open(QIODevice::ReadOnly | QIODevice::Text)) {
+//         return false;
+//     }
+//
+//     QTextStream stream(&file);
+//     stream.setEncoding(QStringConverter::Utf8);
+//
+//     bool firstLine = true;
+//     while (!stream.atEnd()) {
+//         const QString line = stream.readLine();
+//         if (firstLine) {
+//             // Salteamos el encabezado de columnas.
+//             firstLine = false;
+//             continue;
+//         }
+//         if (line.trimmed().isEmpty()) continue;
+//
+//         const QStringList cols = line.split('\t');
+//         if (cols.size() < 6) continue; // linea corrupta/incompleta
+//
+//         DerrotasLogPoint p;
+//         p.trackName = cols[0];
+//         p.timestamp = QDateTime::fromString(cols[1], QStringLiteral("ddMMyy HH:mm:ss"));
+//         p.latDeg    = cols[2].toDouble();
+//         p.lonDeg    = cols[3].toDouble();
+//         p.rvDeg     = cols[4].toDouble();
+//         p.vdKn      = cols[5].toDouble();
+//
+//         out_points.append(p);
+//     }
+//
+//     return true;
+// }
+//
+// bool DerrotasLogManager::loadLogs(const QStringList& filePaths, QList<DerrotasLogPoint>& out_points)
+// {
+//     // lectura concatenada — permite graficar una derrota prolongada sin tener que abrir los segmentos uno por uno desde la UI.
+//     out_points.clear();
+//     for (const QString& path : filePaths) {
+//         QList<DerrotasLogPoint> segment;
+//         if (!loadLog(path, segment)) {
+//             return false;
+//         }
+//         out_points += segment;
+//     }
+//     return true;
+// }

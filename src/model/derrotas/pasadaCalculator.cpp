@@ -1,58 +1,64 @@
-#include "pasadaCalculator.h"
-#include "RadarMath.h"
+// NOTA: toda la implementacion de PasadaCalculator (buildTrackPoints/
+// buildWayPoints) solo se usaba para "cargar/representar" derrotas pasadas,
+// funcion delegada a un programa externo con cartas nauticas
+//Comentado por si el alcance cambia mas adelante.
 
-void PasadaCalculator::buildTrackPoints(
-    const QList<DerrotasLogPoint>& logPoints,
-    double originLatDeg,
-    double originLonDeg,
-    QList<QPointF>& out_trackPoints)
-{
-    out_trackPoints.clear();
-    for (const DerrotasLogPoint& p : logPoints) {
-        double xDm = 0.0;
-        double yDm = 0.0;
-        RadarMath::latLonToDm(originLatDeg, originLonDeg, p.latDeg, p.lonDeg, xDm, yDm);
-        out_trackPoints.append(QPointF(xDm, yDm));
-    }
-}
 
-void PasadaCalculator::buildWayPoints(
-    const QList<DerrotasLogPoint>& logPoints,
-    double originLatDeg,
-    double originLonDeg,
-    QList<DerrotasWayPoint>& out_wayPoints)
-{
-    out_wayPoints.clear();
-    if (logPoints.isEmpty())
-        return;
+//#include "pasadaCalculator.h"
+//#include "RadarMath.h"
 
-    for (int i = 0; i < logPoints.size(); ++i) {
-        const DerrotasLogPoint& p = logPoints[i];
+//void PasadaCalculator::buildTrackPoints(
+//    const QList<DerrotasLogPoint>& logPoints,
+//    double originLatDeg,
+//    double originLonDeg,
+//    QList<QPointF>& out_trackPoints)
+//{
+//    out_trackPoints.clear();
+//    for (const DerrotasLogPoint& p : logPoints) {
+//        double xDm = 0.0;
+//        double yDm = 0.0;
+//        RadarMath::latLonToDm(originLatDeg, originLonDeg, p.latDeg, p.lonDeg, xDm, yDm);
+//        out_trackPoints.append(QPointF(xDm, yDm));
+//    }
+//}
 
-        const bool isFirst = (i == 0);
-        const bool isLast  = (i == logPoints.size() - 1);
+//void PasadaCalculator::buildWayPoints(
+//    const QList<DerrotasLogPoint>& logPoints,
+//    double originLatDeg,
+//    double originLonDeg,
+//    QList<DerrotasWayPoint>& out_wayPoints)
+//{
+//    out_wayPoints.clear();
+//    if (logPoints.isEmpty())
+//        return;
 
-        // cualquier punto intermedio cuyo RV difiera del anterior genera un Way Point.
-        const bool courseChanged = !isFirst && (p.rvDeg != logPoints[i - 1].rvDeg);
+//    for (int i = 0; i < logPoints.size(); ++i) {
+//        const DerrotasLogPoint& p = logPoints[i];
 
-        if (!isFirst && !isLast && !courseChanged)
-            continue;
+//        const bool isFirst = (i == 0);
+//        const bool isLast  = (i == logPoints.size() - 1);
 
-        double xDm = 0.0;
-        double yDm = 0.0;
-        RadarMath::latLonToDm(originLatDeg, originLonDeg, p.latDeg, p.lonDeg, xDm, yDm);
+//        // cualquier punto intermedio cuyo RV difiera del anterior genera un Way Point.
+//        const bool courseChanged = !isFirst && (p.rvDeg != logPoints[i - 1].rvDeg);
 
-        DerrotasWayPoint wp;
-        wp.position   = QPointF(xDm, yDm);
-        wp.isEndpoint = isFirst || isLast;
-        wp.rvDeg      = p.rvDeg;
-        wp.vdKn       = p.vdKn;
+//        if (!isFirst && !isLast && !courseChanged)
+//            continue;
 
-        //fecha/hora solo en los extremos.
-        if (wp.isEndpoint) {
-            wp.dateTimeLabel = p.timestamp.toString(QStringLiteral("ddMMyy HH:mm:ss"));
-        }
+//        double xDm = 0.0;
+//        double yDm = 0.0;
+//        RadarMath::latLonToDm(originLatDeg, originLonDeg, p.latDeg, p.lonDeg, xDm, yDm);
 
-        out_wayPoints.append(wp);
-    }
-}
+//        DerrotasWayPoint wp;
+//        wp.position   = QPointF(xDm, yDm);
+//        wp.isEndpoint = isFirst || isLast;
+//        wp.rvDeg      = p.rvDeg;
+//        wp.vdKn       = p.vdKn;
+
+//        //fecha/hora solo en los extremos.
+//        if (wp.isEndpoint) {
+//            wp.dateTimeLabel = p.timestamp.toString(QStringLiteral("ddMMyy HH:mm:ss"));
+//        }
+
+//        out_wayPoints.append(wp);
+//    }
+//}

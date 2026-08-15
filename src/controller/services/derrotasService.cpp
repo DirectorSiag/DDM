@@ -187,23 +187,26 @@ void DerrotasService::update()
 
         const Track* track = m_ctx->findTrackById(p.recordingTrackId);
         if (track) {
-            double latDeg = 0.0, lonDeg = 0.0;
-            if (m_ctx->ownShip.valid) {
+            if (!m_ctx->ownShip.valid) {
+                m_ctx->out << QStringLiteral("[Derrotas] Advertencia: el Buque Propio no tiene geolocalizacion valida. Punto omitido en el log.\n");
+                m_ctx->out.flush();
+            } else {
+                double latDeg = 0.0, lonDeg = 0.0;
                 RadarMath::dmToLatLon(
                     m_ctx->ownShip.latitudeDeg, m_ctx->ownShip.longitudeDeg,
                     track->getX(), track->getY(),
                     latDeg, lonDeg);
+
+                DerrotasLogPoint point;
+                point.trackName = QStringLiteral("tn%1").arg(p.recordingTrackId, 4, 10, QChar('0'));
+                point.timestamp = now;
+                point.latDeg    = latDeg;
+                point.lonDeg    = lonDeg;
+                point.rvDeg     = track->getCourseDeg();
+                point.vdKn      = track->getVelocidadDmPerHour() * Track::kDmToNm;
+
+                m_logManager.writePoint(point);
             }
-
-            DerrotasLogPoint point;
-            point.trackName = QStringLiteral("tn%1").arg(p.recordingTrackId, 4, 10, QChar('0'));
-            point.timestamp = now;
-            point.latDeg    = latDeg;
-            point.lonDeg    = lonDeg;
-            point.rvDeg     = track->getCourseDeg();
-            point.vdKn      = track->getVelocidadDmPerHour() * Track::kDmToNm;
-
-            m_logManager.writePoint(point);
         }
 
         if (m_logManager.rotateIfNeeded(now)) {

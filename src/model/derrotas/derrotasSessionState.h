@@ -11,13 +11,17 @@ struct DerrotasFuturaConfig {
     double thresholdKn  = 0.0;
 };
 
-struct DerrotasWayPoint {
-    QPointF position;
-    bool    isEndpoint = false;
-    QString dateTimeLabel;
-    double  rvDeg = 0.0;
-    double  vdKn  = 0.0;
-};
+
+// NOTA: DerrotasWayPoint solo se usaba para "cargar/representar" derrotas
+// pasadas, funcion que delegaron a un programa externo con cartas nauticas.
+// Queda comentado por si el alcance cambia mas adelante.
+//struct DerrotasWayPoint {
+//    QPointF position;
+//    bool    isEndpoint = false;
+//    QString dateTimeLabel;
+//    double  rvDeg = 0.0;
+//    double  vdKn  = 0.0;
+//};
 
 // Derrotas futuras: proyección futura + alarma. Ciclo de vida propio (INICIAR/FINALIZAR/BORRAR).
 struct DerrotasFuturaState {
@@ -43,9 +47,12 @@ struct DerrotasPasadaState {
     QString   currentLogFileName;
     int       currentSegmentIndex = 0;
 
-    QString                 loadedLogFileName;
-    QList<QPointF>          loadedTrackPoints;
-    QList<DerrotasWayPoint> loadedWayPoints;
+    // NOTA: cargar/representar quedó fuera de nuestro alcance (delegado a
+    // programa externo con cartas nauticas). Comentado por si cambia mas
+    // adelante.
+    // QString                 loadedLogFileName;
+    // QList<QPointF>          loadedTrackPoints;
+    // QList<DerrotasWayPoint> loadedWayPoints;
 
     void reset() { *this = DerrotasPasadaState{}; }
 };

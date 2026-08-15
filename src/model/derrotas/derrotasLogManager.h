@@ -28,11 +28,15 @@ public:
     //tope estricto de 24hs desde el inicio de la grabacion.
     bool exceededMaxDuration(const QDateTime& now) const;
 
+
+    // NOTA: loadLog/loadLogs solo se usaban para "cargar/representar"
+    // derrotas pasadas, funcion delegada a un programa externo con cartas
+    // nauticas. Comentado por si el alcance cambia mas adelante.
     // lee un log o una lista de logs concatenados
     // (varios segmentos de una misma derrota prolongada) y devuelve los
     // puntos en orden cronologico.
-    static bool loadLog(const QString& filePath, QList<DerrotasLogPoint>& out_points);
-    static bool loadLogs(const QStringList& filePaths, QList<DerrotasLogPoint>& out_points);
+    //static bool loadLog(const QString& filePath, QList<DerrotasLogPoint>& out_points);
+    //static bool loadLogs(const QStringList& filePaths, QList<DerrotasLogPoint>& out_points);
 
     QString currentFileName() const { return m_currentFileName; }
     bool isRecording() const { return m_file.isOpen(); }

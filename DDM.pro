@@ -43,6 +43,7 @@ HEADERS += \
     src/controller/commands/deleteAreaCommand.h \
     src/controller/commands/deleteCircleCommand.h \
     src/controller/commands/cpaCommand.h \
+    src/controller/commands/derrotasCommand.h \
     src/controller/commands/displaymodecommand.h \
     src/controller/commands/estacionamientocommand.h \
     src/controller/commands/fondeoCommand.h \
@@ -154,6 +155,7 @@ SOURCES += \
     src/controller/commands/canalCommand.cpp \
     src/controller/commands/centerCommand.cpp \
     src/controller/commands/cpaCommand.cpp \
+    src/controller/commands/derrotasCommand.cpp \
     src/controller/commands/displaymodecommand.cpp \
     src/controller/commands/estacionamientocommand.cpp \
     src/controller/commands/delete_area_command.cpp \
