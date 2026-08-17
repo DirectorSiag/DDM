@@ -79,13 +79,25 @@ bool DerrotasLogManager::rotateIfNeeded(const QDateTime& now)
 
     const int trackId = m_trackId;
     const QDateTime startTime = m_recordingStartTime;
-    const int segmentMinutes = m_segmentMinutes;
 
     closeLog();
     // Reabrir sin perder registros entre el fin de un log y el inicio del
     // siguiente (criterio de aceptacion).
-    startLog(trackId, startTime, segmentMinutes);
     m_currentSegmentStartTime = now;
+    m_currentFileName = buildFileName(trackId, now);
+
+    QDir dir(m_logDirectory);
+    m_file.setFileName(dir.filePath(m_currentFileName));
+
+    if (!m_file.open(QIODevice::WriteOnly | QIODevice::Text)) {
+        return false;
+    }
+
+    m_stream.setDevice(&m_file);
+    m_stream.setEncoding(QStringConverter::Utf8);
+
+    m_stream << QStringLiteral("Nombre\tFechaHora\tLatitud\tLongitud\tRV\tVD\n");
+    m_stream.flush();
 
     return true;
 }
