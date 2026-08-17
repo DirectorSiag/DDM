@@ -188,8 +188,14 @@ void DerrotasService::update()
         const Track* track = m_ctx->findTrackById(p.recordingTrackId);
         if (track) {
             if (!m_ctx->ownShip.valid) {
-                m_ctx->out << QStringLiteral("[Derrotas] Advertencia: el Buque Propio no tiene geolocalizacion valida. Punto omitido en el log.\n");
-                m_ctx->out.flush();
+                if (!m_lastGeoWarningTime.isValid()
+                    || m_lastGeoWarningTime.secsTo(now) >= 5) {
+                    m_ctx->out << QStringLiteral(
+                        "[Derrotas] Advertencia: el Buque Propio no tiene geolocalizacion valida. Punto omitido en el log.\n"
+                        );
+                    m_ctx->out.flush();
+                    m_lastGeoWarningTime = now;
+                }
             } else {
                 double latDeg = 0.0, lonDeg = 0.0;
                 RadarMath::dmToLatLon(

@@ -31,4 +31,6 @@ private:
 
     CommandContext*    m_ctx;
     DerrotasLogManager m_logManager;
+
+    QDateTime m_lastGeoWarningTime;
 };
