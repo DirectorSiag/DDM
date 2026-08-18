@@ -3,14 +3,6 @@
 #include <QList>
 #include "dsiEntity.h"
 
-// ─────────────────────────────────────────────────────────────────────────
-// DSISessionState — Contenedor de sesión del módulo DSI.
-//
-// Vive dentro de CommandContext, igual que textSession y haSessions.
-// Igual que Texto, sin límite máximo de zonas simultáneas — se confirmó
-// (por analogía, pendiente de ratificar con el equipo) que el operador es
-// responsable de gestionar la cantidad de DSI en pantalla.
-// ─────────────────────────────────────────────────────────────────────────
 
 struct DSISessionState {
 

@@ -1,8 +1,6 @@
 #pragma once
 
 #include <QPointF>
-#include "dsiEntity.h"
-
 // ─────────────────────────────────────────────────────────────────────────
 // DSICalculator — Motor matemático puro del módulo DSI.
 //

@@ -47,6 +47,7 @@ HEADERS += \
     src/controller/commands/estacionamientocommand.h \
     src/controller/commands/fondeoCommand.h \
     src/controller/commands/haCommand.h \
+    src/controller/commands/dsiCommand.h \
     src/controller/commands/ownshipcommand.h \
     src/controller/commands/deleteCommand.h \
     src/controller/commands/deletecursorscommand.h \
@@ -68,6 +69,7 @@ HEADERS += \
     src/controller/services/cursorservice.h \
     src/controller/services/fondeoservice.h \
     src/controller/services/haService.h \
+    src/controller/services/dsiService.h \
     src/controller/services/geometryservice.h \
     src/controller/services/sitrepservice.h \
     src/controller/services/trackpppservice.h \
@@ -97,6 +99,9 @@ HEADERS += \
     src/model/ha/haCalculator.h \
     src/model/ha/haSessionState.h \
     src/model/ha/haSessionTimer.h \
+    src/model/dsi/dsiEntity.h \
+    src/model/dsi/dsiSessionState.h \
+    src/model/dsi/dsiCalculator.h \
     src/model/pppcalculator.h \
     src/model/estacionamientocalculator.h \
     src/model/decoders/concDecoder.h \
@@ -155,6 +160,7 @@ SOURCES += \
     src/controller/commands/fondeoCommand.cpp \
     src/controller/commands/haCommand.cpp \
     src/controller/commands/ownshipcommand.cpp \
+    src/controller/commands/dsiCommand.cpp \
     src/controller/services/TwoWService.cpp \
     src/controller/services/borneoService.cpp \
     src/controller/services/canalService.cpp \
@@ -183,6 +189,7 @@ SOURCES += \
     src/controller/services/ownshipservice.cpp \
     src/controller/services/obmservice.cpp \
     src/controller/services/estacionamientoservice.cpp \
+    src/controller/services/dsiService.cpp \
     src/controller/services/queryservice.cpp \
     src/controller/handlers/trackcommandhandler.cpp \
     src/controller/messagerouter.cpp \
@@ -197,6 +204,7 @@ SOURCES += \
     src/model/fondeo/fondeoCalculator.cpp \
     src/model/ha/haCalculator.cpp \
     src/model/ha/haSessionTimer.cpp \
+    src/model/dsi/dsiCalculator.cpp \
     src/model/pppcalculator.cpp \
     src/model/estacionamientocalculator.cpp \
     src/model/decoders/concDecoder.cpp \
