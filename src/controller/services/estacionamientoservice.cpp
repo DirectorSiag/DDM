@@ -183,8 +183,8 @@ bool EstacionamientoService::loadAndValidate(const QMap<QString, QString>& optio
         input.trackAId = 0;
     }
 
-    if (input.trackBId == 0) {
-        error = QStringLiteral("Error: El TRACK-B no puede ser el buque propio (0000). Debe ser un track externo");
+    if (input.trackAId == input.trackBId) {
+        error = QStringLiteral("TRACK-A y TRACK-B deben ser distintos");
         return false;
     }
 
@@ -348,6 +348,7 @@ EstacionamientoService::CalculationResult EstacionamientoService::calculateFromO
     out.rumboDeg = result.rumboDeg;
     out.timeHours = result.timeHours;
     out.timeHms = formatDurationHms(result.timeHours);
+    out.velocidadNudos = result.resultingSpeedDmPerHour * kDmToNm;
 
     // Posicion de estacionamiento actual (offset sobre TRACK-B segun azimut relativo).
     const double stationAzAbsDeg = std::fmod(stateB.courseDeg + input.azRelativeDeg, 360.0);

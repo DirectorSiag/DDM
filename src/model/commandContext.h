@@ -5,6 +5,7 @@
 #include <QPointF>
 #include <QPair>
 #include <QtMath>
+#include <algorithm>
 #include <cmath>
 #include <deque>
 #include <map>
@@ -98,6 +99,8 @@ struct CommandContext {
         double tiempoManiobra = 0.0;     // horas
         double posicionEstacionX = 0.0;  // DM
         double posicionEstacionY = 0.0;  // DM
+        double velocidadNudos = 0.0;
+        bool visible = true;             // graficado en el LPD (toggle GRAFICAR)
     };
 
     int               nextTrackId = 1;
@@ -405,6 +408,14 @@ struct CommandContext {
             input.distanceDm = session.distance;
 
             const bool useVd = session.modalidad.trimmed().compare(QStringLiteral("VD"), Qt::CaseInsensitive) == 0;
+            if (!useVd) {
+                // Cuenta regresiva real: cada tick resta el tiempo transcurrido
+                // al tiempo restante de la maniobra DU. Al llegar a 0,
+                // EstacionamientoCalculator::compute rechaza duHours<=0 y la
+                // sesion deja de actualizarse, quedando congelada en el
+                // ultimo asesoramiento valido.
+                session.valorModalidad = std::max(0.0, session.valorModalidad - dtHours);
+            }
             input.useSpeedMode = useVd;
             if (useVd) {
                 input.vdDmPerHour = session.valorModalidad / Track::kDmToNm;
@@ -416,6 +427,7 @@ struct CommandContext {
             if (result.status == EstacionamientoCalculator::Result::Valid) {
                 session.rumboDeg = result.rumboDeg;
                 session.tiempoManiobra = result.timeHours;
+                session.velocidadNudos = result.resultingSpeedDmPerHour * Track::kDmToNm;
             }
         }
     }
