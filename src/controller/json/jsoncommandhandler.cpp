@@ -72,16 +72,26 @@ void JsonCommandHandler::refreshActiveCpaSessions()
         return;
     }
 
-    for (auto it = m_cpaSlotSessions.constBegin(); it != m_cpaSlotSessions.constEnd(); ++it) {
-        const QString& sessionId = it.value();
-        if (!m_cpaService->isGraphing(sessionId)) {
+    for (auto it = m_cpaSlotSessions.begin(); it != m_cpaSlotSessions.end(); ) {
+        const QString sessionId = it.value();
+
+        // El PPP ya se produjo (tcpa paso a negativo): se termina el
+        // calculo y se borra el simbolo del LPD, igual que BORRAR, y se
+        // libera el slot. Se chequea para todas las sesiones activas, no
+        // solo las que estan graficando.
+        if (m_cpaService->checkAndHandleExpiry(sessionId)) {
+            it = m_cpaSlotSessions.erase(it);
             continue;
         }
-        const CPAComputationResult result = m_cpaService->graphCPA(sessionId);
-        if (!result.valid) {
-            qWarning() << "[JsonCommandHandler] No se pudo refrescar sesion CPA" << sessionId
-                       << "error:" << result.errorCode;
+
+        if (m_cpaService->isGraphing(sessionId)) {
+            const CPAComputationResult result = m_cpaService->graphCPA(sessionId);
+            if (!result.valid) {
+                qWarning() << "[JsonCommandHandler] No se pudo refrescar sesion CPA" << sessionId
+                           << "error:" << result.errorCode;
+            }
         }
+        ++it;
     }
 }
 

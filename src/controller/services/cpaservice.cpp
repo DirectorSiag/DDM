@@ -94,10 +94,24 @@ CPAComputationResult CPAService::computeFromResolvedStates(const CPATrackRef& tr
     const double bVx = speedBDmPerHour * std::sin(bCourseRad);
     const double bVy = speedBDmPerHour * std::cos(bCourseRad);
 
-    if (tcpaHours < 0.0) {
-        out.errorCode = QStringLiteral("cpa_expired");
-        out.errorMessage = QStringLiteral("El CPA ya ocurrió");
-        return out;
+    // PppCalculator::compute() clampea el tiempo a 0 cuando ya paso el CPA
+    // (para que el PPP de SITREP nunca muestre tiempo negativo), asi que
+    // result.timeHours nunca es negativo y "tcpaHours < 0.0" nunca se
+    // cumple acá. Para saber si el PPP ya ocurrió de verdad, recalculamos
+    // el tcpa crudo (sin clamp) con la misma fórmula, usando los mismos
+    // vectores de velocidad relativa.
+    const double r0x = xBDm - xADm;
+    const double r0y = yBDm - yADm;
+    const double vrx = bVx - aVx;
+    const double vry = bVy - aVy;
+    const double vr2 = vrx * vrx + vry * vry;
+    if (std::isfinite(vr2) && vr2 >= 1e-9) {
+        const double rawTcpaHours = -((r0x * vrx) + (r0y * vry)) / vr2;
+        if (std::isfinite(rawTcpaHours) && rawTcpaHours < 0.0) {
+            out.errorCode = QStringLiteral("cpa_expired");
+            out.errorMessage = QStringLiteral("El CPA ya ocurrió");
+            return out;
+        }
     }
 
     const double aXAtTcpa = xADm + aVx * tcpaHours;
@@ -304,6 +318,23 @@ bool CPAService::finishCPA(const QString& sessionId)
     it->state = CPASession::State::Finished;
     m_context->eraseCpaMarkerBySessionId(sessionId);
     return true;
+}
+
+bool CPAService::checkAndHandleExpiry(const QString& sessionId)
+{
+    auto it = m_sessions.find(sessionId);
+    if (it == m_sessions.end() || it->state != CPASession::State::Active) {
+        return false;
+    }
+
+    const CPAComputationResult result = computeCPA(it->trackA, it->trackB);
+    if (!result.valid && result.errorCode == QStringLiteral("cpa_expired")) {
+        // El PPP ya se produjo (tcpa paso a negativo) — se da por terminado
+        // el calculo, igual que si el operador hubiese presionado BORRAR.
+        finishCPA(sessionId);
+        return true;
+    }
+    return false;
 }
 
 CPAClearResult CPAService::clearTrack(const CPATrackRef& trackRef)
