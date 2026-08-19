@@ -8,7 +8,7 @@ namespace {
 constexpr int kDefaultSegmentMinutes = 15;
 
 // PENDIENTE de confirmar: ruta real en el SSD
-const QString kLogDirectory = QStringLiteral("./logs/derrotas");
+const QString kLogDirectory = QStringLiteral("./derrotas");
 }
 
 DerrotasService::DerrotasService(CommandContext* ctx)
@@ -152,7 +152,7 @@ void DerrotasService::update()
 {
     const QDateTime now = QDateTime::currentDateTime();
 
-    // Derrotas Futuras
+    // Derrotas Futuras — recalculo cada 80ms
     DerrotasFuturaState& f = m_ctx->derrotasSession.futura;
     if (f.active) {
         const Track* track = m_ctx->findTrackById(f.config.trackId);
@@ -175,7 +175,7 @@ void DerrotasService::update()
         }
     }
 
-    // Derrotas Pasadas
+    // Derrotas Pasadas — punto grabado cada 1 min, segmento de archivo cada 15 min
     DerrotasPasadaState& p = m_ctx->derrotasSession.pasada;
     if (p.recordingActive) {
         // F4: corte automatico a las 24hs de grabacion continua.
@@ -197,21 +197,26 @@ void DerrotasService::update()
                     m_lastGeoWarningTime = now;
                 }
             } else {
-                double latDeg = 0.0, lonDeg = 0.0;
-                RadarMath::dmToLatLon(
-                    m_ctx->ownShip.latitudeDeg, m_ctx->ownShip.longitudeDeg,
-                    track->getX(), track->getY(),
-                    latDeg, lonDeg);
+                const bool shouldWrite = !p.lastPointRecordedTime.isValid()
+                || p.lastPointRecordedTime.secsTo(now) >= 60;
+                if (shouldWrite) {
+                    double latDeg = 0.0, lonDeg = 0.0;
+                    RadarMath::dmToLatLon(
+                        m_ctx->ownShip.latitudeDeg, m_ctx->ownShip.longitudeDeg,
+                        track->getX(), track->getY(),
+                        latDeg, lonDeg);
 
-                DerrotasLogPoint point;
-                point.trackName = QStringLiteral("tn%1").arg(p.recordingTrackId, 4, 10, QChar('0'));
-                point.timestamp = now;
-                point.latDeg    = latDeg;
-                point.lonDeg    = lonDeg;
-                point.rvDeg     = track->getCourseDeg();
-                point.vdKn      = track->getVelocidadDmPerHour() * Track::kDmToNm;
+                    DerrotasLogPoint point;
+                    point.trackName = QStringLiteral("tn%1").arg(p.recordingTrackId, 4, 10, QChar('0'));
+                    point.timestamp = now;
+                    point.latDeg    = latDeg;
+                    point.lonDeg    = lonDeg;
+                    point.rvDeg     = track->getCourseDeg();
+                    point.vdKn      = track->getVelocidadDmPerHour() * Track::kDmToNm;
 
-                m_logManager.writePoint(point);
+                    m_logManager.writePoint(point);
+                    p.lastPointRecordedTime = now;
+                }
             }
         }
 

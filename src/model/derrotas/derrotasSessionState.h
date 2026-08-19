@@ -46,6 +46,7 @@ struct DerrotasPasadaState {
     QDateTime recordingStartTime;
     QString   currentLogFileName;
     int       currentSegmentIndex = 0;
+    QDateTime lastPointRecordedTime;
 
     // NOTA: cargar/representar quedó fuera de nuestro alcance (delegado a
     // programa externo con cartas nauticas). Comentado por si cambia mas
