@@ -43,11 +43,42 @@ CONFIG(debug, debug|release) {
     RE_BUILD_TYPE = Release
 }
 
-# OpenDDS deshabilitado a propósito: DDSTransport sigue siendo un stub (ver
-# PLANIFICACION.md de RE) y no todas las máquinas de Ingeniería tienen OpenDDS
-# instalado. Volver a habilitarlo cuando DDSTransport tenga implementación real.
+# OpenDDS habilitado: DDSTransport ya tiene implementación real de
+# RealTimeReplication sobre OpenDDS (rama DDS-RealTimeReplication de RE). Como no
+# todas las máquinas de Ingeniería tienen OpenDDS instalado, la decisión se toma
+# según el entorno: si setenv.sh de OpenDDS está aplicado (DDS_ROOT exportado) se
+# compila con DDS real, y si no se cae al modo stub de siempre.
+DDS_ROOT_ENV = $$(DDS_ROOT)
+
+!isEmpty(DDS_ROOT_ENV) {
+    ACE_ROOT_ENV = $$(ACE_ROOT)
+    isEmpty(ACE_ROOT_ENV): ACE_ROOT_ENV = $$DDS_ROOT_ENV/ACE_wrappers
+
+    RE_CMAKE_DDS = -DOpenDDS_DIR=$$DDS_ROOT_ENV/cmake
+
+    # libDDSTransport.a es estática: los símbolos de OpenDDS/TAO/ACE que arrastra
+    # quedan sin resolver hasta el link final de DDM, así que la lista de
+    # bibliotecas que CMake resuelve por su link interface hay que repetirla acá
+    # (es la misma que usa DDSTransportIntegrationTest en el build de RE).
+    # Se guarda en una variable y se agrega a LIBS recién después de las .a de
+    # RE: con --as-needed, una .so que se nombra antes de quien la necesita se
+    # descarta.
+    DDS_LIBS = \
+        -L$$DDS_ROOT_ENV/lib \
+        -lOpenDDS_Rtps_Udp -lOpenDDS_Rtps -lOpenDDS_Dcps \
+        -L$$ACE_ROOT_ENV/lib \
+        -lTAO_BiDirGIOP -lTAO_PI -lTAO_PortableServer -lTAO_Valuetype \
+        -lTAO_CodecFactory -lTAO_AnyTypeCode -lTAO -lACE \
+        -ldl -lrt
+
+    # Sin rpath, DDM solo corre con LD_LIBRARY_PATH del setenv.sh de OpenDDS.
+    QMAKE_RPATHDIR += $$DDS_ROOT_ENV/lib $$ACE_ROOT_ENV/lib
+} else {
+    RE_CMAKE_DDS = -DCMAKE_DISABLE_FIND_PACKAGE_OpenDDS=ON
+}
+
 re_configure.target = $$RE_BUILD/CMakeCache.txt
-re_configure.commands = cmake -S $$RE_ROOT -B $$RE_BUILD -DCMAKE_BUILD_TYPE=$$RE_BUILD_TYPE -DCMAKE_DISABLE_FIND_PACKAGE_OpenDDS=ON
+re_configure.commands = cmake -S $$RE_ROOT -B $$RE_BUILD -DCMAKE_BUILD_TYPE=$$RE_BUILD_TYPE $$RE_CMAKE_DDS
 
 # Target "phony": sin archivo real asociado, así que make siempre lo considera
 # desactualizado y vuelve a invocar cmake --build. CMake/Make deciden internamente
@@ -68,6 +99,8 @@ LIBS += \
     -L$$RE_BUILD/src/ConflictResolver -lConflictResolver \
     -L$$RE_BUILD/src/ReplicationBridge -lReplicationBridge \
     -lsqlite3
+
+LIBS += $$DDS_LIBS
 
 
 HEADERS += \
