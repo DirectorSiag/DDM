@@ -10,9 +10,6 @@ QPointF DSICalculator::resolveFromBearing(
     bool    useVerdadero,
     double  ownCourseDeg)
 {
-    // Igual que TextCalculator: si es Relativo (R), el azimut se mide
-    // desde la proa del BP — se le suma el rumbo actual para obtener el
-    // azimut verdadero equivalente antes de proyectar.
     double effectiveAzimuth = azimuthDeg;
     if (!useVerdadero) {
         effectiveAzimuth = RadarMath::normalizeAngle360(azimuthDeg + ownCourseDeg);
