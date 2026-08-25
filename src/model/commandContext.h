@@ -401,27 +401,37 @@ struct CommandContext {
             session.posicionEstacionX = stateB.xDm + session.distance * std::sin(stationAzAbsRad);
             session.posicionEstacionY = stateB.yDm + session.distance * std::cos(stationAzAbsRad);
 
+            const bool useVd = session.modalidad.trimmed().compare(QStringLiteral("VD"), Qt::CaseInsensitive) == 0;
+
+            if (useVd) {
+                // Modo VD: el asesoramiento (rumbo/velocidad/tiempo) se
+                // calcula una sola vez al iniciar (handleEstacionamiento) y
+                // de ahi en mas el TIEMPO es una cuenta regresiva fija -- no
+                // se vuelve a resolver la geometria en cada tick. Resolverla
+                // en vivo lo hacia inestable: si Track A no maniobra
+                // exactamente al rumbo calculado (lo habitual, ya que nada
+                // lo obliga a seguirlo), la solucion "si arrancara ahora"
+                // cambia bruscamente de tick a tick y el tiempo mostrado
+                // saltaba mucho mas rapido que el tiempo real.
+                session.tiempoManiobra = std::max(0.0, session.tiempoManiobra - dtHours);
+                continue;
+            }
+
+            // Modo DU: cuenta regresiva real -- cada tick resta el tiempo
+            // transcurrido al tiempo restante de la maniobra, y se vuelve a
+            // resolver el rumbo/velocidad necesarios para ese tiempo restante.
+            // Al llegar a 0, EstacionamientoCalculator::compute rechaza
+            // duHours<=0 y la sesion deja de actualizarse, quedando congelada
+            // en el ultimo asesoramiento valido.
+            session.valorModalidad = std::max(0.0, session.valorModalidad - dtHours);
+
             EstacionamientoCalculator::Input input;
             input.trackA = stateA;
             input.trackB = stateB;
             input.azRelativeDeg = session.azimuth;
             input.distanceDm = session.distance;
-
-            const bool useVd = session.modalidad.trimmed().compare(QStringLiteral("VD"), Qt::CaseInsensitive) == 0;
-            if (!useVd) {
-                // Cuenta regresiva real: cada tick resta el tiempo transcurrido
-                // al tiempo restante de la maniobra DU. Al llegar a 0,
-                // EstacionamientoCalculator::compute rechaza duHours<=0 y la
-                // sesion deja de actualizarse, quedando congelada en el
-                // ultimo asesoramiento valido.
-                session.valorModalidad = std::max(0.0, session.valorModalidad - dtHours);
-            }
-            input.useSpeedMode = useVd;
-            if (useVd) {
-                input.vdDmPerHour = session.valorModalidad / Track::kDmToNm;
-            } else {
-                input.duHours = session.valorModalidad;
-            }
+            input.useSpeedMode = false;
+            input.duHours = session.valorModalidad;
 
             const EstacionamientoCalculator::Result result = EstacionamientoCalculator::compute(input);
             if (result.status == EstacionamientoCalculator::Result::Valid) {
