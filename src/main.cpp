@@ -6,6 +6,7 @@
 #include "messagerouter.h"
 #include "obmHandler.h"
 #include "obmservice.h"
+#include <qfloat16.h>
 #include "overlayHandler.h"
 #include "json/jsoncommandhandler.h"
 #include <QCoreApplication>
@@ -38,7 +39,14 @@
 #include "displaymodecommand.h"
 #include "fondeoCommand.h"
 #include "fondeoservice.h"
+#include "canalCommand.h"
+#include "canalService.h"
 
+#include "TwoWCommand.h"
+#include "TwoWService.h"
+#include "haCommand.h"
+#include "haService.h"
+#include "borneoCommand.h"
 #include "addareacommand.h"
 #include "addpolygonocommand.h"
 #include "addCircleCommand.h"
@@ -56,26 +64,24 @@
 #include "DDSTransport/DDSTransport.h"
 #include "ReplicationBridge/CallbackBridge.h"
 
-#ifdef Q_OS_WIN
-static void enableAnsiColorsOnWindows() {
-  DWORD mode = 0;
-  HANDLE hOut = GetStdHandle(STD_OUTPUT_HANDLE);
-  if (hOut != INVALID_HANDLE_VALUE && GetConsoleMode(hOut, &mode)) {
-    mode |= 0x0004; // ENABLE_VIRTUAL_TERMINAL_PROCESSING
-    SetConsoleMode(hOut, mode);
-  }
-  HANDLE hErr = GetStdHandle(STD_ERROR_HANDLE);
-  if (hErr != INVALID_HANDLE_VALUE && GetConsoleMode(hErr, &mode)) {
-    mode |= 0x0004;
-    SetConsoleMode(hErr, mode);
-  }
-}
-#endif
+// static void enableAnsiColorsOnWindows() {
+//   DWORD mode = 0;
+//   HANDLE hOut = GetStdHandle(STD_OUTPUT_HANDLE);
+//   if (hOut != INVALID_HANDLE_VALUE && GetConsoleMode(hOut, &mode)) {
+//     mode |= 0x0004; // ENABLE_VIRTUAL_TERMINAL_PROCESSING
+//     SetConsoleMode(hOut, mode);
+//   }
+//   HANDLE hErr = GetStdHandle(STD_ERROR_HANDLE);
+//   if (hErr != INVALID_HANDLE_VALUE && GetConsoleMode(hErr, &mode)) {
+//     mode |= 0x0004;
+//     SetConsoleMode(hErr, mode);
+//   }
+// }
 
 int main(int argc, char *argv[]) {
 
 #ifdef Q_OS_WIN
-  enableAnsiColorsOnWindows();
+  // enableAnsiColorsOnWindows();
   SetConsoleCP(CP_UTF8);
   SetConsoleOutputCP(CP_UTF8);
 #endif
@@ -93,7 +99,12 @@ int main(int argc, char *argv[]) {
   auto *ctx = new CommandContext();
   auto *registry = new CommandRegistry();
   auto *parser = new CommandParser();
+  auto *obmHandler = new OBMHandler();
+  auto *obmService = new ObmService(obmHandler);
   auto *fondeoService = new FondeoService(ctx);
+  auto *twoWService = new TwoWService(ctx);
+  auto *haService = new HaService(ctx, obmService);
+  auto *canalService = new CanalService(ctx);
 
   // --- Replicación (ICD): instancia única de TrackService + listener + engine ---
   auto *trackService = new TrackService(ctx, &app);
@@ -152,6 +163,10 @@ int main(int argc, char *argv[]) {
   registry->registerCommand(QSharedPointer<ICommand>(new AddSectorCommand()));
   registry->registerCommand(QSharedPointer<ICommand>(new DeleteSectorCommand()));
   registry->registerCommand(QSharedPointer<ICommand>(new FondeoCommand()));
+  registry->registerCommand(QSharedPointer<ICommand>(new TwoWCommand()));
+  registry->registerCommand(QSharedPointer<ICommand>(new HaCommand(obmService)));
+  registry->registerCommand(QSharedPointer<ICommand>(new BorneoCommand()));
+  registry->registerCommand(QSharedPointer<ICommand>(new CanalCommand()));
 
   CommandDispatcher dispatcher(registry, parser, *ctx);
 
@@ -196,10 +211,13 @@ int main(int argc, char *argv[]) {
   QTimer timer;
   QTimer updatePositionTimer;
   QObject::connect(&updatePositionTimer, &QTimer::timeout,
-                   [ctx, fondeoService, &updatePositionTimer]() {
+                   [ctx, fondeoService, twoWService, haService, canalService, &updatePositionTimer]() {
                      double deltaTime = updatePositionTimer.interval() / 1000.0;
                      ctx->updateTracks(deltaTime);
                      fondeoService->update();
+                     twoWService->update();
+                     haService->update();
+                     canalService->update();
                    });
 
   QObject::connect(&timer, &QTimer::timeout, &timer,
@@ -210,8 +228,6 @@ int main(int argc, char *argv[]) {
                      transport->send(encoder->buildFullMessage(*ctx));
                    });
 
-  auto *obmHandler = new OBMHandler();
-  auto *obmService = new ObmService(obmHandler);
   auto *ownCurs = new OwnCurs(ctx, obmHandler);
 
   // 1. Crear los controladores
@@ -231,9 +247,10 @@ int main(int argc, char *argv[]) {
 
   // conectar señales del decoder con ownCurse
   QObject::connect(decoder, &ConcDecoder::newHandWheel, ownCurs,
-                   [ownCurs](const QPair<float, float>& hw) {
-                       ownCurs->updateHandwheel(
-                           QPair<qfloat16, qfloat16>(qfloat16(hw.first), qfloat16(hw.second)));
+                   [ownCurs](QPair<float, float> delta) {
+                     ownCurs->updateHandwheel(QPair<qfloat16, qfloat16>(
+                         static_cast<qfloat16>(delta.first),
+                         static_cast<qfloat16>(delta.second)));
                    });
   QObject::connect(decoder, &ConcDecoder::cuOrOffCentLeft, ownCurs,
                    &OwnCurs::cuOrOffCent);

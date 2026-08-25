@@ -5,6 +5,7 @@
 #include <QPointF>
 #include <QPair>
 #include <QtMath>
+#include <algorithm>
 #include <cmath>
 #include <deque>
 #include <map>
@@ -20,6 +21,11 @@
 #include "entities/polygonoentity.h"
 #include "entities/sectorEntity.h"
 #include "model/fondeo/fondeoSessionState.h"
+#include "model/2w/twoWSessionState.h"
+#include "ha/haSessionState.h"
+#include <array>
+#include "borneo/borneoSessionState.h"
+#include "model/canal/canalSessionState.h"
 
 class TrackService;
 
@@ -75,6 +81,7 @@ struct CommandContext {
         QString sessionId;
         int trackAId = -1;
         int trackBId = -1;
+        int slotNumber = 0; // ranura PPP (1-10) — identifica el marcador en el LPD
         float xDm = 0.0f;
         float yDm = 0.0f;
         bool visible = true;
@@ -94,6 +101,8 @@ struct CommandContext {
         double tiempoManiobra = 0.0;     // horas
         double posicionEstacionX = 0.0;  // DM
         double posicionEstacionY = 0.0;  // DM
+        double velocidadNudos = 0.0;
+        bool visible = true;             // graficado en el LPD (toggle GRAFICAR)
     };
 
     int               nextTrackId = 1;
@@ -106,8 +115,16 @@ struct CommandContext {
     std::deque<SectorEntity> sectors;
     std::deque<CpaMarkerState> cpaMarkers;
     std::map<int, StationingSession> stationingSessions;
+    BorneoSessionState borneoSession;
 
     FondeoSessionState fondeoSession;
+    TwoWSessionState twoWSession;
+
+    static constexpr int kMaxHaSessions = 10;
+    std::array<HaSessionState, kMaxHaSessions> haSessions;
+    int activeHaSlot = -1;  // slot actualmente seleccionado para consulta (-1 = ninguno)
+
+    CanalSessionState canalSession;
 
     double centerX = 0.0;
     double centerY = 0.0;
@@ -160,20 +177,13 @@ struct CommandContext {
     }
 
     inline CursorEntity& addCursorFront(const CursorEntity& c) {
-        qDebug() << "agregando cursor ID:" << c.getCursorId()
-                 << " Angle:" << c.getCursorAngle()
-                 << " Length:" << c.getCursorLength();
         cursors.push_front(c);
-        qDebug() << "termine de agregar";
         return cursors.front();
     }
 
     template <typename... Args>
     inline CursorEntity& emplaceCursorFront(Args&&... args) {
-        qDebug() << "agregando cursor (emplace)";
         cursors.emplace_front(std::forward<Args>(args)...);
-        qDebug() << "termine de agregar (emplace)";
-        qDebug() << "cursors size =" << cursors.size();
         return cursors.front();
     }
 
@@ -398,24 +408,43 @@ struct CommandContext {
             session.posicionEstacionX = stateB.xDm + session.distance * std::sin(stationAzAbsRad);
             session.posicionEstacionY = stateB.yDm + session.distance * std::cos(stationAzAbsRad);
 
+            const bool useVd = session.modalidad.trimmed().compare(QStringLiteral("VD"), Qt::CaseInsensitive) == 0;
+
+            if (useVd) {
+                // Modo VD: el asesoramiento (rumbo/velocidad/tiempo) se
+                // calcula una sola vez al iniciar (handleEstacionamiento) y
+                // de ahi en mas el TIEMPO es una cuenta regresiva fija -- no
+                // se vuelve a resolver la geometria en cada tick. Resolverla
+                // en vivo lo hacia inestable: si Track A no maniobra
+                // exactamente al rumbo calculado (lo habitual, ya que nada
+                // lo obliga a seguirlo), la solucion "si arrancara ahora"
+                // cambia bruscamente de tick a tick y el tiempo mostrado
+                // saltaba mucho mas rapido que el tiempo real.
+                session.tiempoManiobra = std::max(0.0, session.tiempoManiobra - dtHours);
+                continue;
+            }
+
+            // Modo DU: cuenta regresiva real -- cada tick resta el tiempo
+            // transcurrido al tiempo restante de la maniobra, y se vuelve a
+            // resolver el rumbo/velocidad necesarios para ese tiempo restante.
+            // Al llegar a 0, EstacionamientoCalculator::compute rechaza
+            // duHours<=0 y la sesion deja de actualizarse, quedando congelada
+            // en el ultimo asesoramiento valido.
+            session.valorModalidad = std::max(0.0, session.valorModalidad - dtHours);
+
             EstacionamientoCalculator::Input input;
             input.trackA = stateA;
             input.trackB = stateB;
             input.azRelativeDeg = session.azimuth;
             input.distanceDm = session.distance;
-
-            const bool useVd = session.modalidad.trimmed().compare(QStringLiteral("VD"), Qt::CaseInsensitive) == 0;
-            input.useSpeedMode = useVd;
-            if (useVd) {
-                input.vdDmPerHour = session.valorModalidad / Track::kDmToNm;
-            } else {
-                input.duHours = session.valorModalidad;
-            }
+            input.useSpeedMode = false;
+            input.duHours = session.valorModalidad;
 
             const EstacionamientoCalculator::Result result = EstacionamientoCalculator::compute(input);
             if (result.status == EstacionamientoCalculator::Result::Valid) {
                 session.rumboDeg = result.rumboDeg;
                 session.tiempoManiobra = result.timeHours;
+                session.velocidadNudos = result.resultingSpeedDmPerHour * Track::kDmToNm;
             }
         }
     }
@@ -448,6 +477,7 @@ struct CommandContext {
             }
         }
         return false;
+        
     }
 
     inline bool deletePolygon(int polygonId) {

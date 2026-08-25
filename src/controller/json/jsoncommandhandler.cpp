@@ -7,12 +7,20 @@
 #include "../services/cpaservice.h"
 #include "../services/estacionamientoservice.h"
 #include "../services/fondeoservice.h"
+#include "../services/borneoService.h"
+#include "../services/haService.h"
 #include "../services/obmservice.h"
+#include "../services/TwoWService.h"
+#include "../services/canalService.h"
 #include "jsonresponsebuilder.h"
 #include "commandContext.h"
 #include "network/iTransport.h"
 #include "model/fondeo/fondeoSessionState.h"
 #include "model/fondeo/fondeoTiposUnidad.h"
+#include "model/borneo/borneoSessionState.h"
+#include "model/borneo/buqueClaseCatalog.h"
+#include "model/ha/haSessionState.h"
+#include "model/canal/canalSessionState.h"
 #include <QJsonArray>
 
 #include <QDebug>
@@ -36,6 +44,10 @@ JsonCommandHandler::JsonCommandHandler(CommandContext* context, ITransport* tran
     m_cpaService = std::make_unique<CPAService>(m_context);
     m_estacionamientoService = std::make_unique<EstacionamientoService>(m_context);
     m_fondeoService = std::make_unique<FondeoService>(m_context);
+    m_borneoService = std::make_unique<BorneoService>(m_context);
+    m_twoWService = std::make_unique<TwoWService>(m_context);
+    m_haService = std::make_unique<HaService>(m_context, m_obmService);
+    m_canalService = std::make_unique<CanalService>(m_context);
 
     initializeCommandMap();
 }
@@ -60,16 +72,26 @@ void JsonCommandHandler::refreshActiveCpaSessions()
         return;
     }
 
-    for (auto it = m_cpaSlotSessions.constBegin(); it != m_cpaSlotSessions.constEnd(); ++it) {
-        const QString& sessionId = it.value();
-        if (!m_cpaService->isSessionActive(sessionId)) {
+    for (auto it = m_cpaSlotSessions.begin(); it != m_cpaSlotSessions.end(); ) {
+        const QString sessionId = it.value();
+
+        // El PPP ya se produjo (tcpa paso a negativo): se termina el
+        // calculo y se borra el simbolo del LPD, igual que BORRAR, y se
+        // libera el slot. Se chequea para todas las sesiones activas, no
+        // solo las que estan graficando.
+        if (m_cpaService->checkAndHandleExpiry(sessionId)) {
+            it = m_cpaSlotSessions.erase(it);
             continue;
         }
-        const CPAComputationResult result = m_cpaService->graphCPA(sessionId);
-        if (!result.valid) {
-            qWarning() << "[JsonCommandHandler] No se pudo refrescar sesion CPA" << sessionId
-                       << "error:" << result.errorCode;
+
+        if (m_cpaService->isGraphing(sessionId)) {
+            const CPAComputationResult result = m_cpaService->graphCPA(sessionId);
+            if (!result.valid) {
+                qWarning() << "[JsonCommandHandler] No se pudo refrescar sesion CPA" << sessionId
+                           << "error:" << result.errorCode;
+            }
         }
+        ++it;
     }
 }
 
@@ -174,12 +196,24 @@ void JsonCommandHandler::initializeCommandMap()
         return handlePppClearTrack(args);
     };
 
+    m_commandMap[QStringLiteral("ppp_info")] = [this](const QJsonObject& args) {
+        return handlePppInfo(args);
+    };
+
     m_commandMap[QStringLiteral("estacionamiento_calc")] = [this](const QJsonObject& args) {
         return handleEstacionamiento(args);
     };
 
     m_commandMap[QStringLiteral("estacionamiento_stop")] = [this](const QJsonObject& args) {
         return handleEstacionamientoStop(args);
+    };
+
+    m_commandMap[QStringLiteral("estacionamiento_info")] = [this](const QJsonObject& args) {
+        return handleEstacionamientoInfo(args);
+    };
+
+    m_commandMap[QStringLiteral("estacionamiento_graph")] = [this](const QJsonObject& args) {
+        return handleEstacionamientoGraph(args);
     };
 
     m_commandMap[QStringLiteral("fondeo_start")] = [this](const QJsonObject& args) {
@@ -196,6 +230,70 @@ void JsonCommandHandler::initializeCommandMap()
 
     m_commandMap[QStringLiteral("fondeo_tipos")] = [this](const QJsonObject& args) {
         return handleFondeoTipos(args);
+    };
+
+    m_commandMap[QStringLiteral("borneo_start")] = [this](const QJsonObject& args) {
+        return handleBorneoStart(args);
+    };
+
+    m_commandMap[QStringLiteral("borneo_stop")] = [this](const QJsonObject& args) {
+        return handleBorneoStop(args);
+    };
+
+    m_commandMap[QStringLiteral("borneo_info")] = [this](const QJsonObject& args) {
+        return handleBorneoInfo(args);
+    };
+
+    m_commandMap[QStringLiteral("borneo_tipos")] = [this](const QJsonObject& args) {
+        return handleBorneoTipos(args);
+    };
+
+    m_commandMap[QStringLiteral("2w_start")] = [this](const QJsonObject& args) {
+        return handleTwoWStart(args);
+    };
+
+    m_commandMap[QStringLiteral("2w_stop")] = [this](const QJsonObject& args) {
+        return handleTwoWStop(args);
+    };
+
+    m_commandMap[QStringLiteral("2w_info")] = [this](const QJsonObject& args) {
+        return handleTwoWInfo(args);
+    };
+
+    m_commandMap[QStringLiteral("2w_set_stations")] = [this](const QJsonObject& args) {
+        return handleTwoWSetStations(args);
+    };
+
+    m_commandMap[QStringLiteral("ha_start")] = [this](const QJsonObject& args) {
+        return handleHaStart(args);
+    };
+
+    m_commandMap[QStringLiteral("ha_stop")] = [this](const QJsonObject& args) {
+        return handleHaStop(args);
+    };
+
+    m_commandMap[QStringLiteral("ha_info")] = [this](const QJsonObject& args) {
+        return handleHaInfo(args);
+    };
+
+    m_commandMap[QStringLiteral("ha_list")] = [this](const QJsonObject& args) {
+        return handleHaList(args);
+    };
+
+    m_commandMap[QStringLiteral("ha_select")] = [this](const QJsonObject& args) {
+        return handleHaSelect(args);
+    };
+
+    m_commandMap[QStringLiteral("canal_start")] = [this](const QJsonObject& args) {
+        return handleCanalStart(args);
+    };
+
+    m_commandMap[QStringLiteral("canal_stop")] = [this](const QJsonObject& args) {
+        return handleCanalStop(args);
+    };
+
+    m_commandMap[QStringLiteral("canal_info")] = [this](const QJsonObject& args) {
+        return handleCanalInfo(args);
     };
 }
 
@@ -339,9 +437,20 @@ QByteArray JsonCommandHandler::handleCpaStart(const QJsonObject& args)
         return JsonResponseBuilder::buildValidationErrorResponse(QStringLiteral("cpa_start"), errorField, QString(), errorReason);
     }
 
-    const CPAComputationResult result = m_cpaService->startCPA(trackA, trackB);
+    const CPAComputationResult result = m_cpaService->startCPA(trackA, trackB, calcIndex);
     if (!result.valid) {
         return JsonResponseBuilder::buildErrorResponse(QStringLiteral("cpa_start"), result.errorCode, result.errorMessage);
+    }
+
+    // Si el slot ya tenia una sesion previa con OTRO par de tracks (el
+    // usuario cambio Track-A/B y volvio a apretar INICIAR), esa sesion
+    // vieja queda huerfana: nada la referencia mas y su marcador se
+    // quedaria pegado para siempre en el LPD. Un slot solo puede tener un
+    // calculo activo a la vez, asi que la cerramos explicitamente antes de
+    // reemplazarla.
+    const auto previousSessionIt = m_cpaSlotSessions.find(calcIndex);
+    if (previousSessionIt != m_cpaSlotSessions.end() && previousSessionIt.value() != result.sessionId) {
+        m_cpaService->finishCPA(previousSessionIt.value());
     }
 
     // Mantener la relacion slot->session para comandos ppp_graph/finish/clear_track.
@@ -354,6 +463,7 @@ QByteArray JsonCommandHandler::handleCpaStart(const QJsonObject& args)
     responseArgs[QStringLiteral("track_b")] = trackB.isOwnShip ? QJsonValue(QStringLiteral("own_ship")) : QJsonValue(trackB.trackId);
     responseArgs[QStringLiteral("tcpa_sec")] = result.tcpaSeconds;
     responseArgs[QStringLiteral("dcpa_dm")] = result.dcpaDm;
+    responseArgs[QStringLiteral("az_deg")] = result.azDeg;
     responseArgs[QStringLiteral("cpa_mid_x")] = result.cpaMidX;
     responseArgs[QStringLiteral("cpa_mid_y")] = result.cpaMidY;
     responseArgs[QStringLiteral("status")] = QStringLiteral("active");
@@ -368,6 +478,8 @@ QByteArray JsonCommandHandler::handlePppGraph(const QJsonObject& args)
         return JsonResponseBuilder::buildValidationErrorResponse(QStringLiteral("ppp_graph"), QStringLiteral("calc_index"), QString(), QStringLiteral("required, must be >= 0"));
     }
 
+    const bool enabled = args.value(QStringLiteral("enabled")).toBool(true);
+
     const auto sessionIt = m_cpaSlotSessions.find(calcIndex);
     if (sessionIt == m_cpaSlotSessions.end()) {
         return JsonResponseBuilder::buildErrorResponse(
@@ -379,7 +491,7 @@ QByteArray JsonCommandHandler::handlePppGraph(const QJsonObject& args)
 
     const QString sessionId = sessionIt.value();
 
-    const CPAComputationResult result = m_cpaService->graphCPA(sessionId);
+    const CPAComputationResult result = m_cpaService->setGraphing(sessionId, enabled);
     if (!result.valid) {
         if (result.errorCode == QStringLiteral("cpa_expired")) {
             QJsonObject responseArgs;
@@ -395,12 +507,17 @@ QByteArray JsonCommandHandler::handlePppGraph(const QJsonObject& args)
     QJsonObject responseArgs;
     responseArgs[QStringLiteral("calc_index")] = calcIndex;
     responseArgs[QStringLiteral("id")] = sessionId;
-    responseArgs[QStringLiteral("tcpa_sec")] = result.tcpaSeconds;
-    responseArgs[QStringLiteral("dcpa_dm")] = result.dcpaDm;
-    responseArgs[QStringLiteral("cpa_mid_x")] = result.cpaMidX;
-    responseArgs[QStringLiteral("cpa_mid_y")] = result.cpaMidY;
-    responseArgs[QStringLiteral("symbol")] = QStringLiteral("C3F07");
-    responseArgs[QStringLiteral("main_symbol_byte")] = 0x26;
+    responseArgs[QStringLiteral("enabled")] = enabled;
+    responseArgs[QStringLiteral("status")] = enabled ? QStringLiteral("active") : QStringLiteral("hidden");
+    if (enabled) {
+        responseArgs[QStringLiteral("tcpa_sec")] = result.tcpaSeconds;
+        responseArgs[QStringLiteral("dcpa_dm")] = result.dcpaDm;
+        responseArgs[QStringLiteral("az_deg")] = result.azDeg;
+        responseArgs[QStringLiteral("cpa_mid_x")] = result.cpaMidX;
+        responseArgs[QStringLiteral("cpa_mid_y")] = result.cpaMidY;
+        responseArgs[QStringLiteral("symbol")] = QStringLiteral("C3F07");
+        responseArgs[QStringLiteral("main_symbol_byte")] = 0x26;
+    }
 
     return JsonResponseBuilder::buildSuccessResponse(QStringLiteral("ppp_graph"), responseArgs);
 }
@@ -477,6 +594,47 @@ QByteArray JsonCommandHandler::handlePppClearTrack(const QJsonObject& args)
     responseArgs[QStringLiteral("removed_markers")] = 1;
     responseArgs[QStringLiteral("status")] = QStringLiteral("cleared");
     return JsonResponseBuilder::buildSuccessResponse(QStringLiteral("ppp_clear_track"), responseArgs);
+}
+
+QByteArray JsonCommandHandler::handlePppInfo(const QJsonObject& args)
+{
+    const int calcIndex = args.value(QStringLiteral("calc_index")).toInt(-1);
+    if (calcIndex < 0) {
+        return JsonResponseBuilder::buildValidationErrorResponse(QStringLiteral("ppp_info"), QStringLiteral("calc_index"), QString(), QStringLiteral("required, must be >= 0"));
+    }
+
+    const auto sessionIt = m_cpaSlotSessions.find(calcIndex);
+    if (sessionIt == m_cpaSlotSessions.end()) {
+        return JsonResponseBuilder::buildErrorResponse(
+            QStringLiteral("ppp_info"),
+            QStringLiteral("SESSION_NOT_FOUND"),
+            QStringLiteral("No existe sesion CPA para calc_index %1. Ejecute cpa_start primero.").arg(calcIndex)
+        );
+    }
+
+    const QString sessionId = sessionIt.value();
+    const CPAComputationResult result = m_cpaService->infoCPA(sessionId);
+    if (!result.valid) {
+        if (result.errorCode == QStringLiteral("cpa_expired")) {
+            QJsonObject responseArgs;
+            responseArgs[QStringLiteral("calc_index")] = calcIndex;
+            responseArgs[QStringLiteral("id")] = sessionId;
+            responseArgs[QStringLiteral("status")] = QStringLiteral("cpa_expired");
+            responseArgs[QStringLiteral("message")] = result.errorMessage;
+            return JsonResponseBuilder::buildSuccessResponse(QStringLiteral("ppp_info"), responseArgs);
+        }
+        return JsonResponseBuilder::buildErrorResponse(QStringLiteral("ppp_info"), result.errorCode, result.errorMessage);
+    }
+
+    QJsonObject responseArgs;
+    responseArgs[QStringLiteral("calc_index")] = calcIndex;
+    responseArgs[QStringLiteral("id")] = sessionId;
+    responseArgs[QStringLiteral("tcpa_sec")] = result.tcpaSeconds;
+    responseArgs[QStringLiteral("dcpa_dm")] = result.dcpaDm;
+    responseArgs[QStringLiteral("az_deg")] = result.azDeg;
+    responseArgs[QStringLiteral("status")] = QStringLiteral("active");
+
+    return JsonResponseBuilder::buildSuccessResponse(QStringLiteral("ppp_info"), responseArgs);
 }
 
 QByteArray JsonCommandHandler::handleEstacionamiento(const QJsonObject& args)
@@ -576,6 +734,10 @@ QByteArray JsonCommandHandler::handleEstacionamiento(const QJsonObject& args)
     session.tiempoManiobra = calcResult.timeHours;
     session.posicionEstacionX = calcResult.stationPosXDm;
     session.posicionEstacionY = calcResult.stationPosYDm;
+    session.velocidadNudos = calcResult.velocidadNudos;
+    // El marcador no debe aparecer en el LPD solo por INICIAR — recien se
+    // activa cuando el operador presiona GRAFICAR (estacionamiento_graph).
+    session.visible = false;
 
     if (!m_context->upsertStationingSession(session)) {
         return JsonResponseBuilder::buildErrorResponse(
@@ -594,6 +756,7 @@ QByteArray JsonCommandHandler::handleEstacionamiento(const QJsonObject& args)
     responseArgs[QStringLiteral("tiempo_hms")] = calcResult.timeHms;
     responseArgs[QStringLiteral("station_x_dm")] = calcResult.stationPosXDm;
     responseArgs[QStringLiteral("station_y_dm")] = calcResult.stationPosYDm;
+    responseArgs[QStringLiteral("velocidad_nudos")] = calcResult.velocidadNudos;
 
     return JsonResponseBuilder::buildSuccessResponse(QStringLiteral("estacionamiento_calc"), responseArgs);
 }
@@ -622,6 +785,74 @@ QByteArray JsonCommandHandler::handleEstacionamientoStop(const QJsonObject& args
     responseArgs[QStringLiteral("index")] = slotIndex;
     responseArgs[QStringLiteral("status")] = QStringLiteral("stopped");
     return JsonResponseBuilder::buildSuccessResponse(QStringLiteral("estacionamiento_stop"), responseArgs);
+}
+
+QByteArray JsonCommandHandler::handleEstacionamientoInfo(const QJsonObject& args)
+{
+    const int slotIndex = args.value(QStringLiteral("index")).toInt(-1);
+    if (slotIndex < 1 || slotIndex > 10) {
+        return JsonResponseBuilder::buildValidationErrorResponse(
+            QStringLiteral("estacionamiento_info"),
+            QStringLiteral("index"),
+            QString::number(slotIndex),
+            QStringLiteral("required, must be between 1 and 10")
+        );
+    }
+
+    const auto sessionIt = m_context->stationingSessions.find(slotIndex);
+    if (sessionIt == m_context->stationingSessions.end()) {
+        return JsonResponseBuilder::buildErrorResponse(
+            QStringLiteral("estacionamiento_info"),
+            QStringLiteral("SESSION_NOT_FOUND"),
+            QStringLiteral("No existe sesion de estacionamiento activa para index %1").arg(slotIndex)
+        );
+    }
+
+    const CommandContext::StationingSession& session = sessionIt->second;
+
+    QJsonObject responseArgs;
+    responseArgs[QStringLiteral("index")] = slotIndex;
+    responseArgs[QStringLiteral("rumbo")] = session.rumboDeg;
+    responseArgs[QStringLiteral("tiempo_horas")] = session.tiempoManiobra;
+    responseArgs[QStringLiteral("tiempo_hms")] = EstacionamientoService::formatDurationHms(session.tiempoManiobra);
+    responseArgs[QStringLiteral("station_x_dm")] = session.posicionEstacionX;
+    responseArgs[QStringLiteral("station_y_dm")] = session.posicionEstacionY;
+    responseArgs[QStringLiteral("velocidad_nudos")] = session.velocidadNudos;
+    responseArgs[QStringLiteral("status")] = QStringLiteral("active");
+
+    return JsonResponseBuilder::buildSuccessResponse(QStringLiteral("estacionamiento_info"), responseArgs);
+}
+
+QByteArray JsonCommandHandler::handleEstacionamientoGraph(const QJsonObject& args)
+{
+    const int slotIndex = args.value(QStringLiteral("index")).toInt(-1);
+    if (slotIndex < 1 || slotIndex > 10) {
+        return JsonResponseBuilder::buildValidationErrorResponse(
+            QStringLiteral("estacionamiento_graph"),
+            QStringLiteral("index"),
+            QString::number(slotIndex),
+            QStringLiteral("required, must be between 1 and 10")
+        );
+    }
+
+    const bool enabled = args.value(QStringLiteral("enabled")).toBool(true);
+
+    const auto sessionIt = m_context->stationingSessions.find(slotIndex);
+    if (sessionIt == m_context->stationingSessions.end()) {
+        return JsonResponseBuilder::buildErrorResponse(
+            QStringLiteral("estacionamiento_graph"),
+            QStringLiteral("SESSION_NOT_FOUND"),
+            QStringLiteral("No existe sesion de estacionamiento activa para index %1").arg(slotIndex)
+        );
+    }
+
+    sessionIt->second.visible = enabled;
+
+    QJsonObject responseArgs;
+    responseArgs[QStringLiteral("index")] = slotIndex;
+    responseArgs[QStringLiteral("enabled")] = enabled;
+    responseArgs[QStringLiteral("status")] = enabled ? QStringLiteral("active") : QStringLiteral("hidden");
+    return JsonResponseBuilder::buildSuccessResponse(QStringLiteral("estacionamiento_graph"), responseArgs);
 }
 
 QByteArray JsonCommandHandler::handleFondeoStart(const QJsonObject& args)
@@ -736,6 +967,11 @@ QByteArray JsonCommandHandler::handleFondeoInfo(const QJsonObject& /*args*/)
     responseArgs[QStringLiteral("proximo_movimiento")] = s.proximoMovimiento.label;
     responseArgs[QStringLiteral("proximo_movimiento_distancia")] = s.proximoMovimiento.distancia;
 
+    QJsonArray anillosIds;
+    for (int id : s.anillosCircleIds) anillosIds.append(id);
+    responseArgs[QStringLiteral("anillos_circle_ids")] = anillosIds;
+    responseArgs[QStringLiteral("pa_circle_id")] = s.paCircleId;
+
     return JsonResponseBuilder::buildSuccessResponse(QStringLiteral("fondeo_info"), responseArgs);
 }
 
@@ -757,4 +993,495 @@ QByteArray JsonCommandHandler::handleFondeoTipos(const QJsonObject& /*args*/)
     QJsonObject responseArgs;
     responseArgs[QStringLiteral("tipos")] = tiposArray;
     return JsonResponseBuilder::buildSuccessResponse(QStringLiteral("fondeo_tipos"), responseArgs);
+}
+
+QByteArray JsonCommandHandler::handleBorneoStart(const QJsonObject& args)
+{
+    const bool hasClase = args.contains(QStringLiteral("clase"));
+    const bool hasEslora = args.contains(QStringLiteral("eslora"));
+
+    if (hasClase == hasEslora) {
+        return JsonResponseBuilder::buildValidationErrorResponse(
+            QStringLiteral("borneo_start"),
+            QStringLiteral("clase/eslora"),
+            QString(),
+            QStringLiteral("se debe especificar exactamente uno de los dos modos: clase (catalogo) o eslora (manual)")
+        );
+    }
+
+    if (!args.contains(QStringLiteral("grilletes")) || !args.contains(QStringLiteral("profundidad"))) {
+        return JsonResponseBuilder::buildValidationErrorResponse(
+            QStringLiteral("borneo_start"),
+            QStringLiteral("grilletes/profundidad"),
+            QString(),
+            QStringLiteral("obligatorios: grilletes y profundidad")
+        );
+    }
+    const int grilletes = args.value(QStringLiteral("grilletes")).toInt();
+    const double profundidad = args.value(QStringLiteral("profundidad")).toDouble();
+
+    BorneoOperationResult result{ false, QString() };
+    if (hasClase) {
+        result = m_borneoService->startSessionByClase(args.value(QStringLiteral("clase")).toString(), grilletes, profundidad);
+    } else {
+        BorneoConfig config;
+        config.eslora = args.value(QStringLiteral("eslora")).toDouble();
+        config.grilletes = grilletes;
+        config.profundidad = profundidad;
+        result = m_borneoService->startSession(config);
+    }
+
+    if (!result.success) {
+        return JsonResponseBuilder::buildErrorResponse(
+            QStringLiteral("borneo_start"),
+            QStringLiteral("VALIDATION_ERROR"),
+            result.message
+        );
+    }
+
+    QJsonObject responseArgs;
+    responseArgs[QStringLiteral("message")] = result.message;
+    return JsonResponseBuilder::buildSuccessResponse(QStringLiteral("borneo_start"), responseArgs);
+}
+
+QByteArray JsonCommandHandler::handleBorneoStop(const QJsonObject& /*args*/)
+{
+    const BorneoOperationResult result = m_borneoService->stopSession();
+    if (!result.success) {
+        return JsonResponseBuilder::buildErrorResponse(
+            QStringLiteral("borneo_stop"),
+            QStringLiteral("NO_ACTIVE_SESSION"),
+            result.message
+        );
+    }
+
+    QJsonObject responseArgs;
+    responseArgs[QStringLiteral("message")] = result.message;
+    return JsonResponseBuilder::buildSuccessResponse(QStringLiteral("borneo_stop"), responseArgs);
+}
+
+QByteArray JsonCommandHandler::handleBorneoInfo(const QJsonObject& /*args*/)
+{
+    const BorneoSessionState& s = m_context->borneoSession;
+
+    QJsonObject responseArgs;
+    responseArgs[QStringLiteral("active")] = s.active;
+    responseArgs[QStringLiteral("eslora")] = s.config.eslora;
+    responseArgs[QStringLiteral("grilletes")] = s.config.grilletes;
+    responseArgs[QStringLiteral("profundidad")] = s.config.profundidad;
+    responseArgs[QStringLiteral("radio_calculado")] = s.radioCalculado;
+
+    return JsonResponseBuilder::buildSuccessResponse(QStringLiteral("borneo_info"), responseArgs);
+}
+
+QByteArray JsonCommandHandler::handleBorneoTipos(const QJsonObject& /*args*/)
+{
+    QJsonArray tiposArray;
+    for (const auto& clase : BuqueClaseCatalog::allClases()) {
+        QJsonObject tipoObj;
+        tipoObj[QStringLiteral("nombre")] = clase.first;
+        tipoObj[QStringLiteral("eslora")] = clase.second;
+        tiposArray.append(tipoObj);
+    }
+
+    QJsonObject responseArgs;
+    responseArgs[QStringLiteral("tipos")] = tiposArray;
+    return JsonResponseBuilder::buildSuccessResponse(QStringLiteral("borneo_tipos"), responseArgs);
+}
+
+QByteArray JsonCommandHandler::handleTwoWStart(const QJsonObject& args)
+{
+    const QJsonValue guideTrackValue = args.value(QStringLiteral("guide_track"));
+    if (!guideTrackValue.isDouble()) {
+        return JsonResponseBuilder::buildValidationErrorResponse(QStringLiteral("2w_start"), QStringLiteral("guide_track"), QString(), QStringLiteral("required integer"));
+    }
+    const int guideTrackId = guideTrackValue.toInt();
+
+    const QJsonValue bpStationValue = args.value(QStringLiteral("bp_station"));
+    if (!bpStationValue.isDouble()) {
+        return JsonResponseBuilder::buildValidationErrorResponse(QStringLiteral("2w_start"), QStringLiteral("bp_station"), QString(), QStringLiteral("required integer, 1-68"));
+    }
+    const int bpStation = bpStationValue.toInt();
+
+    double radiusNm = 1.0;
+    const QJsonValue radiusValue = args.value(QStringLiteral("radius_nm"));
+    if (!radiusValue.isUndefined()) {
+        if (!radiusValue.isDouble()) {
+            return JsonResponseBuilder::buildValidationErrorResponse(QStringLiteral("2w_start"), QStringLiteral("radius_nm"), QString(), QStringLiteral("must be numeric, > 0"));
+        }
+        radiusNm = radiusValue.toDouble();
+    }
+
+    QList<int> aliadas;
+    const QJsonValue aliadasValue = args.value(QStringLiteral("aliadas"));
+    if (!aliadasValue.isUndefined()) {
+        if (!aliadasValue.isArray()) {
+            return JsonResponseBuilder::buildValidationErrorResponse(QStringLiteral("2w_start"), QStringLiteral("aliadas"), QString(), QStringLiteral("must be an array of integers"));
+        }
+        const QJsonArray aliadasArray = aliadasValue.toArray();
+        for (const QJsonValue& entry : aliadasArray) {
+            if (!entry.isDouble()) {
+                return JsonResponseBuilder::buildValidationErrorResponse(QStringLiteral("2w_start"), QStringLiteral("aliadas"), QString(), QStringLiteral("must be an array of integers"));
+            }
+            aliadas.append(entry.toInt());
+        }
+    }
+
+    const TwoWOperationResult result = m_twoWService->startSession(guideTrackId, bpStation, radiusNm, aliadas);
+    if (!result.ok) {
+        return JsonResponseBuilder::buildErrorResponse(QStringLiteral("2w_start"), QStringLiteral("VALIDATION_ERROR"), result.message);
+    }
+
+    const TwoWSessionState& s = m_context->twoWSession;
+    QJsonObject responseArgs;
+    responseArgs[QStringLiteral("guide_track_id")] = s.guideTrackId;
+    responseArgs[QStringLiteral("bp_station")] = s.bpStation;
+    responseArgs[QStringLiteral("radius_nm")] = s.circleRadiusNm;
+    responseArgs[QStringLiteral("guide_circle_id")] = s.guideCircleId;
+    responseArgs[QStringLiteral("own_circle_id")] = s.ownCircleId;
+
+    QJsonArray allyIdsArray;
+    for (int id : s.allyCircleIds) allyIdsArray.append(id);
+    responseArgs[QStringLiteral("ally_circle_ids")] = allyIdsArray;
+
+    return JsonResponseBuilder::buildSuccessResponse(QStringLiteral("2w_start"), responseArgs);
+}
+
+QByteArray JsonCommandHandler::handleTwoWStop(const QJsonObject& /*args*/)
+{
+    const TwoWOperationResult result = m_twoWService->stopSession();
+    if (!result.ok) {
+        return JsonResponseBuilder::buildErrorResponse(QStringLiteral("2w_stop"), QStringLiteral("NOT_ACTIVE"), result.message);
+    }
+
+    QJsonObject responseArgs;
+    responseArgs[QStringLiteral("status")] = QStringLiteral("stopped");
+    return JsonResponseBuilder::buildSuccessResponse(QStringLiteral("2w_stop"), responseArgs);
+}
+
+QByteArray JsonCommandHandler::handleTwoWInfo(const QJsonObject& /*args*/)
+{
+    const TwoWSessionState& s = m_context->twoWSession;
+
+    QJsonObject responseArgs;
+    responseArgs[QStringLiteral("active")] = s.active;
+
+    if (s.active) {
+        responseArgs[QStringLiteral("guide_track_id")] = s.guideTrackId;
+        responseArgs[QStringLiteral("bp_station")] = s.bpStation;
+        responseArgs[QStringLiteral("radius_nm")] = s.circleRadiusNm;
+
+        QJsonArray aliadasArray;
+        for (int est : s.selectedStations) aliadasArray.append(est);
+        responseArgs[QStringLiteral("aliadas")] = aliadasArray;
+
+        responseArgs[QStringLiteral("guide_circle_id")] = s.guideCircleId;
+        responseArgs[QStringLiteral("own_circle_id")] = s.ownCircleId;
+
+        QJsonArray allyIdsArray;
+        for (int id : s.allyCircleIds) allyIdsArray.append(id);
+        responseArgs[QStringLiteral("ally_circle_ids")] = allyIdsArray;
+
+        responseArgs[QStringLiteral("track_valid")] = s.trackValid;
+        responseArgs[QStringLiteral("current_azimuth_deg")] = s.currentAzimuthDeg;
+        responseArgs[QStringLiteral("current_distance_nm")] = s.currentDistanceNm;
+        responseArgs[QStringLiteral("expected_azimuth_deg")] = s.expectedAzimuthDeg;
+        responseArgs[QStringLiteral("expected_distance_nm")] = s.expectedDistanceNm;
+        responseArgs[QStringLiteral("course_to_station_deg")] = s.courseToStationDeg;
+        responseArgs[QStringLiteral("eta_valid")] = s.etaValid;
+        responseArgs[QStringLiteral("time_to_station_min")] = s.timeToStationMin;
+    }
+
+    return JsonResponseBuilder::buildSuccessResponse(QStringLiteral("2w_info"), responseArgs);
+}
+
+QByteArray JsonCommandHandler::handleTwoWSetStations(const QJsonObject& args)
+{
+    const QJsonValue aliadasValue = args.value(QStringLiteral("aliadas"));
+    if (!aliadasValue.isArray()) {
+        return JsonResponseBuilder::buildValidationErrorResponse(QStringLiteral("2w_set_stations"), QStringLiteral("aliadas"), QString(), QStringLiteral("required array of integers (puede ser vacio)"));
+    }
+
+    QList<int> aliadas;
+    const QJsonArray aliadasArray = aliadasValue.toArray();
+    for (const QJsonValue& entry : aliadasArray) {
+        if (!entry.isDouble()) {
+            return JsonResponseBuilder::buildValidationErrorResponse(QStringLiteral("2w_set_stations"), QStringLiteral("aliadas"), QString(), QStringLiteral("must be an array of integers"));
+        }
+        aliadas.append(entry.toInt());
+    }
+
+    const TwoWOperationResult result = m_twoWService->setStations(aliadas);
+    if (!result.ok) {
+        return JsonResponseBuilder::buildErrorResponse(QStringLiteral("2w_set_stations"), QStringLiteral("VALIDATION_ERROR"), result.message);
+    }
+
+    const TwoWSessionState& s = m_context->twoWSession;
+    QJsonObject responseArgs;
+
+    QJsonArray aliadasOut;
+    for (int est : s.selectedStations) aliadasOut.append(est);
+    responseArgs[QStringLiteral("aliadas")] = aliadasOut;
+
+    QJsonArray allyIdsArray;
+    for (int id : s.allyCircleIds) allyIdsArray.append(id);
+    responseArgs[QStringLiteral("ally_circle_ids")] = allyIdsArray;
+
+    return JsonResponseBuilder::buildSuccessResponse(QStringLiteral("2w_set_stations"), responseArgs);
+}
+
+QByteArray JsonCommandHandler::handleHaStart(const QJsonObject& args)
+{
+    const QString mode = args.value(QStringLiteral("mode")).toString();
+
+    HaOperationResult result;
+
+    if (mode == QStringLiteral("popa")) {
+        result = m_haService->startSessionAtOwnShip();
+    } else if (mode == QStringLiteral("cursor")) {
+        result = m_haService->startSessionAtCursor();
+    } else if (mode == QStringLiteral("latlon")) {
+        static const QStringList latLonFields = {
+            QStringLiteral("lat_deg"), QStringLiteral("lat_min"), QStringLiteral("lat_sec"),
+            QStringLiteral("lon_deg"), QStringLiteral("lon_min"), QStringLiteral("lon_sec")
+        };
+        for (const QString& field : latLonFields) {
+            if (!args.contains(field)) {
+                return JsonResponseBuilder::buildValidationErrorResponse(
+                    QStringLiteral("ha_start"),
+                    field,
+                    QString(),
+                    QStringLiteral("obligatorio para mode=latlon (lat_deg/lat_min/lat_sec/lon_deg/lon_min/lon_sec)")
+                );
+            }
+        }
+        result = m_haService->startSessionAtLatLonDms(
+            args.value(QStringLiteral("lat_deg")).toInt(),
+            args.value(QStringLiteral("lat_min")).toInt(),
+            args.value(QStringLiteral("lat_sec")).toDouble(),
+            args.value(QStringLiteral("lon_deg")).toInt(),
+            args.value(QStringLiteral("lon_min")).toInt(),
+            args.value(QStringLiteral("lon_sec")).toDouble()
+        );
+    } else if (mode == QStringLiteral("bearing")) {
+        if (!args.contains(QStringLiteral("az_deg")) || !args.contains(QStringLiteral("distance_yd"))) {
+            return JsonResponseBuilder::buildValidationErrorResponse(
+                QStringLiteral("ha_start"),
+                QStringLiteral("az_deg/distance_yd"),
+                QString(),
+                QStringLiteral("obligatorios para mode=bearing")
+            );
+        }
+        result = m_haService->startSessionAtBearing(
+            args.value(QStringLiteral("az_deg")).toDouble(),
+            args.value(QStringLiteral("distance_yd")).toDouble()
+        );
+    } else {
+        return JsonResponseBuilder::buildValidationErrorResponse(
+            QStringLiteral("ha_start"),
+            QStringLiteral("mode"),
+            mode,
+            QStringLiteral("debe ser uno de: popa, cursor, latlon, bearing")
+        );
+    }
+
+    if (!result.ok) {
+        return JsonResponseBuilder::buildErrorResponse(
+            QStringLiteral("ha_start"),
+            QStringLiteral("VALIDATION_ERROR"),
+            result.message
+        );
+    }
+
+    QJsonObject responseArgs;
+    responseArgs[QStringLiteral("slot")] = m_context->activeHaSlot;
+    responseArgs[QStringLiteral("message")] = result.message;
+    return JsonResponseBuilder::buildSuccessResponse(QStringLiteral("ha_start"), responseArgs);
+}
+
+QByteArray JsonCommandHandler::handleHaStop(const QJsonObject& args)
+{
+    const int slot = args.value(QStringLiteral("slot")).toInt(-1);
+    const HaOperationResult result = m_haService->stopSession(slot);
+    if (!result.ok) {
+        return JsonResponseBuilder::buildErrorResponse(
+            QStringLiteral("ha_stop"),
+            QStringLiteral("NO_ACTIVE_SESSION"),
+            result.message
+        );
+    }
+
+    QJsonObject responseArgs;
+    responseArgs[QStringLiteral("message")] = result.message;
+    return JsonResponseBuilder::buildSuccessResponse(QStringLiteral("ha_stop"), responseArgs);
+}
+
+QByteArray JsonCommandHandler::handleHaInfo(const QJsonObject& args)
+{
+    const int slot = args.value(QStringLiteral("slot")).toInt(-1);
+    if (slot < 1 || slot > CommandContext::kMaxHaSessions) {
+        return JsonResponseBuilder::buildValidationErrorResponse(
+            QStringLiteral("ha_info"),
+            QStringLiteral("slot"),
+            QString::number(slot),
+            QStringLiteral("required, must be between 1 and 10")
+        );
+    }
+
+    const int idx = slot - 1;
+    const HaSessionState& s = m_context->haSessions[idx];
+    if (!s.active) {
+        return JsonResponseBuilder::buildErrorResponse(
+            QStringLiteral("ha_info"),
+            QStringLiteral("SESSION_NOT_FOUND"),
+            QStringLiteral("No existe emergencia HA activa para el slot %1").arg(slot)
+        );
+    }
+
+    QJsonObject responseArgs;
+    responseArgs[QStringLiteral("slot")] = slot;
+    responseArgs[QStringLiteral("active")] = s.active;
+    responseArgs[QStringLiteral("fall_point_x_dm")] = s.fallPointX;
+    responseArgs[QStringLiteral("fall_point_y_dm")] = s.fallPointY;
+    responseArgs[QStringLiteral("true_azimuth_deg")] = s.trueAzimuthDeg;
+    responseArgs[QStringLiteral("relative_bearing_deg")] = s.relativeBearingDeg;
+    responseArgs[QStringLiteral("banda")] = s.banda;
+    responseArgs[QStringLiteral("distance_yards")] = s.distanceYards;
+    responseArgs[QStringLiteral("eta_valid")] = s.etaValid;
+    responseArgs[QStringLiteral("time_to_arrival_min")] = s.timeToArrivalMin;
+    responseArgs[QStringLiteral("fall_time_local")] = s.fallTimeLocal;
+    responseArgs[QStringLiteral("fall_time_utc")] = s.fallTimeUtc;
+    responseArgs[QStringLiteral("elapsed_time")] = s.elapsedTime;
+
+    return JsonResponseBuilder::buildSuccessResponse(QStringLiteral("ha_info"), responseArgs);
+}
+
+QByteArray JsonCommandHandler::handleHaList(const QJsonObject& /*args*/)
+{
+    QJsonArray sessionsArray;
+    for (int i = 0; i < CommandContext::kMaxHaSessions; ++i) {
+        const HaSessionState& s = m_context->haSessions[i];
+        if (!s.active) continue;
+
+        QJsonObject sessionObj;
+        sessionObj[QStringLiteral("slot")] = i + 1;
+        sessionObj[QStringLiteral("fall_point_x_dm")] = s.fallPointX;
+        sessionObj[QStringLiteral("fall_point_y_dm")] = s.fallPointY;
+        sessionObj[QStringLiteral("fall_time_local")] = s.fallTimeLocal;
+        sessionsArray.append(sessionObj);
+    }
+
+    QJsonObject responseArgs;
+    responseArgs[QStringLiteral("sessions")] = sessionsArray;
+    responseArgs[QStringLiteral("active_slot")] = m_context->activeHaSlot;
+    return JsonResponseBuilder::buildSuccessResponse(QStringLiteral("ha_list"), responseArgs);
+}
+
+QByteArray JsonCommandHandler::handleHaSelect(const QJsonObject& args)
+{
+    const int slot = args.value(QStringLiteral("slot")).toInt(-1);
+    const HaOperationResult result = m_haService->selectSlot(slot);
+    if (!result.ok) {
+        return JsonResponseBuilder::buildErrorResponse(
+            QStringLiteral("ha_select"),
+            QStringLiteral("SESSION_NOT_FOUND"),
+            result.message
+        );
+    }
+
+    QJsonObject responseArgs;
+    responseArgs[QStringLiteral("slot")] = slot;
+    responseArgs[QStringLiteral("message")] = result.message;
+    return JsonResponseBuilder::buildSuccessResponse(QStringLiteral("ha_select"), responseArgs);
+}
+
+QByteArray JsonCommandHandler::handleCanalStart(const QJsonObject& args)
+{
+    CanalConfig config;
+
+    const struct { QLatin1String field; bool* setFlag; int* trackField; } kColumns[] = {
+        { QLatin1String("a"), &config.setA, &config.trackA },
+        { QLatin1String("b"), &config.setB, &config.trackB },
+        { QLatin1String("c"), &config.setC, &config.trackC },
+        { QLatin1String("d"), &config.setD, &config.trackD },
+    };
+
+    bool hasAny = false;
+    for (const auto& col : kColumns) {
+        const QJsonValue value = args.value(col.field);
+        if (value.isUndefined()) {
+            continue;
+        }
+        if (!value.isDouble()) {
+            return JsonResponseBuilder::buildValidationErrorResponse(
+                QStringLiteral("canal_start"), QString(col.field), QString(),
+                QStringLiteral("must be an integer track id")
+            );
+        }
+        *col.setFlag = true;
+        *col.trackField = value.toInt();
+        hasAny = true;
+    }
+
+    if (!hasAny) {
+        return JsonResponseBuilder::buildValidationErrorResponse(
+            QStringLiteral("canal_start"), QStringLiteral("a/b/c/d"), QString(),
+            QStringLiteral("se debe especificar al menos una columna (a, b, c o d)")
+        );
+    }
+
+    const CanalOperationResult result = m_canalService->startSession(config);
+    if (!result.success) {
+        return JsonResponseBuilder::buildErrorResponse(
+            QStringLiteral("canal_start"), QStringLiteral("VALIDATION_ERROR"), result.message
+        );
+    }
+
+    QJsonObject responseArgs;
+    responseArgs[QStringLiteral("message")] = result.message;
+    return JsonResponseBuilder::buildSuccessResponse(QStringLiteral("canal_start"), responseArgs);
+}
+
+QByteArray JsonCommandHandler::handleCanalStop(const QJsonObject& /*args*/)
+{
+    const CanalOperationResult result = m_canalService->stopSession();
+    if (!result.success) {
+        return JsonResponseBuilder::buildErrorResponse(
+            QStringLiteral("canal_stop"), QStringLiteral("NO_ACTIVE_SESSION"), result.message
+        );
+    }
+
+    QJsonObject responseArgs;
+    responseArgs[QStringLiteral("message")] = result.message;
+    return JsonResponseBuilder::buildSuccessResponse(QStringLiteral("canal_stop"), responseArgs);
+}
+
+QByteArray JsonCommandHandler::handleCanalInfo(const QJsonObject& /*args*/)
+{
+    const CanalSessionState& s = m_context->canalSession;
+    static const QString colNames[4] = {
+        QStringLiteral("A"), QStringLiteral("B"), QStringLiteral("C"), QStringLiteral("D")
+    };
+
+    QJsonArray columnas;
+    for (int i = 0; i < 4; ++i) {
+        const CanalSlot& slot = s.columnas[i];
+        QJsonObject col;
+        col[QStringLiteral("columna")] = colNames[i];
+        col[QStringLiteral("active")] = slot.active;
+        col[QStringLiteral("track_id")] = slot.trackId;
+        col[QStringLiteral("azimut_verdadero")] = slot.azimutVerdadero;
+        col[QStringLiteral("distancia_yardas")] = slot.distanciaYardas;
+        col[QStringLiteral("rumbo_verdadero")] = slot.rumboVerdadero;
+        col[QStringLiteral("time_to_arrival_min")] = slot.timeToArrivalMin;
+        col[QStringLiteral("eta_valid")] = slot.etaValid;
+        col[QStringLiteral("is_alarm_active")] = slot.isAlarmActive;
+        col[QStringLiteral("marcacion_relativa")] = slot.marcacionRelativa;
+        columnas.append(col);
+    }
+
+    QJsonObject responseArgs;
+    responseArgs[QStringLiteral("active")] = s.active;
+    responseArgs[QStringLiteral("columnas")] = columnas;
+    return JsonResponseBuilder::buildSuccessResponse(QStringLiteral("canal_info"), responseArgs);
 }

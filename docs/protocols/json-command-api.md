@@ -89,7 +89,40 @@ El objetivo del protocolo es exponer operaciones tácticas del backend (tracks, 
 
 ## Comandos soportados (mapa actual)
 
-`create_line`, `delete_line`, `list_lines`, `create_area`, `delete_area`, `create_circle`, `delete_circle`, `create_polygon`, `delete_polygon`, `list_shapes`, `create_track`, `delete_track`, `list_tracks`, `ownship_update`, `cpa_start`, `ppp_graph`, `ppp_finish`, `ppp_clear_track`, `estacionamiento_calc`, `estacionamiento_stop`, `fondeo_start`, `fondeo_stop`, `fondeo_info`, `fondeo_tipos`.
+`create_line`, `delete_line`, `list_lines`, `create_area`, `delete_area`, `create_circle`, `delete_circle`, `create_polygon`, `delete_polygon`, `list_shapes`, `create_track`, `delete_track`, `list_tracks`, `ownship_update`, `cpa_start`, `ppp_graph`, `ppp_finish`, `ppp_clear_track`, `estacionamiento_calc`, `estacionamiento_stop`, `fondeo_start`, `fondeo_stop`, `fondeo_info`, `fondeo_tipos`, `canal_start`, `canal_stop`, `canal_info`.
+
+> **Nota**: esta lista históricamente quedó desactualizada respecto al código (por ejemplo, `borneo_*`, `2w_*` y `ha_*` ya existen en `jsoncommandhandler.cpp` pero no estaban documentados aquí). Ante cualquier duda, `jsoncommandhandler.cpp::initializeCommandMap()` es la fuente de verdad.
+
+### Canal (`canal_start` / `canal_stop` / `canal_info`)
+
+Ver `docs/flows/canal.md` para el detalle completo de la lógica de negocio. Resumen del contrato JSON:
+
+- **`canal_start`**: `args` acepta hasta 4 campos opcionales `a`, `b`, `c`, `d` (enteros, IDs de track), uno por columna. Se debe enviar al menos uno. Si algún track indicado no existe, la operación falla completa (all-or-nothing) — no se cargan columnas parcialmente.
+- **`canal_stop`**: sin `args`. Equivale a `--borrar`: resetea las 4 columnas de una vez.
+- **`canal_info`**: sin `args`. Devuelve `active` (bool, sesión global) y `columnas` (array de 4 objetos, uno por A/B/C/D) con: `columna`, `active`, `track_id`, `azimut_verdadero`, `distancia_yardas`, `rumbo_verdadero`, `time_to_arrival_min`, `eta_valid`, `is_alarm_active`, `marcacion_relativa`.
+
+```json
+{
+  "command": "canal_info",
+  "args": {}
+}
+```
+
+```json
+{
+  "status": "success",
+  "command": "canal_info",
+  "args": {
+    "active": true,
+    "columnas": [
+      { "columna": "A", "active": true, "track_id": 1335, "azimut_verdadero": 350.0, "distancia_yardas": 4600.0, "rumbo_verdadero": 350.0, "time_to_arrival_min": 6.2, "eta_valid": true, "is_alarm_active": false, "marcacion_relativa": 12.0 },
+      { "columna": "B", "active": false, "track_id": -1, "azimut_verdadero": 0.0, "distancia_yardas": 0.0, "rumbo_verdadero": 0.0, "time_to_arrival_min": 0.0, "eta_valid": false, "is_alarm_active": false, "marcacion_relativa": 0.0 },
+      { "columna": "C", "active": false, "track_id": -1, "azimut_verdadero": 0.0, "distancia_yardas": 0.0, "rumbo_verdadero": 0.0, "time_to_arrival_min": 0.0, "eta_valid": false, "is_alarm_active": false, "marcacion_relativa": 0.0 },
+      { "columna": "D", "active": false, "track_id": -1, "azimut_verdadero": 0.0, "distancia_yardas": 0.0, "rumbo_verdadero": 0.0, "time_to_arrival_min": 0.0, "eta_valid": false, "is_alarm_active": false, "marcacion_relativa": 0.0 }
+    ]
+  }
+}
+```
 
 ## Formato de mensajes
 

@@ -25,6 +25,7 @@ public:
         QString timeHms;
         double stationPosXDm = 0.0;
         double stationPosYDm = 0.0;
+        double velocidadNudos = 0.0;
     };
 
     struct OperationResult {
@@ -34,6 +35,8 @@ public:
 
     CalculationResult calculateFromOptions(const QMap<QString, QString>& options) const;
     OperationResult executeFromCliArgs(const QStringList& args) const;
+
+    static QString formatDurationHms(double hours);
 
 private:
     struct CliInput {
@@ -70,7 +73,6 @@ private:
                                 CliInput& input,
                                 QString& error);
 
-    static QString formatDurationHms(double hours);
     static double knotsToDmPerHour(double knots);
 
     CommandContext* m_context = nullptr;

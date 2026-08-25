@@ -24,6 +24,10 @@ class ObmService;
 class CPAService;
 class EstacionamientoService;
 class FondeoService;
+class BorneoService;
+class TwoWService;
+class HaService;
+class CanalService;
 struct CPATrackRef;
 
 class JsonCommandHandler : public QObject
@@ -51,6 +55,10 @@ private:
     std::unique_ptr<CPAService> m_cpaService;
     std::unique_ptr<EstacionamientoService> m_estacionamientoService;
     std::unique_ptr<FondeoService> m_fondeoService;
+    std::unique_ptr<BorneoService> m_borneoService;
+    std::unique_ptr<TwoWService> m_twoWService;
+    std::unique_ptr<HaService> m_haService;
+    std::unique_ptr<CanalService> m_canalService;
     QMap<int, QString> m_cpaSlotSessions;
     QMap<QString, CommandHandler> m_commandMap;
     
@@ -64,13 +72,32 @@ private:
     QByteArray handleCpaStart(const QJsonObject& args);
     QByteArray handleEstacionamiento(const QJsonObject& args);
     QByteArray handleEstacionamientoStop(const QJsonObject& args);
+    QByteArray handleEstacionamientoInfo(const QJsonObject& args);
+    QByteArray handleEstacionamientoGraph(const QJsonObject& args);
     QByteArray handleFondeoStart(const QJsonObject& args);
     QByteArray handleFondeoStop(const QJsonObject& args);
     QByteArray handleFondeoInfo(const QJsonObject& args);
     QByteArray handleFondeoTipos(const QJsonObject& args);
+    QByteArray handleBorneoStart(const QJsonObject& args);
+    QByteArray handleBorneoStop(const QJsonObject& args);
+    QByteArray handleBorneoInfo(const QJsonObject& args);
+    QByteArray handleBorneoTipos(const QJsonObject& args);
+    QByteArray handleTwoWStart(const QJsonObject& args);
+    QByteArray handleTwoWStop(const QJsonObject& args);
+    QByteArray handleTwoWInfo(const QJsonObject& args);
+    QByteArray handleTwoWSetStations(const QJsonObject& args);
+    QByteArray handleHaStart(const QJsonObject& args);
+    QByteArray handleHaStop(const QJsonObject& args);
+    QByteArray handleHaInfo(const QJsonObject& args);
+    QByteArray handleHaList(const QJsonObject& args);
+    QByteArray handleHaSelect(const QJsonObject& args);
+    QByteArray handleCanalStart(const QJsonObject& args);
+    QByteArray handleCanalStop(const QJsonObject& args);
+    QByteArray handleCanalInfo(const QJsonObject& args);
     QByteArray handlePppGraph(const QJsonObject& args);
     QByteArray handlePppFinish(const QJsonObject& args);
     QByteArray handlePppClearTrack(const QJsonObject& args);
+    QByteArray handlePppInfo(const QJsonObject& args);
 
     bool parseTrackRefValue(const QJsonValue& value, CPATrackRef& outRef, QString& errorReason) const;
     bool parseTrackPair(const QJsonObject& args, CPATrackRef& trackA, CPATrackRef& trackB, QString& errorField, QString& errorReason) const;

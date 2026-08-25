@@ -49,6 +49,26 @@ GeometryResult GeometryService::createCircle(const QPointF& center, double radiu
     return {true, QString(), QString(), circle.getId()};
 }
 
+GeometryResult GeometryService::updateCircle(int circleId, const QPointF& center, double radius)
+{
+    if (radius <= 0.0) {
+        return {false, "INVALID_RADIUS", "El radio debe ser mayor a 0", -1};
+    }
+
+    for (CircleEntity& circle : m_context->getCircles()) {
+        if (circle.getId() == circleId) {
+            for (int cursorId : circle.getCursorIds()) {
+                m_context->eraseCursorById(cursorId);
+            }
+            circle.setCenter(center);
+            circle.setRadius(radius);
+            circle.calculateAndStoreCursors(*m_context);
+            return {true, QString(), QString(), circleId};
+        }
+    }
+    return {false, "NOT_FOUND", QString("No se encontro un circulo con ID %1").arg(circleId), circleId};
+}
+
 GeometryResult GeometryService::deleteCircle(int circleId)
 {
     if (circleId < 0) {

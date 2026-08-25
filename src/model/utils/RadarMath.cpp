@@ -37,7 +37,7 @@ qfloat16 RadarMath::calculateAngle(const QPointF& start, const QPointF& end) {
     double deg = rad * (180.0 / M_PI);
 
     // normalizeDeg360 asegura que el resultado esté entre 0 y 360
-    return qfloat16(180.0f) - static_cast<qfloat16>(normalizeDeg360(deg));
+    return static_cast<qfloat16>(180.0 - normalizeDeg360(deg));
 }
 
 qfloat16 RadarMath::calculateLength(const QPointF& start, const QPointF& end) {

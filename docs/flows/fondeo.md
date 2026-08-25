@@ -6,6 +6,8 @@ Este flujo documenta la gestión y el cálculo cinemático continuo del módulo 
 
 El sistema calcula automáticamente en cada ciclo las distancias y azimuts verdaderos hacia el PF y el PA, la marcación relativa al objetivo activo según la fase de la maniobra, y un **panel predictivo de cinco anillos** que recomienda el movimiento de máquinas requerido (ej. AD. TODA, PARA MAQ) indicando la distancia exacta en yardas al umbral de accionamiento.
 
+Al iniciar la maniobra, el módulo publica además la **representación gráfica** en el radar (ver `docs/modules/planFondeo.md`): los 5 anillos de marcha como círculos concéntricos reales (`CircleEntity`, vía `GeometryService`) centrados en el PF con radios `r1..r5` (yardas → DM), más un círculo en el PA con radio igual al umbral de llegada (50 yds). Como PF, PA y radios son estáticos durante toda la sesión, las figuras se crean una sola vez en `startSession()` y se borran en `stopSession()`; el único evento gráfico intermedio es el borrado del círculo del PA al alcanzarlo (transición a Fase 2).
+
 El PF puede ser designado mediante dos modos mutuamente excluyentes: **Track de referencia** (azimut y distancia desde un track existente) o **coordenadas GMS** (latitud y longitud en grados, minutos y segundos).
 
 El módulo es alcanzable por dos vías paralelas que convergen en el mismo `FondeoService`/`ctx->fondeoSession`: la consola CLI (`FondeoCommand`, uso interno/testing) y el pipeline JSON (`JsonCommandHandler`, comandos `fondeo_start`/`fondeo_stop`/`fondeo_info`/`fondeo_tipos`) que consume la UI de botonera (`FondeoWorkspace.qml`).
@@ -17,7 +19,7 @@ El módulo es alcanzable por dos vías paralelas que convergen en el mismo `Fond
 | Archivo | Clase/Struct | Responsabilidad |
 |---|---|---|
 | `src/controller/commands/fondeoCommand.cpp` | `FondeoCommand` | Entrada CLI para iniciar (`--track` o `--pf-lat-*`), detener (`--stop`) y consultar (`--info`) la maniobra. |
-| `src/controller/services/fondeoService.cpp` | `FondeoService` | Orquestador del ciclo de vida de la sesión (start/stop) e integrador con el bucle de actualización. |
+| `src/controller/services/fondeoService.cpp` | `FondeoService` | Orquestador del ciclo de vida de la sesión (start/stop), publicación de figuras en el radar (`createFigures`/`deleteFigures`) e integrador con el bucle de actualización. |
 | `src/model/fondeo/fondeoCalculator.cpp` | `FondeoCalculator` | Motor matemático puro encargado de proyectar los puntos y resolver la cinemática de aproximación. |
 | `src/model/fondeo/fondeoSessionState.h` | `FondeoSessionState`, `FondeoConfig` | Estructuras de datos que persisten la configuración y el estado dinámico de la maniobra. |
 | `src/model/fondeo/fondeoTiposUnidad.h` | `FondeoTiposUnidad`, `RadiosFondeo` | Catálogo de radios de marcha (r1..r5) por tipo de unidad naval. |
@@ -58,9 +60,11 @@ struct FondeoOperationResult {
 
 | Método | Firma | Descripción |
 |---|---|---|
-| Iniciar Sesión | `FondeoOperationResult startSession(const FondeoConfig& config)` | Valida reglas de negocio, resuelve las coordenadas estáticas del PF y el PA, y activa la sesión en el contexto. |
-| Finalizar Sesión | `FondeoOperationResult stopSession()` | Llama a `reset()` de la sesión y registra el evento en consola. |
-| Actualización | `void update()` | Extrae la posición y el rumbo del Buque Propio, delega los cálculos al `FondeoCalculator` y gestiona las transiciones de fase y la detención automática. |
+| Iniciar Sesión | `FondeoOperationResult startSession(const FondeoConfig& config)` | Rechaza si ya hay una sesión activa; valida reglas de negocio, resuelve las coordenadas estáticas del PF y el PA, activa la sesión en el contexto y publica las figuras (`createFigures`). |
+| Finalizar Sesión | `FondeoOperationResult stopSession()` | Borra las figuras (`deleteFigures`), llama a `reset()` de la sesión y registra el evento en consola. |
+| Actualización | `void update()` | Extrae la posición y el rumbo del Buque Propio, delega los cálculos al `FondeoCalculator` y gestiona las transiciones de fase (incluido el borrado del círculo del PA al alcanzarlo) y la detención automática. |
+| Publicar figuras | `void createFigures()` (privado) | Crea los 5 anillos (`GeometryService::createCircle`, centro `puntoFondeo`, radios `yardsToDm(r1..r5)`, type 4, verde) y el círculo del PA (centro `puntoAuxiliar`, radio `yardsToDm(50)`, type 5); persiste los IDs en `anillosCircleIds`/`paCircleId`. |
+| Borrar figuras | `void deleteFigures()` (privado) | Borra por ID todos los círculos publicados y limpia los campos de estado. |
 
 
 ### FondeoCalculator
@@ -103,12 +107,13 @@ flowchart TD
     SVC --> D{"¿Validaciones de negocio OK?"}
     D -->|No| E[Retornar error con mensaje] --> FE1([Fin con error])
     D -->|Sí| F[FondeoCalculator::resolvePuntoFondeo + resolvePuntoAuxiliar]
-    F --> G[Persistir PF, PA y config en ctx->fondeoSession] --> Z1([Sesión Iniciada])
+    F --> G[Persistir PF, PA y config en ctx->fondeoSession]
+    G --> G2["createFigures(): 5 anillos en PF + círculo PA"] --> Z1([Sesión Iniciada])
 
     H -->|No| I[Informar: maniobra no activa] --> ZF([Mostrar en Consola])
     H -->|Sí| J[Construir reporte con estado actual] --> ZF([Mostrar en Consola])
 
-    K --> L[fondeoSession.reset] --> Z2([Maniobra Finalizada])
+    K --> L2["deleteFigures(): borra anillos + PA"] --> L[fondeoSession.reset] --> Z2([Maniobra Finalizada])
 
     classDef error fill:#ffcccc,stroke:#cc0000,color:#800000
     classDef ok fill:#ccffcc,stroke:#007700,color:#004400
@@ -149,7 +154,7 @@ Es la vía que usa la UI de botonera (`BackendService.iniciarFondeo/detenerFonde
 |---|---|---|
 | `fondeo_start` | `track_id`/`track_az`/`track_dt` (modo Track) **o** `pf_lat_deg/min/sec`, `pf_lon_deg/min/sec` (modo GMS, mutuamente excluyentes) + `pa_az`, `pa_dt`, `r1`..`r5` | Valida presencia/exclusividad de modo y llama `FondeoService::startSession`. |
 | `fondeo_stop` | — | Llama `FondeoService::stopSession`. |
-| `fondeo_info` | — | Lectura pura de `ctx->fondeoSession` (sin mutar estado): `active`, `pa_alcanzado`, `distancia_pf`, `azimut_pf`, `distancia_pa`, `azimut_pa`, `azimut_relativo`, `distancia_relativa`, `movimiento_actual` (+ `_distancia`), `proximo_movimiento` (+ `_distancia`). Pensado para polling periódico desde la UI (no hay push espontáneo de JSON en el sistema). |
+| `fondeo_info` | — | Lectura pura de `ctx->fondeoSession` (sin mutar estado): `active`, `pa_alcanzado`, `distancia_pf`, `azimut_pf`, `distancia_pa`, `azimut_pa`, `azimut_relativo`, `distancia_relativa`, `movimiento_actual` (+ `_distancia`), `proximo_movimiento` (+ `_distancia`), `anillos_circle_ids` (array de 5, orden r1..r5) y `pa_circle_id` (`-1` si no existe o ya fue alcanzado). Pensado para polling periódico desde la UI (no hay push espontáneo de JSON en el sistema). |
 | `fondeo_tipos` | — | Devuelve el catálogo completo de `FondeoTiposUnidad::todosLosTipos()` con sus 5 radios cada uno. Fetch único (dato de doctrina estático, no se repollea). |
 
 1. `JsonCommandHandler::handleFondeoStart` parsea `args` a mano (mismo estilo que `handleEstacionamiento`, sin `JsonValidator`) construyendo un `FondeoConfig`.
@@ -173,7 +178,7 @@ flowchart TD
     T4 --> T5["FondeoCalculator::calculateDistAzPfPa()"]
     T5 --> T6{"¿distanciaPA <= 50.0 y !paAlcanzado?"}
 
-    T6 -->|Sí| T7[paAlcanzado = true — Transición a Fase 2]
+    T6 -->|Sí| T7[paAlcanzado = true — Transición a Fase 2 — borra círculo del PA]
     T6 -->|No| T8{"¿paAlcanzado y distanciaPF <= 15.0?"}
 
     T7 --> T8
@@ -218,6 +223,7 @@ Mantiene la separación limpia entre datos estáticos fijados al inicio y métri
 
 - **Control de sesión**: `active`, `paAlcanzado` (bandera de transición de fase).
 - **Puntos estáticos**: `puntoFondeo` (QPointF en DM), `puntoAuxiliar` (QPointF en DM).
+- **Figuras publicadas**: `anillosCircleIds` (5 IDs de `CircleEntity`, orden paralelo a r1..r5), `paCircleId` (`NO_CIRCLE = -1` si no existe).
 - **Configuración**: `config` (instancia de `FondeoConfig`).
 - **Telemetría dinámica**: `distanciaPF`, `azimutPF`, `distanciaPA`, `azimutPA` (distancias en yardas, azimuts en grados).
 - **Asesoramiento activo**: `azimutRelativo`, `distanciaRelativa` (referenciados al objetivo de la fase actual: PA o PF).
@@ -228,18 +234,20 @@ Mantiene la separación limpia entre datos estáticos fijados al inicio y métri
 ## Manejo de Errores y Casos de Borde
 
 - **Validación de Señal Geográfica (GPS)**: Al iniciar la maniobra usando coordenadas GMS, el servicio verifica primero que el Buque Propio (`m_ctx->ownShip`) tenga datos reales de posicionamiento. Si la unidad no tiene señal o su posición no es válida, se aborta el comando para evitar proyectar coordenadas desde el origen `(0,0)`.
+- **Sesión ya activa**: `FondeoService::startSession` rechaza un segundo inicio mientras haya una maniobra en curso (antes hacía `reset()` implícito; con figuras publicadas eso dejaría círculos y cursores huérfanos en el radar). Para reconfigurar: `fondeo --stop` / `fondeo_stop` y reiniciar.
 - **Exclusividad mutua de modos**: `FondeoCommand` rechaza de inmediato si se detectan simultáneamente `--track` y `--pf-lat-deg`, o si no se detecta ninguno de los dos.
 - **Radios no decrecientes**: `FondeoService` rechaza la sesión si no se cumple estrictamente `r1 > r2 > r3 > r4 > r5 > 0`, protegiendo la lógica de la máquina de estados del panel predictivo.
 - **Azimut del PA fuera de rango**: `FondeoService` valida que `paAz ∈ [0, 360)` antes de iniciar.
 - **Track de referencia inexistente**: Si el modo Track está activo y `findTrackById(config.trackId)` devuelve `nullptr`, la sesión no se inicia y se retorna un error descriptivo.
 - **Proyección estática e inmunidad a pérdida de track**: Las coordenadas del PF y el PA se calculan una sola vez durante la inicialización. Si el track de referencia desaparece durante la maniobra, los puntos persisten sin riesgo de punteros nulos, y la maniobra continúa normalmente.
 - **Normalización angular**: Todos los azimuts de salida se normalizan al rango `[0, 360)` mediante `RadarMath::normalizeAngle360` y la operación módulo, previniendo valores negativos o ≥360° en la interfaz.
-- **Detención automática por éxito**: Cuando `paAlcanzado == true` y `distanciaPF <= 15.0`, el servicio imprime un mensaje de éxito y llama a `stopSession()` automáticamente, sin intervención del operador.
+- **Detención automática por éxito**: Cuando `paAlcanzado == true` y `distanciaPF <= 15.0`, el servicio imprime un mensaje de éxito y llama a `stopSession()` automáticamente, sin intervención del operador — lo que borra también todas las figuras publicadas.
 
 ---
 
 ## Módulos Relacionados
 
+- `docs/modules/planFondeo.md` — Diseño de la conexión cálculo → figuras (anillos + PA), decisiones y puntos abiertos.
 - `src/model/commandContext.h` — Estructura general de ejecución.
 - `docs/protocols/json-command-api.md` — Protocolo JSON general (`fondeo_start`/`fondeo_stop`/`fondeo_info`/`fondeo_tipos` forman parte del mapa de comandos de `JsonCommandHandler`).
 - `docs/modules/commands.md` — Registro CLI de `FondeoCommand` en `CommandRegistry`.
