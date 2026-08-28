@@ -13,6 +13,8 @@
 #include <QObject>
 #include <QTextStream>
 #include <QThread>
+#include <atomic>
+#include <cstdlib>
 
 #ifdef Q_OS_WIN
 #include <windows.h>
@@ -178,8 +180,6 @@ int main(int argc, char *argv[]) {
                    &StdinReader::readLoop);
   QObject::connect(&reader, &StdinReader::lineRead, &dispatcher,
                    &CommandDispatcher::onLine);
-  QObject::connect(&dispatcher, &CommandDispatcher::quitRequested, &app,
-                   &QCoreApplication::quit);
   QObject::connect(&reader, &StdinReader::finished, &ioThread, &QThread::quit);
 
   QTextStream out(stdout);
@@ -287,6 +287,33 @@ int main(int argc, char *argv[]) {
       qDebug() << t->toString();
   });
 
+  // Secuencia de apagado ordenado. Se corta la generación de eventos (timers),
+  // luego el transporte con el juego, y por último ReplicationEngine::stop()
+  // —bloqueante: hace join del Worker Thread y disconnect() del participante
+  // DDS (baja SPDP para los peers)—. El reset() corre ~ReplicationEngine, que
+  // cierra el handle SQLite de tactical_db.db. Idempotente: lo invocan tanto el
+  // camino de `exit` del operador como el retorno normal de app.exec().
+  auto shutdown = [&]() {
+    static std::atomic<bool> done{false};
+    if (done.exchange(true))
+      return;
+    timer.stop();
+    updatePositionTimer.stop();
+    transport->stop();
+    replicationEngine->stop();
+    replicationEngine.reset();
+  };
+
+  // `exit`/`salir` en la consola: el dispatcher emite quitRequested() desde el
+  // hilo Qt. app.exec() no alcanza a retornar porque el hilo de StdinReader
+  // sigue bloqueado en readLine() (ioThread.wait() se colgaría), así que se
+  // fuerza la salida con _Exit — pero recién después de cerrar RE/DDS y SQLite.
+  QObject::connect(&dispatcher, &CommandDispatcher::quitRequested, &app,
+                   [&shutdown]() {
+                     shutdown();
+                     std::_Exit(0);
+                   });
+
   timer.start(40);
   updatePositionTimer.start(80);
 
@@ -294,7 +321,7 @@ int main(int argc, char *argv[]) {
   const int code = app.exec();
   ioThread.wait();
 
-  replicationEngine->stop();
+  shutdown();
 
   return code;
 }

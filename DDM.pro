@@ -305,6 +305,13 @@ SOURCES += \
     src/replicationEngine/replicationListener.cpp \
     src/view/stdinreader.cpp
 
-
-
+# --- Deploy configs junto al binario ------------------------------------------
+# ddm.ini debe estar en applicationDirPath; opendds.ini sigue al cwd /
+# OPENDDS_CONFIG_DIR. Ambos son gitignored (artefactos de despliegue), por eso
+# cada copy va guardado con [ -f ]: en un checkout limpio sin .ini no rompe.
+deployinis.commands = \
+    ([ -f $$PWD/ddm.ini ] && cp -f $$PWD/ddm.ini $$OUT_PWD/ || true) && \
+    ([ -f $$PWD/opendds.ini ] && cp -f $$PWD/opendds.ini $$OUT_PWD/ || true)
+QMAKE_EXTRA_TARGETS += deployinis
+POST_TARGETDEPS += deployinis
 
