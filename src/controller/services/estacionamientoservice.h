@@ -10,7 +10,7 @@ class EstacionamientoService
 {
 public:
     explicit EstacionamientoService(CommandContext* context);
-
+    //estacionamiento
     struct CalculationResult {
         bool success = false;
         QString errorMessage;
