@@ -277,6 +277,23 @@ struct CommandContext {
         return stationingSessions.erase(slotIndex) > 0;
     }
 
+    // Al borrar un track, cualquier estacionamiento que lo tuviera como
+    // TRACK-A o TRACK-B queda huerfano (resolveState() en updateTracks()
+    // deja de encontrarlo y la sesion se congela). Se finaliza el calculo
+    // eliminando la sesion, igual que un estacionamiento_stop manual.
+    inline int removeStationingSessionsByTrackId(int trackId) {
+        int removed = 0;
+        for (auto it = stationingSessions.begin(); it != stationingSessions.end();) {
+            if (it->second.trackAId == trackId || it->second.trackBId == trackId) {
+                it = stationingSessions.erase(it);
+                ++removed;
+            } else {
+                ++it;
+            }
+        }
+        return removed;
+    }
+
     // transport is declared above; do not redeclare here.
     inline Track* getNextTrackById(int currentId) {
         if (tracks.empty()) return nullptr;
