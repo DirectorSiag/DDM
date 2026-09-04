@@ -161,8 +161,12 @@ Valores de ddm.ini:
        cada objeto replicado. Es un campo de AUDITORÍA: no participa de la
        resolución de conflictos (el ConflictResolver es last-write-wins por
        last_updated) y los GUID son UUID v4, independientes de la consola.
-       Repetirlo entre dos consolas ensucia la trazabilidad pero no corrompe
-       datos ni genera colisiones. Si falta, se usa 0 con un warning.
+       Aunque no participe del LWW, TIENE QUE SER ÚNICO EN LA RED: dos consolas
+       con el mismo console_id no se ven entre sí — cada una descarta lo que
+       publica la otra, y no hay error ni línea de log que lo avise. Si falta,
+       se usa 0 con un warning, así que dos consolas que se lo olvidan quedan
+       las dos en 0 y tampoco se ven. Convención de asignación: el último octeto
+       de la IP de la consola (10.0.0.231 -> console_id=231).
 
 opendds.ini fija descubrimiento RTPS puro y transporte rtps_udp (SAD 4.3 de RE).
 Los valores de la plantilla son los de referencia de RE
@@ -202,7 +206,13 @@ NetworkStatus::TRANSPORT_FAILED: sin replicar, pero con aspecto de normal. El
 2. La consola arranca pero nunca ve a las demás
 
 Revisar, en este orden: (a) que el domain_id sea el mismo en todas; (b) que
-apareció la línea "conectado al dominio N"; (c) que la red enrute multicast.
+apareció la línea "conectado al dominio N"; (c) que la red enrute multicast;
+(d) que no haya dos consolas con el mismo console_id.
+
+El síntoma distingue los casos: si la consola no ve a NINGUNA, es domain_id o
+multicast. Si ve a todas MENOS A UNA, es console_id repetido con esa. Un
+console_id duplicado sólo te deja ciego respecto de tu gemela; los otros dos
+fallos te aíslan de todos.
 
 3. "Configuration: no se encontró .../ddm.ini" y DDM sale con código 1
 
