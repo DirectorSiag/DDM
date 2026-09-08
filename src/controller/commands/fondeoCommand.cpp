@@ -42,9 +42,8 @@ CommandResult FondeoCommand::execute(const CommandInvocation& inv, CommandContex
         response += QStringLiteral("--> AZ. RELATIVO: %1 grados | DIST RELATIVA: %2\n")
                         .arg(s.azimutRelativo, 0, 'f', 1).arg(s.distanciaRelativa, 0, 'f', 1);
         response += QStringLiteral("------------------------------------------------------\n");
-        response += QStringLiteral("MOV. ACTUAL: %1\n").arg(s.movimientoActual.label);
-        response += QStringLiteral("PROXIMO MOV: %1\n").arg(s.proximoMovimiento.label);
-        response += QStringLiteral("------------------------------------------------------\n");
+        response += QStringLiteral("MOV. ACTUAL: %1 (%2 yds)\n").arg(s.movimientoActual.label).arg(s.movimientoActual.distancia, 0, 'f', 1);
+        response += QStringLiteral("PROXIMO MOV: %1 (%2 yds)\n").arg(s.proximoMovimiento.label).arg(s.proximoMovimiento.distancia, 0, 'f', 1);
         QStringList anillosIds;
         for (int id : s.anillosCircleIds) anillosIds << QString::number(id);
         response += QStringLiteral("ANILLOS (r1..r5): %1 | PA: %2\n")
