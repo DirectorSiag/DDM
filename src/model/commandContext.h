@@ -19,6 +19,7 @@
 #include "entities/areaEntity.h"
 #include "entities/circleEntity.h"
 #include "entities/polygonoentity.h"
+#include "texto/textSessionState.h"
 #include "entities/sectorEntity.h"
 #include "model/fondeo/fondeoSessionState.h"
 #include "model/2w/twoWSessionState.h"
@@ -125,6 +126,8 @@ struct CommandContext {
 
     CanalSessionState canalSession;
     DerrotasSessionState derrotasSession;
+
+    TextSessionState textSession;
 
     double centerX = 0.0;
     double centerY = 0.0;
