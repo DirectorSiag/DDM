@@ -1,7 +1,5 @@
 #pragma once
-
 #include "iCommand.h"
-
 class OwnShipCommand : public ICommand
 {
     Q_OBJECT
@@ -16,6 +14,5 @@ public:
             "ownship setgeodms <latDeg> <latMin> <latSec> <lonDeg> <lonMin> <lonSec>"
             );
     }
-
     CommandResult execute(const CommandInvocation& inv, CommandContext& ctx) const override;
 };

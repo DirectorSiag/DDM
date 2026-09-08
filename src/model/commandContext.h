@@ -5,6 +5,7 @@
 #include <QPointF>
 #include <QPair>
 #include <QtMath>
+#include <algorithm>
 #include <cmath>
 #include <deque>
 #include <map>
@@ -18,6 +19,7 @@
 #include "entities/areaEntity.h"
 #include "entities/circleEntity.h"
 #include "entities/polygonoentity.h"
+#include "texto/textSessionState.h"
 #include "entities/sectorEntity.h"
 #include "model/fondeo/fondeoSessionState.h"
 #include "model/2w/twoWSessionState.h"
@@ -26,6 +28,7 @@
 #include <array>
 #include "borneo/borneoSessionState.h"
 #include "model/canal/canalSessionState.h"
+#include "model/derrotas/derrotasSessionState.h"
 
 
 struct CommandContext {
@@ -100,6 +103,8 @@ struct CommandContext {
         double tiempoManiobra = 0.0;     // horas
         double posicionEstacionX = 0.0;  // DM
         double posicionEstacionY = 0.0;  // DM
+        double velocidadNudos = 0.0;
+        bool visible = true;             // graficado en el LPD (toggle GRAFICAR)
     };
 
     int               nextTrackId = 1;
@@ -123,6 +128,9 @@ struct CommandContext {
     int activeHaSlot = -1;  // slot actualmente seleccionado para consulta (-1 = ninguno)
 
     CanalSessionState canalSession;
+    DerrotasSessionState derrotasSession;
+
+    TextSessionState textSession;
 
     double centerX = 0.0;
     double centerY = 0.0;
@@ -277,6 +285,23 @@ struct CommandContext {
         return stationingSessions.erase(slotIndex) > 0;
     }
 
+    // Al borrar un track, cualquier estacionamiento que lo tuviera como
+    // TRACK-A o TRACK-B queda huerfano (resolveState() en updateTracks()
+    // deja de encontrarlo y la sesion se congela). Se finaliza el calculo
+    // eliminando la sesion, igual que un estacionamiento_stop manual.
+    inline int removeStationingSessionsByTrackId(int trackId) {
+        int removed = 0;
+        for (auto it = stationingSessions.begin(); it != stationingSessions.end();) {
+            if (it->second.trackAId == trackId || it->second.trackBId == trackId) {
+                it = stationingSessions.erase(it);
+                ++removed;
+            } else {
+                ++it;
+            }
+        }
+        return removed;
+    }
+
     // transport is declared above; do not redeclare here.
     inline Track* getNextTrackById(int currentId) {
         if (tracks.empty()) return nullptr;
@@ -401,24 +426,43 @@ struct CommandContext {
             session.posicionEstacionX = stateB.xDm + session.distance * std::sin(stationAzAbsRad);
             session.posicionEstacionY = stateB.yDm + session.distance * std::cos(stationAzAbsRad);
 
+            const bool useVd = session.modalidad.trimmed().compare(QStringLiteral("VD"), Qt::CaseInsensitive) == 0;
+
+            if (useVd) {
+                // Modo VD: el asesoramiento (rumbo/velocidad/tiempo) se
+                // calcula una sola vez al iniciar (handleEstacionamiento) y
+                // de ahi en mas el TIEMPO es una cuenta regresiva fija -- no
+                // se vuelve a resolver la geometria en cada tick. Resolverla
+                // en vivo lo hacia inestable: si Track A no maniobra
+                // exactamente al rumbo calculado (lo habitual, ya que nada
+                // lo obliga a seguirlo), la solucion "si arrancara ahora"
+                // cambia bruscamente de tick a tick y el tiempo mostrado
+                // saltaba mucho mas rapido que el tiempo real.
+                session.tiempoManiobra = std::max(0.0, session.tiempoManiobra - dtHours);
+                continue;
+            }
+
+            // Modo DU: cuenta regresiva real -- cada tick resta el tiempo
+            // transcurrido al tiempo restante de la maniobra, y se vuelve a
+            // resolver el rumbo/velocidad necesarios para ese tiempo restante.
+            // Al llegar a 0, EstacionamientoCalculator::compute rechaza
+            // duHours<=0 y la sesion deja de actualizarse, quedando congelada
+            // en el ultimo asesoramiento valido.
+            session.valorModalidad = std::max(0.0, session.valorModalidad - dtHours);
+
             EstacionamientoCalculator::Input input;
             input.trackA = stateA;
             input.trackB = stateB;
             input.azRelativeDeg = session.azimuth;
             input.distanceDm = session.distance;
-
-            const bool useVd = session.modalidad.trimmed().compare(QStringLiteral("VD"), Qt::CaseInsensitive) == 0;
-            input.useSpeedMode = useVd;
-            if (useVd) {
-                input.vdDmPerHour = session.valorModalidad / Track::kDmToNm;
-            } else {
-                input.duHours = session.valorModalidad;
-            }
+            input.useSpeedMode = false;
+            input.duHours = session.valorModalidad;
 
             const EstacionamientoCalculator::Result result = EstacionamientoCalculator::compute(input);
             if (result.status == EstacionamientoCalculator::Result::Valid) {
                 session.rumboDeg = result.rumboDeg;
                 session.tiempoManiobra = result.timeHours;
+                session.velocidadNudos = result.resultingSpeedDmPerHour * Track::kDmToNm;
             }
         }
     }

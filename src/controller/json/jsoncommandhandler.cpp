@@ -72,16 +72,26 @@ void JsonCommandHandler::refreshActiveCpaSessions()
         return;
     }
 
-    for (auto it = m_cpaSlotSessions.constBegin(); it != m_cpaSlotSessions.constEnd(); ++it) {
-        const QString& sessionId = it.value();
-        if (!m_cpaService->isGraphing(sessionId)) {
+    for (auto it = m_cpaSlotSessions.begin(); it != m_cpaSlotSessions.end(); ) {
+        const QString sessionId = it.value();
+
+        // El PPP ya se produjo (tcpa paso a negativo): se termina el
+        // calculo y se borra el simbolo del LPD, igual que BORRAR, y se
+        // libera el slot. Se chequea para todas las sesiones activas, no
+        // solo las que estan graficando.
+        if (m_cpaService->checkAndHandleExpiry(sessionId)) {
+            it = m_cpaSlotSessions.erase(it);
             continue;
         }
-        const CPAComputationResult result = m_cpaService->graphCPA(sessionId);
-        if (!result.valid) {
-            qWarning() << "[JsonCommandHandler] No se pudo refrescar sesion CPA" << sessionId
-                       << "error:" << result.errorCode;
+
+        if (m_cpaService->isGraphing(sessionId)) {
+            const CPAComputationResult result = m_cpaService->graphCPA(sessionId);
+            if (!result.valid) {
+                qWarning() << "[JsonCommandHandler] No se pudo refrescar sesion CPA" << sessionId
+                           << "error:" << result.errorCode;
+            }
         }
+        ++it;
     }
 }
 
@@ -196,6 +206,14 @@ void JsonCommandHandler::initializeCommandMap()
 
     m_commandMap[QStringLiteral("estacionamiento_stop")] = [this](const QJsonObject& args) {
         return handleEstacionamientoStop(args);
+    };
+
+    m_commandMap[QStringLiteral("estacionamiento_info")] = [this](const QJsonObject& args) {
+        return handleEstacionamientoInfo(args);
+    };
+
+    m_commandMap[QStringLiteral("estacionamiento_graph")] = [this](const QJsonObject& args) {
+        return handleEstacionamientoGraph(args);
     };
 
     m_commandMap[QStringLiteral("fondeo_start")] = [this](const QJsonObject& args) {
@@ -716,6 +734,10 @@ QByteArray JsonCommandHandler::handleEstacionamiento(const QJsonObject& args)
     session.tiempoManiobra = calcResult.timeHours;
     session.posicionEstacionX = calcResult.stationPosXDm;
     session.posicionEstacionY = calcResult.stationPosYDm;
+    session.velocidadNudos = calcResult.velocidadNudos;
+    // El marcador no debe aparecer en el LPD solo por INICIAR — recien se
+    // activa cuando el operador presiona GRAFICAR (estacionamiento_graph).
+    session.visible = false;
 
     if (!m_context->upsertStationingSession(session)) {
         return JsonResponseBuilder::buildErrorResponse(
@@ -734,6 +756,7 @@ QByteArray JsonCommandHandler::handleEstacionamiento(const QJsonObject& args)
     responseArgs[QStringLiteral("tiempo_hms")] = calcResult.timeHms;
     responseArgs[QStringLiteral("station_x_dm")] = calcResult.stationPosXDm;
     responseArgs[QStringLiteral("station_y_dm")] = calcResult.stationPosYDm;
+    responseArgs[QStringLiteral("velocidad_nudos")] = calcResult.velocidadNudos;
 
     return JsonResponseBuilder::buildSuccessResponse(QStringLiteral("estacionamiento_calc"), responseArgs);
 }
@@ -762,6 +785,74 @@ QByteArray JsonCommandHandler::handleEstacionamientoStop(const QJsonObject& args
     responseArgs[QStringLiteral("index")] = slotIndex;
     responseArgs[QStringLiteral("status")] = QStringLiteral("stopped");
     return JsonResponseBuilder::buildSuccessResponse(QStringLiteral("estacionamiento_stop"), responseArgs);
+}
+
+QByteArray JsonCommandHandler::handleEstacionamientoInfo(const QJsonObject& args)
+{
+    const int slotIndex = args.value(QStringLiteral("index")).toInt(-1);
+    if (slotIndex < 1 || slotIndex > 10) {
+        return JsonResponseBuilder::buildValidationErrorResponse(
+            QStringLiteral("estacionamiento_info"),
+            QStringLiteral("index"),
+            QString::number(slotIndex),
+            QStringLiteral("required, must be between 1 and 10")
+        );
+    }
+
+    const auto sessionIt = m_context->stationingSessions.find(slotIndex);
+    if (sessionIt == m_context->stationingSessions.end()) {
+        return JsonResponseBuilder::buildErrorResponse(
+            QStringLiteral("estacionamiento_info"),
+            QStringLiteral("SESSION_NOT_FOUND"),
+            QStringLiteral("No existe sesion de estacionamiento activa para index %1").arg(slotIndex)
+        );
+    }
+
+    const CommandContext::StationingSession& session = sessionIt->second;
+
+    QJsonObject responseArgs;
+    responseArgs[QStringLiteral("index")] = slotIndex;
+    responseArgs[QStringLiteral("rumbo")] = session.rumboDeg;
+    responseArgs[QStringLiteral("tiempo_horas")] = session.tiempoManiobra;
+    responseArgs[QStringLiteral("tiempo_hms")] = EstacionamientoService::formatDurationHms(session.tiempoManiobra);
+    responseArgs[QStringLiteral("station_x_dm")] = session.posicionEstacionX;
+    responseArgs[QStringLiteral("station_y_dm")] = session.posicionEstacionY;
+    responseArgs[QStringLiteral("velocidad_nudos")] = session.velocidadNudos;
+    responseArgs[QStringLiteral("status")] = QStringLiteral("active");
+
+    return JsonResponseBuilder::buildSuccessResponse(QStringLiteral("estacionamiento_info"), responseArgs);
+}
+
+QByteArray JsonCommandHandler::handleEstacionamientoGraph(const QJsonObject& args)
+{
+    const int slotIndex = args.value(QStringLiteral("index")).toInt(-1);
+    if (slotIndex < 1 || slotIndex > 10) {
+        return JsonResponseBuilder::buildValidationErrorResponse(
+            QStringLiteral("estacionamiento_graph"),
+            QStringLiteral("index"),
+            QString::number(slotIndex),
+            QStringLiteral("required, must be between 1 and 10")
+        );
+    }
+
+    const bool enabled = args.value(QStringLiteral("enabled")).toBool(true);
+
+    const auto sessionIt = m_context->stationingSessions.find(slotIndex);
+    if (sessionIt == m_context->stationingSessions.end()) {
+        return JsonResponseBuilder::buildErrorResponse(
+            QStringLiteral("estacionamiento_graph"),
+            QStringLiteral("SESSION_NOT_FOUND"),
+            QStringLiteral("No existe sesion de estacionamiento activa para index %1").arg(slotIndex)
+        );
+    }
+
+    sessionIt->second.visible = enabled;
+
+    QJsonObject responseArgs;
+    responseArgs[QStringLiteral("index")] = slotIndex;
+    responseArgs[QStringLiteral("enabled")] = enabled;
+    responseArgs[QStringLiteral("status")] = enabled ? QStringLiteral("active") : QStringLiteral("hidden");
+    return JsonResponseBuilder::buildSuccessResponse(QStringLiteral("estacionamiento_graph"), responseArgs);
 }
 
 QByteArray JsonCommandHandler::handleFondeoStart(const QJsonObject& args)

@@ -64,6 +64,7 @@ public:
     CPAClearResult clearTrack(const CPATrackRef& trackRef);
     bool isSessionActive(const QString& sessionId) const;
     bool isGraphing(const QString& sessionId) const;
+    bool checkAndHandleExpiry(const QString& sessionId);
 
 private:
     CommandContext* m_context;
