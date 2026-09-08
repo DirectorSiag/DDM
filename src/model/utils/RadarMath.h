@@ -1,7 +1,7 @@
 #pragma once
 #include <QPointF>
 #include <QtMath>
-#include <qmath.h> 
+#include <qmath.h>
 #include <QFloat16>
 
 class RadarMath {
@@ -31,6 +31,14 @@ public:
         double targetLat, double targetLon,
         double& outXDm,   double& outYDm
         );
+
+    // Convierte coordenadas DM relativas al origen (BP) a lat/lon absolutas.
+    static void dmToLatLon(
+        double originLat, double originLon,
+        double xDm,        double yDm,
+        double& outTargetLat, double& outTargetLon
+        );
+
     // Convierte coordenada en formato GMS a grados decimales.
     static double dmsToDecimal(int degrees, int minutes, double seconds);
 private:

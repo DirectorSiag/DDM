@@ -6,6 +6,7 @@
 #include "messagerouter.h"
 #include "obmHandler.h"
 #include "obmservice.h"
+#include <qfloat16.h>
 #include "overlayHandler.h"
 #include "json/jsoncommandhandler.h"
 #include <QCoreApplication>
@@ -38,41 +39,62 @@
 #include "displaymodecommand.h"
 #include "textCommand.h"
 #include "../services/textService.h"
+#include "fondeoCommand.h"
+#include "fondeoservice.h"
+#include "canalCommand.h"
+#include "canalService.h"
 
-
+#include "TwoWCommand.h"
+#include "TwoWService.h"
+#include "haCommand.h"
+#include "haService.h"
+#include "borneoCommand.h"
 #include "addareacommand.h"
 #include "addpolygonocommand.h"
 #include "addCircleCommand.h"
 #include "deleteAreaCommand.h"
 #include "deleteCircleCommand.h"
+#include "addSectorCommand.h"
+#include "deleteSectorCommand.h"
+#include "derrotasCommand.h"
+#include "derrotasService.h"
 
-static void enableAnsiColorsOnWindows() {
-    DWORD mode = 0;
-    HANDLE hOut = GetStdHandle(STD_OUTPUT_HANDLE);
-    if (hOut != INVALID_HANDLE_VALUE && GetConsoleMode(hOut, &mode)) {
-        mode |= 0x0004; // ENABLE_VIRTUAL_TERMINAL_PROCESSING
-        SetConsoleMode(hOut, mode);
-    }
-    HANDLE hErr = GetStdHandle(STD_ERROR_HANDLE);
-    if (hErr != INVALID_HANDLE_VALUE && GetConsoleMode(hErr, &mode)) {
-        mode |= 0x0004;
-        SetConsoleMode(hErr, mode);
-    }
-}
+
+// static void enableAnsiColorsOnWindows() {
+//   DWORD mode = 0;
+//   HANDLE hOut = GetStdHandle(STD_OUTPUT_HANDLE);
+//   if (hOut != INVALID_HANDLE_VALUE && GetConsoleMode(hOut, &mode)) {
+//     mode |= 0x0004; // ENABLE_VIRTUAL_TERMINAL_PROCESSING
+//     SetConsoleMode(hOut, mode);
+//   }
+//   HANDLE hErr = GetStdHandle(STD_ERROR_HANDLE);
+//   if (hErr != INVALID_HANDLE_VALUE && GetConsoleMode(hErr, &mode)) {
+//     mode |= 0x0004;
+//     SetConsoleMode(hErr, mode);
+//   }
+// }
 
 int main(int argc, char *argv[]) {
 
 #ifdef Q_OS_WIN
-    enableAnsiColorsOnWindows();
-    SetConsoleCP(CP_UTF8);
-    SetConsoleOutputCP(CP_UTF8);
+  // enableAnsiColorsOnWindows();
+  SetConsoleCP(CP_UTF8);
+  SetConsoleOutputCP(CP_UTF8);
 #endif
 
     QCoreApplication app(argc, argv);
 
+<<<<<<< src/main.cpp
     auto *ctx = new CommandContext();
     auto *registry = new CommandRegistry();
     auto *parser = new CommandParser();
+    auto *obmHandler = new OBMHandler();
+    auto *obmService = new ObmService(obmHandler);
+    auto *fondeoService = new FondeoService(ctx);
+    auto *twoWService = new TwoWService(ctx);
+    auto *haService = new HaService(ctx, obmService);
+    auto *canalService = new CanalService(ctx);
+    auto *derrotasService = new DerrotasService(ctx);
     auto *textService = new TextService(ctx);   // <-- AGREGADO: faltaba instanciar
 
     // registrar comandos
@@ -88,12 +110,20 @@ int main(int argc, char *argv[]) {
     registry->registerCommand(QSharedPointer<ICommand>(new OwnShipCommand()));
     registry->registerCommand(QSharedPointer<ICommand>(new EstacionamientoCommand()));
     registry->registerCommand(QSharedPointer<ICommand>(new DisplayModeCommand()));
-    registry->registerCommand(QSharedPointer<ICommand>(new TextCommand()));
-        registry->registerCommand(QSharedPointer<ICommand>(new AddAreaCommand()));
-        registry->registerCommand(QSharedPointer<ICommand>(new AddPolygonoCommand()));
-        registry->registerCommand(QSharedPointer<ICommand>(new AddCircleCommand()));
-        registry->registerCommand(QSharedPointer<ICommand>(new DeleteAreaCommand()));
-        registry->registerCommand(QSharedPointer<ICommand>(new DeleteCircleCommand()));
+    registry->registerCommand(QSharedPointer<ICommand>(new AddAreaCommand()));
+    registry->registerCommand(QSharedPointer<ICommand>(new AddPolygonoCommand()));
+    registry->registerCommand(QSharedPointer<ICommand>(new AddCircleCommand()));
+    registry->registerCommand(QSharedPointer<ICommand>(new DeleteAreaCommand()));
+    registry->registerCommand(QSharedPointer<ICommand>(new DeleteCircleCommand()));
+    registry->registerCommand(QSharedPointer<ICommand>(new AddSectorCommand()));
+    registry->registerCommand(QSharedPointer<ICommand>(new DeleteSectorCommand()));
+    registry->registerCommand(QSharedPointer<ICommand>(new FondeoCommand()));
+    registry->registerCommand(QSharedPointer<ICommand>(new TwoWCommand()));
+    registry->registerCommand(QSharedPointer<ICommand>(new HaCommand(obmService)));
+    registry->registerCommand(QSharedPointer<ICommand>(new BorneoCommand()));
+    registry->registerCommand(QSharedPointer<ICommand>(new CanalCommand()));
+    registry->registerCommand(QSharedPointer<ICommand>(new DerrotasCommand(derrotasService)));
+
 
     CommandDispatcher dispatcher(registry, parser, *ctx);
 
@@ -135,14 +165,19 @@ int main(int argc, char *argv[]) {
 
     JsonCommandHandler *jsonHandler = nullptr;
 
-    QTimer timer;
-    QTimer updatePositionTimer;
-    QObject::connect(&updatePositionTimer, &QTimer::timeout,
-                     [ctx, textService, &updatePositionTimer]() {   // <-- CORREGIDO: agregado textService al capture
-                         double deltaTime = updatePositionTimer.interval() / 1000.0;
-                         ctx->updateTracks(deltaTime);
-                         textService->update();
-                     });
+  QTimer timer;
+  QTimer updatePositionTimer;
+  QObject::connect(&updatePositionTimer, &QTimer::timeout,
+                   [ctx, fondeoService, twoWService, haService, derrotasService, canalService, &updatePositionTimer]() {
+                     double deltaTime = updatePositionTimer.interval() / 1000.0;
+                     ctx->updateTracks(deltaTime);
+                     fondeoService->update();
+                     twoWService->update();
+                     haService->update();
+                     canalService->update();
+                     derrotasService->update();
+                     textService->update();
+                   });
 
     QObject::connect(&timer, &QTimer::timeout, &timer,
                      [ctx, encoder, transport, &jsonHandler]() {
@@ -156,7 +191,6 @@ int main(int argc, char *argv[]) {
     auto *obmService = new ObmService(obmHandler);
     auto *ownCurs = new OwnCurs(ctx, obmHandler);
 
-
     // 1. Crear los controladores
     auto *dclConcController = new DclConcController(transport, decoder, &app);
     jsonHandler = new JsonCommandHandler(ctx, transport, obmService, &app);
@@ -168,19 +202,24 @@ int main(int argc, char *argv[]) {
     QObject::connect(transport, &ITransport::messageReceived, router,
                      &MessageRouter::onMessageReceived);
 
+
     auto *overlayHandler = new OverlayHandler();
     overlayHandler->setContext(ctx);
     overlayHandler->setOBMHandler(obmHandler);
 
     // conectar señales del decoder con ownCurse
     QObject::connect(decoder, &ConcDecoder::newHandWheel, ownCurs,
-                     &OwnCurs::updateHandwheel);
+                    [ownCurs](QPair<float, float> delta) {
+                        ownCurs->updateHandwheel(QPair<qfloat16, qfloat16>(
+                            static_cast<qfloat16>(delta.first),
+                            static_cast<qfloat16>(delta.second)));
+                    });
     QObject::connect(decoder, &ConcDecoder::cuOrOffCentLeft, ownCurs,
-                     &OwnCurs::cuOrOffCent);
+                    &OwnCurs::cuOrOffCent);
     QObject::connect(decoder, &ConcDecoder::cuOrCentLeft, ownCurs,
-                     &OwnCurs::cuOrCent);
+                    &OwnCurs::cuOrCent);
     QObject::connect(decoder, &ConcDecoder::ownCurs, ownCurs,
-                     &OwnCurs::ownCursActive);
+                    &OwnCurs::ownCursActive);
 
     // Conecta señales que emite el decoder
     QObject::connect(decoder, &ConcDecoder::newOverlay, overlayHandler,

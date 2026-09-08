@@ -17,6 +17,7 @@ bool SitrepService::deleteTrackById(int id) {
     if (erased) {
         // mantener compatibilidad: limpiar el mapa sitrepExtra asociado
         m_context->sitrepExtra.erase(id);
+        m_context->removeStationingSessionsByTrackId(id);
     }
     return erased;
 }

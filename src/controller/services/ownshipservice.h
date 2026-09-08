@@ -17,14 +17,12 @@ public:
     explicit OwnShipService(CommandContext* context);
 
     OwnShipOperationResult updateFromJson(const QJsonObject& args);
-
-    OwnShipOperationResult setFromCli(
-        double courseDeg,
-        double speedKnots,
-        const QString& source = QStringLiteral("CLI"),
-        std::optional<double> latDeg = std::nullopt,
-        std::optional<double> lonDeg = std::nullopt
-    );
+    OwnShipOperationResult setGeoFromCli(double latDeg, double lonDeg);
+    OwnShipOperationResult setGeoFromCliDms(int latDeg, int latMin, double latSec,
+                                            int lonDeg, int lonMin, double lonSec);
+    OwnShipOperationResult setFromCli(double courseDeg,
+                                      double speedKnots,
+                                      const QString& source = QStringLiteral("CLI"));
 
     QJsonObject serializeOwnShip() const;
     QString formatOwnShip() const;

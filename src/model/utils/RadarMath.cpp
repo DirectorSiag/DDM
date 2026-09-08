@@ -37,11 +37,59 @@ qfloat16 RadarMath::calculateAngle(const QPointF& start, const QPointF& end) {
     double deg = rad * (180.0 / M_PI);
 
     // normalizeDeg360 asegura que el resultado esté entre 0 y 360
-    return 180-static_cast<qfloat16>(normalizeDeg360(deg));
+    return static_cast<qfloat16>(180.0 - normalizeDeg360(deg));
 }
 
 qfloat16 RadarMath::calculateLength(const QPointF& start, const QPointF& end) {
-    return qSqrt(qPow(end.x() - start.x(), 2) + qPow(end.y() - start.y(), 2));
+    return static_cast<qfloat16>(qSqrt(qPow(end.x() - start.x(), 2) + qPow(end.y() - start.y(), 2)));
+}
+
+void RadarMath::latLonToDm(
+    double originLat, double originLon,
+    double targetLat, double targetLon,
+    double& outXDm,   double& outYDm)
+{
+    constexpr double kMetersPerDegree = 111320.0;
+    constexpr double kMetersPerDm     = 1828.8;
+
+    const double dLat   = targetLat - originLat;
+    const double dLon   = targetLon - originLon;
+    const double cosLat = std::cos(qDegreesToRadians(originLat));
+
+    outYDm = (dLat * kMetersPerDegree) / kMetersPerDm;
+    outXDm = (dLon * kMetersPerDegree * cosLat) / kMetersPerDm;
+}
+
+void RadarMath::dmToLatLon(
+    double originLat, double originLon,
+    double xDm,        double yDm,
+    double& outTargetLat, double& outTargetLon)
+{
+    constexpr double kMetersPerDegree = 111320.0;
+    constexpr double kMetersPerDm     = 1828.8;
+
+    const double cosLat = std::cos(qDegreesToRadians(originLat));
+
+    const double dLat = (yDm * kMetersPerDm) / kMetersPerDegree;
+    outTargetLat = originLat + dLat;
+
+    // Guard: en los polos cosLat tiende a 0 y la division se indefine.
+    // No deberia ocurrir en un escenario naval real, pero evita un
+    // NaN silencioso si algun dia pasa.
+    if (qFuzzyIsNull(cosLat)) {
+        outTargetLon = originLon;
+        return;
+    }
+
+    const double dLon = (xDm * kMetersPerDm) / (kMetersPerDegree * cosLat);
+    outTargetLon = originLon + dLon;
+}
+
+double RadarMath::dmsToDecimal(int degrees, int minutes, double seconds) {
+    const double sign = (degrees < 0) ? -1.0 : 1.0;
+    const double absDegrees = std::abs(degrees);
+    const double decimal = absDegrees + (minutes / 60.0) + (seconds / 3600.0);
+    return sign * decimal;
 }
 
 void RadarMath::latLonToDm(

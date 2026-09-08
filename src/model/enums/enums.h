@@ -135,4 +135,33 @@ private:
     }
 };
 
+class FondeoData {
+    Q_GADGET
+
+public:
+    // Tipos de unidad para la maniobra de Fondeo (define los 5 radios de
+    // marcha: AD. TODA/AD. MEDIA/AD. DESP./PARA MAQ/MAQ. AT).
+    enum TipoUnidad { Meko360, Meko140, Patagonia, Otro };
+    Q_ENUM(TipoUnidad)
+
+    static inline QString toQString(TipoUnidad v) {
+        switch (v) {
+        case Meko360:   return QStringLiteral("MEKO 360");
+        case Meko140:   return QStringLiteral("MEKO 140");
+        case Patagonia: return QStringLiteral("PATAGONIA");
+        case Otro:      return QStringLiteral("OTRO");
+        default:        return QStringLiteral("OTRO");
+        }
+    }
+
+    static inline bool tryParseTipoUnidad(const QString& value, TipoUnidad& out) {
+        const QString normalized = value.trimmed().toUpper();
+        if (normalized == QLatin1String("MEKO 360"))  { out = Meko360;   return true; }
+        if (normalized == QLatin1String("MEKO 140"))  { out = Meko140;   return true; }
+        if (normalized == QLatin1String("PATAGONIA")) { out = Patagonia; return true; }
+        if (normalized == QLatin1String("OTRO"))      { out = Otro;      return true; }
+        return false;
+    }
+};
+
 #endif // TYPESDATA_H

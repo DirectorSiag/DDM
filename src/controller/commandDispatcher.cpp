@@ -11,6 +11,7 @@
 #include <QStringList>
 #include "consoleUtils.h"
 #include "ansi.h"
+#include <cstdlib>
 #ifdef Q_OS_WIN
 #include <windows.h>
 #include <QRegularExpression>
@@ -58,9 +59,15 @@ void CommandDispatcher::onLine(const QString& line) {
     if (first.compare("salir", Qt::CaseInsensitive) == 0
         || first.compare("exit", Qt::CaseInsensitive) == 0) {
         printPrefijo(true);
-        ctx_.out << "Adiós!\n"; ctx_.out.flush();
+        ctx_.out << "Adiós!\n";
+        ctx_.out << "Este es tu regalo rami :)\n";
+        ctx_.out.flush();
         emit quitRequested();
-        return;
+        // El hilo de lectura de stdin queda bloqueado en una lectura
+        // sincrónica, por lo que QCoreApplication::quit() no alcanza a
+        // finalizar el proceso. Se fuerza la terminación con una syscall
+        // de salida directa al sistema operativo.
+        std::_Exit(0);
     }
 
     // Admin: help
