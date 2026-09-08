@@ -31,6 +31,8 @@
 #include "model/derrotas/derrotasSessionState.h"
 
 
+class TrackService;
+
 struct CommandContext {
     enum MotionMode {
         RELATIVE = 0,
@@ -139,6 +141,11 @@ struct CommandContext {
     // Transport opcional: si está seteado, los comandos CLI/backend pueden
     // notificar eventos JSON al frontend via transport->send()
     ITransport* transport = nullptr;
+
+    // Puerta única para crear/borrar tracks. Instancia única cuyo dueño es
+    // main (no-owning, mismo patrón que transport). El contexto solo la
+    // transporta para que los comandos la alcancen.
+    TrackService* trackService = nullptr;
 
     inline std::deque<Track>& getTracks() { return tracks; }
     inline const std::deque<Track>& getTracks() const { return tracks; }

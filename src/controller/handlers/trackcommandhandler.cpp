@@ -37,7 +37,7 @@ bool parseTrackTypeValue(const QJsonValue& value, TrackData::Type& outType)
 } // namespace
 
 TrackCommandHandler::TrackCommandHandler(CommandContext* context, ITransport* transport)
-    : m_context(context), m_transport(transport), m_trackService(std::make_unique<TrackService>(context))
+    : m_context(context), m_transport(transport)
 {
     Q_ASSERT(m_context);
     Q_ASSERT(m_transport);
@@ -85,7 +85,7 @@ QByteArray TrackCommandHandler::createTrack(const QJsonObject& args)
         request.info = args.value("info").toString();
     }
 
-    TrackOperationResult result = m_trackService->createTrack(request);
+    TrackOperationResult result = m_context->trackService->createTrack(request);
     if (!result.success) {
         qWarning() << "[TrackCommandHandler] Error al crear track:" << result.message;
         return JsonResponseBuilder::buildErrorResponse("create_track", result.errorCode, result.message);
@@ -102,7 +102,7 @@ QByteArray TrackCommandHandler::deleteTrack(const QJsonObject& args)
     int id = args.value("id").toInt(-1);
     if (id < 0) return JsonResponseBuilder::buildValidationErrorResponse("delete_track", "id", QString::number(id), ">=0");
 
-    TrackOperationResult result = m_trackService->deleteTrackById(id);
+    TrackOperationResult result = m_context->trackService->deleteTrackById(id);
     if (!result.success) {
         return JsonResponseBuilder::buildErrorResponse("delete_track", result.errorCode, result.message);
     }
@@ -119,7 +119,7 @@ QByteArray TrackCommandHandler::buildCreateTrackResponse(int createdId)
 {
     QJsonObject args;
     args["created_id"] = QString::number(createdId);
-    args["tracks"] = m_trackService->serializeTracks();
+    args["tracks"] = m_context->trackService->serializeTracks();
     return JsonResponseBuilder::buildSuccessResponse("create_track", args);
 }
 
@@ -127,13 +127,13 @@ QByteArray TrackCommandHandler::buildDeleteTrackResponse(int deletedId)
 {
     QJsonObject args;
     args["deleted_id"] = deletedId;
-    args["tracks"] = m_trackService->serializeTracks();
+    args["tracks"] = m_context->trackService->serializeTracks();
     return JsonResponseBuilder::buildSuccessResponse("delete_track", args);
 }
 
 QByteArray TrackCommandHandler::buildListTracksResponse()
 {
     QJsonObject args;
-    args["tracks"] = m_trackService->serializeTracks();
+    args["tracks"] = m_context->trackService->serializeTracks();
     return JsonResponseBuilder::buildSuccessResponse("list_tracks", args);
 }

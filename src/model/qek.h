@@ -2,7 +2,7 @@
 #pragma once
 #include "commandContext.h"
 #include "obmHandler.h"
-#include "controller/services/trackpppservice.h"
+#include "controller/services/trackservice.h"
 #include <QString>
 #include <QDebug>
 
@@ -76,21 +76,17 @@ public:
         if (!ctx || !obmHandler) return;
 
         const auto pos = obmHandler->getPosition(); // QPair<float,float>
-        Track& track = ctx->emplaceTrackFront(
-            ctx->nextTrackId++,     // id
-            type,                   // type
-            identity,               // identidad inicial
-            mode,                   // modo
-            pos.first,              // x
-            pos.second,             // y
-            0.0,                    // speedKnots
-            0.0,                    // courseDeg
-            type                    // creationEnvironment
-            );
 
-            // Mantiene consistencia con altas por CLI/JSON: si OwnShip ya es valido,
-            // el PPP de SITREP se calcula al momento del alta del track.
-            TrackPppService(ctx).recalculateTrackAgainstOwnShip(track);
+        // Alta por la puerta única (TrackService): valida, calcula PPP
+        // contra OwnShip y publica a replicación, igual que CLI/JSON.
+        TrackCreateRequest request;
+        request.type = type;
+        request.identity = identity;
+        request.mode = mode;
+        request.x = pos.first;
+        request.y = pos.second;
+
+        ctx->trackService->createTrack(request);
     }
 
     bool wipeTrack() {
@@ -100,7 +96,7 @@ public:
         if (!t) return false;
 
         const int id = t->getId();
-        const bool ok = ctx->eraseTrackById(id);
+        const bool ok = ctx->trackService->deleteTrackById(id).success;
         if (!ok) {
             qWarning() << "QEK::wipeTrack: no se pudo borrar id=" << id;
         }

@@ -1,3 +1,18 @@
+# Config de despliegue por consola (RF-DDS-006) — cada consola tiene el suyo,
+# no se versiona. Ver ddm.ini.example.
+ddm.ini
+
+# Config de red DDS del middleware (ADR-018 de RE) — artefacto de despliegue,
+# no de build. Ver opendds.ini.example.
+opendds.ini
+
+# Estado local de ObjectStorage (RE). DDM lo crea en el directorio de trabajo
+# al arrancar, así que aparece donde sea que se haya lanzado el binario.
+tactical_db.db
+tactical_db.db-journal
+tactical_db.db-wal
+tactical_db.db-shm
+
 # Qt / C++ build artifacts
 build/
 cmake-build-*/

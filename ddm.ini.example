@@ -1,0 +1,28 @@
+; ddm.ini — configuración de despliegue por consola (RF-DDS-006, ADR-012 de
+; ReplicationEngine). Este archivo NO se versiona: cada consola tiene el suyo.
+;
+; Copiar este archivo a "ddm.ini" en el mismo directorio que el ejecutable
+; (DDM / DDM.exe) y completar los valores antes de desplegar.
+
+[DDS]
+; Domain ID de la red DDS. Obligatorio — sin un valor entero válido, DDM no
+; arranca (RF-DDS-006: evita mezclar por error una consola de simulación con
+; la red de combate real).
+; Ejemplo: 42 para la red táctica real, 99 para simulación/entrenamiento.
+domain_id=42
+
+[Console]
+; Identificador de esta consola. Viaja en cada objeto replicado y sirve para
+; saber de dónde salió (auditoría).
+;
+; Formalmente es opcional —si falta, DDM arranca con console_id=0 y un warning
+; en el log—, pero en el despliegue es OBLIGATORIO y tiene que ser ÚNICO en la
+; red: DOS CONSOLAS CON EL MISMO console_id NO SE VEN ENTRE SÍ. Cada una
+; descarta lo que publica la otra, y no hay error ni línea de log que lo avise:
+; las dos arrancan bien, dicen "conectado al dominio N", y ningún track cruza.
+; Si dos consolas se olvidan este campo, ambas quedan en 0 y les pasa esto
+; aunque el domain_id sea correcto.
+;
+; Convención: usar el último octeto de la IP de la consola.
+;   10.0.0.231 -> console_id=231
+console_id=231
