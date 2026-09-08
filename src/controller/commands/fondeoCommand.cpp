@@ -1,5 +1,5 @@
 #include "fondeoCommand.h"
-#include "../services/fondeoService.h"
+#include "../services/fondeoservice.h"
 
 CommandResult FondeoCommand::execute(const CommandInvocation& inv, CommandContext& ctx) const
 {
@@ -44,6 +44,10 @@ CommandResult FondeoCommand::execute(const CommandInvocation& inv, CommandContex
         response += QStringLiteral("------------------------------------------------------\n");
         response += QStringLiteral("MOV. ACTUAL: %1 (%2 yds)\n").arg(s.movimientoActual.label).arg(s.movimientoActual.distancia, 0, 'f', 1);
         response += QStringLiteral("PROXIMO MOV: %1 (%2 yds)\n").arg(s.proximoMovimiento.label).arg(s.proximoMovimiento.distancia, 0, 'f', 1);
+        QStringList anillosIds;
+        for (int id : s.anillosCircleIds) anillosIds << QString::number(id);
+        response += QStringLiteral("ANILLOS (r1..r5): %1 | PA: %2\n")
+                        .arg(anillosIds.join(QStringLiteral(","))).arg(s.paCircleId);
         response += QStringLiteral("======================================================\n\n");
 
         return { true, response };

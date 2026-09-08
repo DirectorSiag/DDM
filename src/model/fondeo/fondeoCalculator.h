@@ -1,7 +1,7 @@
 #pragma once
 
 #include <QPointF>
-#include "model/fondeo/FondeoSessionState.h"
+#include "model/fondeo/fondeoSessionState.h"
 
 class FondeoCalculator {
 public:

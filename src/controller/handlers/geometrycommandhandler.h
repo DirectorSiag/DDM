@@ -20,6 +20,8 @@ public:
     QByteArray deleteCircle(const QJsonObject& args);
     QByteArray createPolygon(const QJsonObject& args);
     QByteArray deletePolygon(const QJsonObject& args);
+    QByteArray createSector(const QJsonObject& args);
+    QByteArray deleteSector(const QJsonObject& args);
     QByteArray listShapes(const QJsonObject& args);
 
 private:

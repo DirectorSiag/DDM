@@ -1,7 +1,8 @@
 #pragma once
 
-#include <QJsonObject>
 #include <QString>
+#include <QJsonObject>
+#include <optional>
 
 class CommandContext;
 
@@ -11,8 +12,7 @@ struct OwnShipOperationResult {
     QString message;
 };
 
-class OwnShipService
-{
+class OwnShipService {
 public:
     explicit OwnShipService(CommandContext* context);
 

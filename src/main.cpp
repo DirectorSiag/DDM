@@ -6,6 +6,7 @@
 #include "messagerouter.h"
 #include "obmHandler.h"
 #include "obmservice.h"
+#include <qfloat16.h>
 #include "overlayHandler.h"
 #include "json/jsoncommandhandler.h"
 #include <QCoreApplication>
@@ -36,183 +37,223 @@
 #include "ownshipcommand.h"
 #include "estacionamientocommand.h"
 #include "displaymodecommand.h"
+#include "textCommand.h"
+#include "../services/textService.h"
 #include "fondeoCommand.h"
-#include "fondeoService.h"
+#include "fondeoservice.h"
+#include "canalCommand.h"
+#include "canalService.h"
 
+#include "TwoWCommand.h"
+#include "TwoWService.h"
+#include "haCommand.h"
+#include "haService.h"
+#include "borneoCommand.h"
 #include "addareacommand.h"
 #include "addpolygonocommand.h"
 #include "addCircleCommand.h"
 #include "deleteAreaCommand.h"
 #include "deleteCircleCommand.h"
+#include "addSectorCommand.h"
+#include "deleteSectorCommand.h"
+#include "derrotasCommand.h"
+#include "derrotasService.h"
 
-static void enableAnsiColorsOnWindows() {
-  DWORD mode = 0;
-  HANDLE hOut = GetStdHandle(STD_OUTPUT_HANDLE);
-  if (hOut != INVALID_HANDLE_VALUE && GetConsoleMode(hOut, &mode)) {
-    mode |= 0x0004; // ENABLE_VIRTUAL_TERMINAL_PROCESSING
-    SetConsoleMode(hOut, mode);
-  }
-  HANDLE hErr = GetStdHandle(STD_ERROR_HANDLE);
-  if (hErr != INVALID_HANDLE_VALUE && GetConsoleMode(hErr, &mode)) {
-    mode |= 0x0004;
-    SetConsoleMode(hErr, mode);
-  }
-}
+
+// static void enableAnsiColorsOnWindows() {
+//   DWORD mode = 0;
+//   HANDLE hOut = GetStdHandle(STD_OUTPUT_HANDLE);
+//   if (hOut != INVALID_HANDLE_VALUE && GetConsoleMode(hOut, &mode)) {
+//     mode |= 0x0004; // ENABLE_VIRTUAL_TERMINAL_PROCESSING
+//     SetConsoleMode(hOut, mode);
+//   }
+//   HANDLE hErr = GetStdHandle(STD_ERROR_HANDLE);
+//   if (hErr != INVALID_HANDLE_VALUE && GetConsoleMode(hErr, &mode)) {
+//     mode |= 0x0004;
+//     SetConsoleMode(hErr, mode);
+//   }
+// }
 
 int main(int argc, char *argv[]) {
 
 #ifdef Q_OS_WIN
-  enableAnsiColorsOnWindows();
+  // enableAnsiColorsOnWindows();
   SetConsoleCP(CP_UTF8);
   SetConsoleOutputCP(CP_UTF8);
 #endif
 
-  QCoreApplication app(argc, argv);
+    QCoreApplication app(argc, argv);
 
-  auto *ctx = new CommandContext();
-  auto *registry = new CommandRegistry();
-  auto *parser = new CommandParser();
-  auto *fondeoService = new FondeoService(ctx);
+<<<<<<< src/main.cpp
+    auto *ctx = new CommandContext();
+    auto *registry = new CommandRegistry();
+    auto *parser = new CommandParser();
+    auto *obmHandler = new OBMHandler();
+    auto *obmService = new ObmService(obmHandler);
+    auto *fondeoService = new FondeoService(ctx);
+    auto *twoWService = new TwoWService(ctx);
+    auto *haService = new HaService(ctx, obmService);
+    auto *canalService = new CanalService(ctx);
+    auto *derrotasService = new DerrotasService(ctx);
+    auto *textService = new TextService(ctx);   // <-- AGREGADO: faltaba instanciar
 
-  // registrar comandos
-  registry->registerCommand(QSharedPointer<ICommand>(new AddCommand()));
-  registry->registerCommand(QSharedPointer<ICommand>(new DeleteCommand()));
-  registry->registerCommand(QSharedPointer<ICommand>(new CenterCommand()));
-  registry->registerCommand(QSharedPointer<ICommand>(new ListCommand()));
-  registry->registerCommand(QSharedPointer<ICommand>(new AddCursorCommand()));
-  registry->registerCommand(QSharedPointer<ICommand>(new ListCursorsCommand()));
-  registry->registerCommand(QSharedPointer<ICommand>(new DeleteCursorsCommand()));
-  registry->registerCommand(QSharedPointer<ICommand>(new SitrepCommand()));
-  registry->registerCommand(QSharedPointer<ICommand>(new CpaCommand()));
-  registry->registerCommand(QSharedPointer<ICommand>(new OwnShipCommand()));
-  registry->registerCommand(QSharedPointer<ICommand>(new EstacionamientoCommand()));
-  registry->registerCommand(QSharedPointer<ICommand>(new DisplayModeCommand()));
+    // registrar comandos
+    registry->registerCommand(QSharedPointer<ICommand>(new AddCommand()));
+    registry->registerCommand(QSharedPointer<ICommand>(new DeleteCommand()));
+    registry->registerCommand(QSharedPointer<ICommand>(new CenterCommand()));
+    registry->registerCommand(QSharedPointer<ICommand>(new ListCommand()));
+    registry->registerCommand(QSharedPointer<ICommand>(new AddCursorCommand()));
+    registry->registerCommand(QSharedPointer<ICommand>(new ListCursorsCommand()));
+    registry->registerCommand(QSharedPointer<ICommand>(new DeleteCursorsCommand()));
+    registry->registerCommand(QSharedPointer<ICommand>(new SitrepCommand()));
+    registry->registerCommand(QSharedPointer<ICommand>(new CpaCommand()));
+    registry->registerCommand(QSharedPointer<ICommand>(new OwnShipCommand()));
+    registry->registerCommand(QSharedPointer<ICommand>(new EstacionamientoCommand()));
+    registry->registerCommand(QSharedPointer<ICommand>(new DisplayModeCommand()));
     registry->registerCommand(QSharedPointer<ICommand>(new AddAreaCommand()));
     registry->registerCommand(QSharedPointer<ICommand>(new AddPolygonoCommand()));
     registry->registerCommand(QSharedPointer<ICommand>(new AddCircleCommand()));
     registry->registerCommand(QSharedPointer<ICommand>(new DeleteAreaCommand()));
     registry->registerCommand(QSharedPointer<ICommand>(new DeleteCircleCommand()));
+    registry->registerCommand(QSharedPointer<ICommand>(new AddSectorCommand()));
+    registry->registerCommand(QSharedPointer<ICommand>(new DeleteSectorCommand()));
     registry->registerCommand(QSharedPointer<ICommand>(new FondeoCommand()));
+    registry->registerCommand(QSharedPointer<ICommand>(new TwoWCommand()));
+    registry->registerCommand(QSharedPointer<ICommand>(new HaCommand(obmService)));
+    registry->registerCommand(QSharedPointer<ICommand>(new BorneoCommand()));
+    registry->registerCommand(QSharedPointer<ICommand>(new CanalCommand()));
+    registry->registerCommand(QSharedPointer<ICommand>(new DerrotasCommand(derrotasService)));
 
-  CommandDispatcher dispatcher(registry, parser, *ctx);
 
-  QThread ioThread;
-  StdinReader reader;
-  reader.moveToThread(&ioThread);
+    CommandDispatcher dispatcher(registry, parser, *ctx);
 
-  QObject::connect(&ioThread, &QThread::started, &reader,
-                   &StdinReader::readLoop);
-  QObject::connect(&reader, &StdinReader::lineRead, &dispatcher,
-                   &CommandDispatcher::onLine);
-  QObject::connect(&dispatcher, &CommandDispatcher::quitRequested, &app,
-                   &QCoreApplication::quit);
-  QObject::connect(&reader, &StdinReader::finished, &ioThread, &QThread::quit);
+    QThread ioThread;
+    StdinReader reader;
+    reader.moveToThread(&ioThread);
 
-  QTextStream out(stdout);
-  ctx->out << ANSI_YELLOW << "Consola lista (help | exit)" << ANSI_RESET
-           << "\n";
-  ctx->out.flush();
+    QObject::connect(&ioThread, &QThread::started, &reader,
+                     &StdinReader::readLoop);
+    QObject::connect(&reader, &StdinReader::lineRead, &dispatcher,
+                     &CommandDispatcher::onLine);
+    QObject::connect(&dispatcher, &CommandDispatcher::quitRequested, &app,
+                     &QCoreApplication::quit);
+    QObject::connect(&reader, &StdinReader::finished, &ioThread, &QThread::quit);
 
-  encoderLPD *encoder = new encoderLPD();
-  auto *decoder = new ConcDecoder();
+    QTextStream out(stdout);
+    ctx->out << ANSI_YELLOW << "Consola lista (help | exit)" << ANSI_RESET
+             << "\n";
+    ctx->out.flush();
 
-  bool useLocalIpc = Configuration::instance().useLocalIpc;
+    encoderLPD *encoder = new encoderLPD();
+    auto *decoder = new ConcDecoder();
 
-  TransportOpts opts;
-  if (useLocalIpc) {
-    opts.localName =
-        "siag_ddm"; // debe coincidir con el nombre que use el servidor (juego)
-  }
+    bool useLocalIpc = Configuration::instance().useLocalIpc;
 
-  // Mantené vivo el unique_ptr (no uses release), y usá get() para el crudo
-  std::unique_ptr<ITransport> transportGuard =
-      useLocalIpc ? makeTransport(TransportKind::LocalIpc, opts, &app)
-                  : makeTransport(TransportKind::Udp, TransportOpts{}, &app);
+    TransportOpts opts;
+    if (useLocalIpc) {
+        opts.localName =
+            "siag_ddm"; // debe coincidir con el nombre que use el servidor (juego)
+    }
 
-  ITransport *transport = transportGuard.get();
-  transport->start();
+    // Mantené vivo el unique_ptr (no uses release), y usá get() para el crudo
+    std::unique_ptr<ITransport> transportGuard =
+        useLocalIpc ? makeTransport(TransportKind::LocalIpc, opts, &app)
+                    : makeTransport(TransportKind::Udp, TransportOpts{}, &app);
 
-  JsonCommandHandler *jsonHandler = nullptr;
+    ITransport *transport = transportGuard.get();
+    transport->start();
+
+    JsonCommandHandler *jsonHandler = nullptr;
 
   QTimer timer;
   QTimer updatePositionTimer;
   QObject::connect(&updatePositionTimer, &QTimer::timeout,
-                   [ctx, fondeoService, &updatePositionTimer]() {
+                   [ctx, fondeoService, twoWService, haService, derrotasService, canalService, &updatePositionTimer]() {
                      double deltaTime = updatePositionTimer.interval() / 1000.0;
                      ctx->updateTracks(deltaTime);
                      fondeoService->update();
+                     twoWService->update();
+                     haService->update();
+                     canalService->update();
+                     derrotasService->update();
+                     textService->update();
                    });
 
-  QObject::connect(&timer, &QTimer::timeout, &timer,
-                   [ctx, encoder, transport, &jsonHandler]() {
-                     if (jsonHandler) {
-                       jsonHandler->refreshActiveCpaSessions();
-                     }
-                     transport->send(encoder->buildFullMessage(*ctx));
-                   });
+    QObject::connect(&timer, &QTimer::timeout, &timer,
+                     [ctx, encoder, transport, &jsonHandler]() {
+                         if (jsonHandler) {
+                             jsonHandler->refreshActiveCpaSessions();
+                         }
+                         transport->send(encoder->buildFullMessage(*ctx));
+                     });
 
-  auto *obmHandler = new OBMHandler();
-  auto *obmService = new ObmService(obmHandler);
-  auto *ownCurs = new OwnCurs(ctx, obmHandler);
+    auto *obmHandler = new OBMHandler();
+    auto *obmService = new ObmService(obmHandler);
+    auto *ownCurs = new OwnCurs(ctx, obmHandler);
 
-  // 1. Crear los controladores
-  auto *dclConcController = new DclConcController(transport, decoder, &app);
-  jsonHandler = new JsonCommandHandler(ctx, transport, obmService, &app);
+    // 1. Crear los controladores
+    auto *dclConcController = new DclConcController(transport, decoder, &app);
+    jsonHandler = new JsonCommandHandler(ctx, transport, obmService, &app);
 
-  // 2. Crear el Router y pasarle los controladores
-  auto *router = new MessageRouter(dclConcController, jsonHandler, &app);
+    // 2. Crear el Router y pasarle los controladores
+    auto *router = new MessageRouter(dclConcController, jsonHandler, &app);
 
-  // 3. Conectar el transporte ÚNICAMENTE al router
-  QObject::connect(transport, &ITransport::messageReceived, router,
-                   &MessageRouter::onMessageReceived);
+    // 3. Conectar el transporte ÚNICAMENTE al router
+    QObject::connect(transport, &ITransport::messageReceived, router,
+                     &MessageRouter::onMessageReceived);
 
-  auto *overlayHandler = new OverlayHandler();
-  overlayHandler->setContext(ctx);
-  overlayHandler->setOBMHandler(obmHandler);
 
-  // conectar señales del decoder con ownCurse
-  QObject::connect(decoder, &ConcDecoder::newHandWheel, ownCurs,
-                   &OwnCurs::updateHandwheel);
-  QObject::connect(decoder, &ConcDecoder::cuOrOffCentLeft, ownCurs,
-                   &OwnCurs::cuOrOffCent);
-  QObject::connect(decoder, &ConcDecoder::cuOrCentLeft, ownCurs,
-                   &OwnCurs::cuOrCent);
-  QObject::connect(decoder, &ConcDecoder::ownCurs, ownCurs,
-                   &OwnCurs::ownCursActive);
+    auto *overlayHandler = new OverlayHandler();
+    overlayHandler->setContext(ctx);
+    overlayHandler->setOBMHandler(obmHandler);
 
-  // Conecta señales que emite el decoder
-  QObject::connect(decoder, &ConcDecoder::newOverlay, overlayHandler,
-                   &OverlayHandler::onNewOverlay);
-  QObject::connect(decoder, &ConcDecoder::newQEK, overlayHandler,
-                   &OverlayHandler::onNewQEK);
+    // conectar señales del decoder con ownCurse
+    QObject::connect(decoder, &ConcDecoder::newHandWheel, ownCurs,
+                    [ownCurs](QPair<float, float> delta) {
+                        ownCurs->updateHandwheel(QPair<qfloat16, qfloat16>(
+                            static_cast<qfloat16>(delta.first),
+                            static_cast<qfloat16>(delta.second)));
+                    });
+    QObject::connect(decoder, &ConcDecoder::cuOrOffCentLeft, ownCurs,
+                    &OwnCurs::cuOrOffCent);
+    QObject::connect(decoder, &ConcDecoder::cuOrCentLeft, ownCurs,
+                    &OwnCurs::cuOrCent);
+    QObject::connect(decoder, &ConcDecoder::ownCurs, ownCurs,
+                    &OwnCurs::ownCursActive);
 
-  QObject::connect(decoder, &ConcDecoder::newRange, obmHandler,
-                   &OBMHandler::updateRange);
-  QObject::connect(decoder, &ConcDecoder::newRollingBall, obmHandler,
-                   &OBMHandler::updatePosition);
-  encoder->setOBMHandler(obmHandler);
+    // Conecta señales que emite el decoder
+    QObject::connect(decoder, &ConcDecoder::newOverlay, overlayHandler,
+                     &OverlayHandler::onNewOverlay);
+    QObject::connect(decoder, &ConcDecoder::newQEK, overlayHandler,
+                     &OverlayHandler::onNewQEK);
 
-  QObject::connect(decoder, &ConcDecoder::offCentLeft, [ctx, obmHandler]() {
-    ctx->setCenter(obmHandler->getPosition());
-  });
+    QObject::connect(decoder, &ConcDecoder::newRange, obmHandler,
+                     &OBMHandler::updateRange);
+    QObject::connect(decoder, &ConcDecoder::newRollingBall, obmHandler,
+                     &OBMHandler::updatePosition);
+    encoder->setOBMHandler(obmHandler);
 
-  QObject::connect(decoder, &ConcDecoder::centLeft,
-                   [ctx]() { ctx->resetCenter(); });
+    QObject::connect(decoder, &ConcDecoder::offCentLeft, [ctx, obmHandler]() {
+        ctx->setCenter(obmHandler->getPosition());
+    });
 
-  QObject::connect(decoder, &ConcDecoder::resetObmLeft,
-                   [obmHandler]() { obmHandler->setPosition({0.0, 0.0}); });
+    QObject::connect(decoder, &ConcDecoder::centLeft,
+                     [ctx]() { ctx->resetCenter(); });
 
-  QObject::connect(decoder, &ConcDecoder::dataReqLeft, [obmHandler, ctx]() {
-    Track *t = obmHandler->OBMAssociationProcess(ctx);
-    if (t)
-      qDebug() << t->toString();
-  });
+    QObject::connect(decoder, &ConcDecoder::resetObmLeft,
+                     [obmHandler]() { obmHandler->setPosition({0.0, 0.0}); });
 
-  timer.start(40);
-  updatePositionTimer.start(80);
+    QObject::connect(decoder, &ConcDecoder::dataReqLeft, [obmHandler, ctx]() {
+        Track *t = obmHandler->OBMAssociationProcess(ctx);
+        if (t)
+            qDebug() << t->toString();
+    });
 
-  ioThread.start();
-  const int code = app.exec();
-  ioThread.wait();
-  return code;
+    timer.start(40);
+    updatePositionTimer.start(80);
+
+    ioThread.start();
+    const int code = app.exec();
+    ioThread.wait();
+    return code;
 }

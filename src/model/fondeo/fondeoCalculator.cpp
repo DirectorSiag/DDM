@@ -30,8 +30,10 @@ QPointF FondeoCalculator::resolvePuntoFondeo(const FondeoConfig& config, double 
 
 QPointF FondeoCalculator::resolvePuntoAuxiliar(const QPointF& pf, double paAz, double paDt)
 {
-    const double kMnToDm = 1.012685;
-    double distanceDm = paDt * kMnToDm;
+    // paDt está en yardas (a diferencia de trackDt, que está en millas
+    // náuticas) — ver documento de especificación FONDEO: "el Punto
+    // Auxiliar se sitúe al 150/2000yds del PF".
+    double distanceDm = RadarMath::yardsToDm(paDt);
     double rad = paAz * (M_PI / 180.0);
 
     return QPointF(
@@ -81,23 +83,23 @@ void FondeoCalculator::calculatePanelPredictivo(
     double d = out_state.distanciaPF;
     const FondeoConfig& c = out_state.config;
 
-    if (d > c.r1) {
+    if (d >= c.r1) {
         out_state.movimientoActual = {"AD. TODA", d - c.r1};
         out_state.proximoMovimiento = {"AD. MEDIA", d - c.r2};
     }
-    else if (d > c.r2) {
+    else if (d >= c.r2) {
         out_state.movimientoActual = {"AD. MEDIA", d - c.r2};
         out_state.proximoMovimiento = {"AD. DESP.", d - c.r3};
     }
-    else if (d > c.r3) {
+    else if (d >= c.r3) {
         out_state.movimientoActual = {"AD. DESP.", d - c.r3};
         out_state.proximoMovimiento = {"PARA MAQ", d - c.r4};
     }
-    else if (d > c.r4) {
+    else if (d >= c.r4) {
         out_state.movimientoActual = {"PARA MAQ", d - c.r4};
         out_state.proximoMovimiento = {"MAQ. AT", d - c.r5};
     }
-    else if (d > c.r5) {
+    else if (d >= c.r5) {
         out_state.movimientoActual = {"MAQ. AT", d - c.r5};
         out_state.proximoMovimiento = {"DETENCIÓN", d};
     }

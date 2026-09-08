@@ -120,6 +120,9 @@ QByteArray encoderLPD::buildFullMessage(const CommandContext &ctx) {
     // STATIONING SESSIONS (EST_n) - marcador AB2 (en prueba usando simbolo 0x26).
     for (const auto &entry : ctx.stationingSessions) {
         const CommandContext::StationingSession& session = entry.second;
+        if (!session.visible) {
+            continue;
+        }
         appendStationingMarkerMessage(bigBuffer, session);
     }
 
@@ -279,8 +282,10 @@ void encoderLPD::appendCpaMarkerMessage(QByteArray& dst, const CommandContext::C
     dst.append(static_cast<char>(0x00));
     dst.append(static_cast<char>(0x00));
 
-    // Numero de track simbolico para marcador CPA (4 digitos octales ASCII)
-    const int syntheticId = qBound(0, marker.trackAId, 4095);
+    // Numero simbolico para marcador CPA = numero de ranura PPP (4 digitos
+    // octales ASCII), no el track A (que suele ser -1/OwnShip y mostraba
+    // siempre 0000 sin importar el slot).
+    const int syntheticId = qBound(0, marker.slotNumber, 4095);
     dst.append(static_cast<char>('0' + ((syntheticId >> 9) & 0x7)));
     dst.append(static_cast<char>('0' + ((syntheticId >> 6) & 0x7)));
     dst.append(static_cast<char>('0' + ((syntheticId >> 3) & 0x7)));
@@ -306,12 +311,15 @@ void encoderLPD::appendStationingMarkerMessage(QByteArray& dst, const CommandCon
     dst.append(static_cast<char>(0x00));
     dst.append(static_cast<char>(0x00));
 
-    // Numero sintetico en 4 digitos octales ASCII (igual formato CPA).
-    const int syntheticId = qBound(0, session.slotIndex, 4095);
-    dst.append(static_cast<char>('0' + ((syntheticId >> 9) & 0x7)));
-    dst.append(static_cast<char>('0' + ((syntheticId >> 6) & 0x7)));
-    dst.append(static_cast<char>('0' + ((syntheticId >> 3) & 0x7)));
-    dst.append(static_cast<char>('0' + (syntheticId & 0x7)));
+    // Etiqueta "ESTn" (n = ranura 1..10) en vez del numero octal generico de
+    // CPA/PPP, para que se identifique a simple vista como marcador de
+    // Estacionamiento. La ranura 10 se muestra como "A" (convencion hex)
+    // porque el campo son 4 caracteres fijos y "EST10" no entra.
+    const int slot = qBound(1, session.slotIndex, 10);
+    dst.append(static_cast<char>('E'));
+    dst.append(static_cast<char>('S'));
+    dst.append(static_cast<char>('T'));
+    dst.append(static_cast<char>(slot == 10 ? 'A' : ('0' + slot)));
 
     // Padding + cierre exacto.
     dst.append(static_cast<char>(0x00));

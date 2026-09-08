@@ -80,6 +80,8 @@ TrackOperationResult TrackService::deleteTrackById(int trackId)
         return {false, "NOT_FOUND", "Track no encontrado", trackId};
     }
 
+    m_context->removeStationingSessionsByTrackId(trackId);
+
     return {true, QString(), QString(), trackId};
 }
 

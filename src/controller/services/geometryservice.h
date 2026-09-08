@@ -5,7 +5,19 @@
 #include <QJsonObject>
 #include <vector>
 
+#include "model/entities/sectorEntity.h"
+
 class CommandContext;
+
+struct SectorCreateRequest {
+    double      az_izq   = 0.0;
+    double      az_der   = 0.0;
+    double      rad_int  = 0.0;
+    double      rad_ext  = 0.0;
+    SectorColor color    = SectorColor::RGB1;
+    QPointF     origen;
+    int         id_track = 0;
+};
 
 /**
  * @brief Resultado de operación sobre figuras geométricas
@@ -62,6 +74,17 @@ public:
     GeometryResult createCircle(const QPointF& center, double radius, int type, const QString& color);
 
     /**
+     * @brief Reposiciona/redimensiona un círculo existente sin cambiar su ID
+     * @param circleId ID del círculo a actualizar
+     * @param center Nuevo centro del círculo en coordenadas del radar
+     * @param radius Nuevo radio del círculo (distancia)
+     * @return GeometryResult con estado y el mismo ID (círculo no encontrado si falla)
+     * @note Regenera los cursores del perímetro (borra los viejos y crea los nuevos),
+     *       preservando el ID del círculo para que referencias externas (ej. list_shapes) sigan siendo válidas.
+     */
+    GeometryResult updateCircle(int circleId, const QPointF& center, double radius);
+
+    /**
      * @brief Elimina un círculo por ID
      * @param circleId ID del círculo a eliminar
      * @return GeometryResult indicando éxito o error (círculo no encontrado)
@@ -86,9 +109,24 @@ public:
     GeometryResult deletePolygon(int polygonId);
 
     /**
+     * @brief Crea un sector anular en el contexto
+     * @param req Parámetros del sector (azimuts, radios, color, origen, id_track)
+     * @return GeometryResult con estado, ID asignado y mensaje de error si aplica
+     * @note Valida: rad_ext > rad_int >= 0, rad_ext > 0, azimuts en [0, 360)
+     */
+    GeometryResult createSector(const SectorCreateRequest& req);
+
+    /**
+     * @brief Elimina un sector por ID
+     * @param sectorId ID del sector a eliminar
+     * @return GeometryResult indicando éxito o error (sector no encontrado)
+     */
+    GeometryResult deleteSector(int sectorId);
+
+    /**
      * @brief Serializa todas las figuras geométricas actuales
-     * @return QJsonObject con listas de áreas, círculos y polígonos
-     * @note Formato: { "areas": [...], "circles": [...], "polygons": [...] }
+     * @return QJsonObject con listas de áreas, círculos, polígonos y sectores
+     * @note Formato: { "areas": [...], "circles": [...], "polygons": [...], "sectors": [...] }
      */
     QJsonObject listShapes() const;
 
