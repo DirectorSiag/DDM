@@ -23,11 +23,13 @@
 #include "entities/sectorEntity.h"
 #include "model/fondeo/fondeoSessionState.h"
 #include "model/2w/twoWSessionState.h"
+#include "dsi/dsiSessionState.h"
 #include "ha/haSessionState.h"
 #include <array>
 #include "borneo/borneoSessionState.h"
 #include "model/canal/canalSessionState.h"
 #include "model/derrotas/derrotasSessionState.h"
+
 
 struct CommandContext {
     enum MotionMode {
@@ -115,10 +117,11 @@ struct CommandContext {
     std::deque<SectorEntity> sectors;
     std::deque<CpaMarkerState> cpaMarkers;
     std::map<int, StationingSession> stationingSessions;
-    BorneoSessionState borneoSession;
 
+    BorneoSessionState borneoSession;
     FondeoSessionState fondeoSession;
     TwoWSessionState twoWSession;
+    DSISessionState dsiSession;
 
     static constexpr int kMaxHaSessions = 10;
     std::array<HaSessionState, kMaxHaSessions> haSessions;

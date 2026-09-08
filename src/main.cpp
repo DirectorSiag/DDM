@@ -48,6 +48,8 @@
 #include "TwoWService.h"
 #include "haCommand.h"
 #include "haService.h"
+#include "dsiCommand.h"
+#include "dsiService.h"
 #include "borneoCommand.h"
 #include "addareacommand.h"
 #include "addpolygonocommand.h"
@@ -84,7 +86,6 @@ int main(int argc, char *argv[]) {
 
     QCoreApplication app(argc, argv);
 
-<<<<<<< src/main.cpp
     auto *ctx = new CommandContext();
     auto *registry = new CommandRegistry();
     auto *parser = new CommandParser();
@@ -96,6 +97,7 @@ int main(int argc, char *argv[]) {
     auto *canalService = new CanalService(ctx);
     auto *derrotasService = new DerrotasService(ctx);
     auto *textService = new TextService(ctx);   // <-- AGREGADO: faltaba instanciar
+    auto *dsiService = new DSIService(ctx);
 
     // registrar comandos
     registry->registerCommand(QSharedPointer<ICommand>(new AddCommand()));
@@ -123,6 +125,7 @@ int main(int argc, char *argv[]) {
     registry->registerCommand(QSharedPointer<ICommand>(new BorneoCommand()));
     registry->registerCommand(QSharedPointer<ICommand>(new CanalCommand()));
     registry->registerCommand(QSharedPointer<ICommand>(new DerrotasCommand(derrotasService)));
+    registry->registerCommand(QSharedPointer<ICommand>(new DSICommand()));
 
 
     CommandDispatcher dispatcher(registry, parser, *ctx);
@@ -168,16 +171,20 @@ int main(int argc, char *argv[]) {
   QTimer timer;
   QTimer updatePositionTimer;
   QObject::connect(&updatePositionTimer, &QTimer::timeout,
+<<<<<<< src/main.cpp
+                   [ctx, fondeoService, twoWService, haService, canalService, dsiService, &updatePositionTimer]() {
+=======
                    [ctx, fondeoService, twoWService, haService, derrotasService, canalService, &updatePositionTimer]() {
                      double deltaTime = updatePositionTimer.interval() / 1000.0;
                      ctx->updateTracks(deltaTime);
                      fondeoService->update();
                      twoWService->update();
                      haService->update();
-                     canalService->update();
+                     dsiService->update();
                      derrotasService->update();
                      textService->update();
                    });
+
 
     QObject::connect(&timer, &QTimer::timeout, &timer,
                      [ctx, encoder, transport, &jsonHandler]() {
