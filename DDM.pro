@@ -43,6 +43,7 @@ HEADERS += \
     src/controller/commands/deleteAreaCommand.h \
     src/controller/commands/deleteCircleCommand.h \
     src/controller/commands/cpaCommand.h \
+    src/controller/commands/derrotasCommand.h \
     src/controller/commands/displaymodecommand.h \
     src/controller/commands/estacionamientocommand.h \
     src/controller/commands/fondeoCommand.h \
@@ -66,6 +67,7 @@ HEADERS += \
     src/controller/services/centerservice.h \
     src/controller/handlers/geometrycommandhandler.h \
     src/controller/services/cursorservice.h \
+    src/controller/services/derrotasService.h \
     src/controller/services/fondeoservice.h \
     src/controller/services/haService.h \
     src/controller/services/geometryservice.h \
@@ -91,6 +93,10 @@ HEADERS += \
     src/model/canal/canalSessionState.h \
     src/model/commandContext.h \
     src/model/cpa.h \
+    src/model/derrotas/derrotasLogManager.h \
+    src/model/derrotas/derrotasSessionState.h \
+    src/model/derrotas/futuraCalculator.h \
+    src/model/derrotas/pasadaCalculator.h \
     src/model/fondeo/fondeoCalculator.h \
     src/model/fondeo/fondeoSessionState.h \
     src/model/fondeo/fondeoTiposUnidad.h \
@@ -149,6 +155,7 @@ SOURCES += \
     src/controller/commands/canalCommand.cpp \
     src/controller/commands/centerCommand.cpp \
     src/controller/commands/cpaCommand.cpp \
+    src/controller/commands/derrotasCommand.cpp \
     src/controller/commands/displaymodecommand.cpp \
     src/controller/commands/estacionamientocommand.cpp \
     src/controller/commands/delete_area_command.cpp \
@@ -173,6 +180,7 @@ SOURCES += \
     src/controller/handlers/ownshipcommandhandler.cpp \
     src/controller/handlers/geometrycommandhandler.cpp \
     src/controller/services/cursorservice.cpp \
+    src/controller/services/derrotasService.cpp \
     src/controller/services/fondeoservice.cpp \
     src/controller/services/haService.cpp \
     src/controller/services/geometryservice.cpp \
@@ -194,6 +202,9 @@ SOURCES += \
     src/model/borneo/buqueClaseCatalog.cpp \
     src/model/canal/canalCalculator.cpp \
     src/model/cpa.cpp \
+    src/model/derrotas/derrotasLogManager.cpp \
+    src/model/derrotas/futuraCalculator.cpp \
+    src/model/derrotas/pasadaCalculator.cpp \
     src/model/fondeo/fondeoCalculator.cpp \
     src/model/ha/haCalculator.cpp \
     src/model/ha/haSessionTimer.cpp \

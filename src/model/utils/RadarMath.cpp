@@ -60,6 +60,30 @@ void RadarMath::latLonToDm(
     outXDm = (dLon * kMetersPerDegree * cosLat) / kMetersPerDm;
 }
 
+void RadarMath::dmToLatLon(
+    double originLat, double originLon,
+    double xDm,        double yDm,
+    double& outTargetLat, double& outTargetLon)
+{
+    constexpr double kMetersPerDegree = 111320.0;
+    constexpr double kMetersPerDm     = 1828.8;
+
+    const double cosLat = std::cos(qDegreesToRadians(originLat));
+
+    const double dLat = (yDm * kMetersPerDm) / kMetersPerDegree;
+    outTargetLat = originLat + dLat;
+
+    // Guard: en los polos cosLat tiende a 0 y la division se indefine.
+    // No deberia ocurrir en un escenario naval real, pero evita un
+    // NaN silencioso si algun dia pasa.
+    if (qFuzzyIsNull(cosLat)) {
+        outTargetLon = originLon;
+        return;
+    }
+
+    const double dLon = (xDm * kMetersPerDm) / (kMetersPerDegree * cosLat);
+    outTargetLon = originLon + dLon;
+}
 
 double RadarMath::dmsToDecimal(int degrees, int minutes, double seconds) {
     const double sign = (degrees < 0) ? -1.0 : 1.0;

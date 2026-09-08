@@ -54,6 +54,8 @@
 #include "deleteCircleCommand.h"
 #include "addSectorCommand.h"
 #include "deleteSectorCommand.h"
+#include "derrotasCommand.h"
+#include "derrotasService.h"
 
 // static void enableAnsiColorsOnWindows() {
 //   DWORD mode = 0;
@@ -88,6 +90,7 @@ int main(int argc, char *argv[]) {
   auto *twoWService = new TwoWService(ctx);
   auto *haService = new HaService(ctx, obmService);
   auto *canalService = new CanalService(ctx);
+  auto *derrotasService = new DerrotasService(ctx);
 
   // registrar comandos
   registry->registerCommand(QSharedPointer<ICommand>(new AddCommand()));
@@ -114,6 +117,7 @@ int main(int argc, char *argv[]) {
   registry->registerCommand(QSharedPointer<ICommand>(new HaCommand(obmService)));
   registry->registerCommand(QSharedPointer<ICommand>(new BorneoCommand()));
   registry->registerCommand(QSharedPointer<ICommand>(new CanalCommand()));
+  registry->registerCommand(QSharedPointer<ICommand>(new DerrotasCommand(derrotasService)));
 
   CommandDispatcher dispatcher(registry, parser, *ctx);
 
@@ -158,13 +162,14 @@ int main(int argc, char *argv[]) {
   QTimer timer;
   QTimer updatePositionTimer;
   QObject::connect(&updatePositionTimer, &QTimer::timeout,
-                   [ctx, fondeoService, twoWService, haService, canalService, &updatePositionTimer]() {
+                   [ctx, fondeoService, twoWService, haService, derrotasService, canalService, &updatePositionTimer]() {
                      double deltaTime = updatePositionTimer.interval() / 1000.0;
                      ctx->updateTracks(deltaTime);
                      fondeoService->update();
                      twoWService->update();
                      haService->update();
                      canalService->update();
+                     derrotasService->update();
                    });
 
   QObject::connect(&timer, &QTimer::timeout, &timer,
