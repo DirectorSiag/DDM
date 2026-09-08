@@ -145,7 +145,9 @@ CommandResult OwnShipCommand::execute(const CommandInvocation& inv, CommandConte
     const OwnShipOperationResult result = ownShipService.setFromCli(
         courseDeg,
         speedKnots,
-        source
+        source,
+        latDecimal,
+        lonDecimal
         );
 
     if (!result.success) {

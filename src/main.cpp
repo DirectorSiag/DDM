@@ -171,10 +171,7 @@ int main(int argc, char *argv[]) {
   QTimer timer;
   QTimer updatePositionTimer;
   QObject::connect(&updatePositionTimer, &QTimer::timeout,
-<<<<<<< src/main.cpp
-                   [ctx, fondeoService, twoWService, haService, canalService, dsiService, &updatePositionTimer]() {
-=======
-                   [ctx, fondeoService, twoWService, haService, derrotasService, canalService, &updatePositionTimer]() {
+                   [ctx, fondeoService, twoWService, haService, derrotasService, dsiService, canalService, textService, &updatePositionTimer]() {
                      double deltaTime = updatePositionTimer.interval() / 1000.0;
                      ctx->updateTracks(deltaTime);
                      fondeoService->update();
@@ -194,8 +191,6 @@ int main(int argc, char *argv[]) {
                          transport->send(encoder->buildFullMessage(*ctx));
                      });
 
-    auto *obmHandler = new OBMHandler();
-    auto *obmService = new ObmService(obmHandler);
     auto *ownCurs = new OwnCurs(ctx, obmHandler);
 
     // 1. Crear los controladores

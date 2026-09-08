@@ -1,4 +1,5 @@
 #include "dsiService.h"
+#include "model/dsi/dsiCalculator.h"
 #include <QtMath>
 #include <cmath>
 
