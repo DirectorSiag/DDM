@@ -343,12 +343,13 @@ CommandResult AddCommand::execute(const CommandInvocation& inv, CommandContext& 
     if (hasInfo) request.info = info;
     if (hasPriv) request.priv = priv;
 
-    TrackOperationResult createResult = ctx.trackService->createTrack(request);
+    TrackService trackService(&ctx);
+    TrackOperationResult createResult = trackService.createTrack(request);
     if (!createResult.success) {
         return {false, createResult.message};
     }
 
-    Track* t = ctx.trackService->findTrackById(createResult.trackId);
+    Track* t = trackService.findTrackById(createResult.trackId);
     if (!t) {
         return {false, "No se pudo recuperar el track recien creado"};
     }

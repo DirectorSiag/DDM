@@ -5,6 +5,7 @@
 #include <QJsonObject>
 #include <QByteArray>
 #include <QString>
+#include <memory>
 
 class CommandContext;
 class ITransport;
@@ -24,6 +25,7 @@ public:
 private:
     CommandContext* m_context;
     ITransport* m_transport;
+    std::unique_ptr<TrackService> m_trackService;
 
     QByteArray buildCreateTrackResponse(int createdId);
     QByteArray buildDeleteTrackResponse(int deletedId);

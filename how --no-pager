@@ -1,0 +1,92 @@
+[33mcommit 4f1a0be11ef79933f37a69cd7259a5b2321ae0a4[m[33m ([m[1;36mHEAD -> [m[1;32mtest/fondeo[m[33m, [m[1;31morigin/test/fondeo[m[33m)[m
+Author: Lucio <rodrilu1620@gmail.com>
+Date:   Mon Jun 29 12:39:33 2026 -0300
+
+    test calculador actualizado
+
+[1mdiff --git a/src/model/fondeo/fondeoCalculator.cpp b/src/model/fondeo/fondeoCalculator.cpp[m
+[1mindex 8582002..4c867fd 100644[m
+[1m--- a/src/model/fondeo/fondeoCalculator.cpp[m
+[1m+++ b/src/model/fondeo/fondeoCalculator.cpp[m
+[36m@@ -83,23 +83,28 @@[m [mvoid FondeoCalculator::calculatePanelPredictivo([m
+ [m
+     // TODO: Validar que esta sea la respuesta definitiva[m
+     if (d > c.r1) {[m
+[31m-        out_state.movimientoActual = "Adelante Toda";[m
+[31m-        out_state.proximoMovimiento = "Adelante Media";[m
+[31m-    } else if (d <= c.r1 && d > c.r2) {[m
+[31m-        out_state.movimientoActual = "Adelante Media";[m
+[31m-        out_state.proximoMovimiento = "Adelante Despacio";[m
+[31m-    } else if (d <= c.r2 && d > c.r3) {[m
+[31m-        out_state.movimientoActual = "Adelante Despacio";[m
+[31m-        out_state.proximoMovimiento = "Para Maquinas";[m
+[31m-    } else if (d <= c.r3 && d > c.r4) {[m
+[31m-        out_state.movimientoActual = "Para Maquinas";[m
+[31m-        out_state.proximoMovimiento = "Maquinas Atras";[m
+[31m-    } else if (d <= c.r4 && d > c.r5) {[m
+[31m-        out_state.movimientoActual = "Maquinas Atras";[m
+[31m-        out_state.proximoMovimiento = "Detención";[m
+[31m-    } else {[m
+[31m-        // Estamos adentro del último anillo (r5)[m
+[31m-        out_state.movimientoActual = "Detención";[m
+[31m-        out_state.proximoMovimiento = "";[m
+[32m+[m[32m        out_state.movimientoActual = {"AD. TODA", d - c.r1};[m
+[32m+[m[32m        out_state.proximoMovimiento = {"AD. MEDIA", d - c.r2};[m
+[32m+[m[32m    }[m
+[32m+[m[32m    else if (d > c.r2) {[m
+[32m+[m[32m        out_state.movimientoActual = {"AD. MEDIA", d - c.r2};[m
+[32m+[m[32m        out_state.proximoMovimiento = {"AD. DESP.", d - c.r3};[m
+[32m+[m[32m    }[m
+[32m+[m[32m    else if (d > c.r3) {[m
+[32m+[m[32m        out_state.movimientoActual = {"AD. DESP.", d - c.r3};[m
+[32m+[m[32m        out_state.proximoMovimiento = {"PARA MAQ", d - c.r4};[m
+[32m+[m[32m    }[m
+[32m+[m[32m    else if (d > c.r4) {[m
+[32m+[m[32m        out_state.movimientoActual = {"PARA MAQ", d - c.r4};[m
+[32m+[m[32m        out_state.proximoMovimiento = {"MAQ. AT", d - c.r5};[m
+[32m+[m[32m    }[m
+[32m+[m[32m    else if (d > c.r5) {[m
+[32m+[m[32m        out_state.movimientoActual = {"MAQ. AT", d - c.r5};[m
+[32m+[m[32m        out_state.proximoMovimiento = {"DETENCIÓN", d};[m
+[32m+[m[32m    }[m
+[32m+[m[32m    else {[m
+[32m+[m[32m        out_state.movimientoActual = {"DETENCIÓN", d};[m
+[32m+[m[32m        out_state.proximoMovimiento = {"FONDEADO", 0.0};[m
+[32m+[m
+     }[m
+ }[m
+\ No newline at end of file[m
+[1mdiff --git a/src/model/fondeo/fondeoSessionState.h b/src/model/fondeo/fondeoSessionState.h[m
+[1mindex 5400c56..2914df2 100644[m
+[1m--- a/src/model/fondeo/fondeoSessionState.h[m
+[1m+++ b/src/model/fondeo/fondeoSessionState.h[m
+[36m@@ -32,8 +32,13 @@[m [mstruct FondeoConfig {[m
+     double r5 = 0.0; // Yardas - Origen en el PF[m
+ };[m
+ [m
+[32m+[m[32mstruct AsesoramientoMovimiento {[m
+[32m+[m[32m    QString label;      // Ej: "AD. TODA"[m
+[32m+[m[32m    double distancia;   // Distancia en yardas al anillo[m
+[32m+[m[32m};[m
+[32m+[m
+ struct FondeoSessionState {[m
+[31m-    // ---- Datos estáticos    [m
+[32m+[m[32m    // ---- Datos estáticos[m
+     FondeoConfig config;[m
+     QPointF puntoFondeo;[m
+     QPointF puntoAuxiliar;[m
+[36m@@ -49,10 +54,10 @@[m [mstruct FondeoSessionState {[m
+     double azimutRelativo = 0.0; // Azimut relativo al al PA o PF (Dependiendo al que esté yendo)[m
+     double distanciaRelativa = 0.0; // Distancia del BP al PA o PF (Dependiendo al que esté yendo)[m
+ [m
+[31m-    QString movimientoActual = "Adelante Toda"; // TODO: Ver como arranca[m
+[31m-    QString proximoMovimiento = "Adelante Media"; // TODO[m
+[32m+[m[32m    AsesoramientoMovimiento movimientoActual = {"AD. TODA", 0.0};[m
+[32m+[m[32m    AsesoramientoMovimiento proximoMovimiento = {"AD. MEDIA", 0.0};[m
+ [m
+     void reset() { *this = FondeoSessionState{}; }[m
+ };[m
+ [m
+[31m-#endif // FONDEO_SESSION_STATE_H[m
+\ No newline at end of file[m
+[32m+[m[32m#endif // FONDEO_SESSION_STATE_H[m

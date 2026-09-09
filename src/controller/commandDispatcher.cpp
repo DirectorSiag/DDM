@@ -11,6 +11,7 @@
 #include <QStringList>
 #include "consoleUtils.h"
 #include "ansi.h"
+#include <cstdlib>
 #ifdef Q_OS_WIN
 #include <windows.h>
 #include <QRegularExpression>
@@ -61,15 +62,12 @@ void CommandDispatcher::onLine(const QString& line) {
         ctx_.out << "Adiós!\n";
         ctx_.out << "Este es tu regalo rami :)\n";
         ctx_.out.flush();
-        // main conecta quitRequested() a la secuencia de apagado ordenado
-        // (para timers, transporte y ReplicationEngine::stop() —join del
-        // Worker Thread + disconnect() del participante DDS + cierre de
-        // SQLite—) y recién ahí fuerza la terminación del proceso. El hilo de
-        // lectura de stdin queda bloqueado en readLine(), así que no se puede
-        // esperar un retorno normal de app.exec(); ese _Exit vive ahora en el
-        // handler de main, después de cerrar RE/DDS.
         emit quitRequested();
-        return;
+        // El hilo de lectura de stdin queda bloqueado en una lectura
+        // sincrónica, por lo que QCoreApplication::quit() no alcanza a
+        // finalizar el proceso. Se fuerza la terminación con una syscall
+        // de salida directa al sistema operativo.
+        std::_Exit(0);
     }
 
     // Admin: help

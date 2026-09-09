@@ -334,8 +334,7 @@ sequenceDiagram
     DDM->>OP: Muestra pantalla "Iniciando Sistema..."
 
     Note over RE: Fase 2 — Recuperación desde disco
-    DDM->>RE: Instancia ReplicationEngine(storage, transport, resolver, bridge, domain_id)
-    Note over DDM: domain_id leído por DDM desde .ini/env var (RF-DDS-006, ADR-012)
+    DDM->>RE: Instancia ReplicationEngine
     RE->>RE: Lee SQLite local completa
     loop Por cada objeto en SQLite
         RE->>RB: InjectObject(envelope)
@@ -469,9 +468,8 @@ void CommandContext::onInjectObject(const ReplicatedObject& obj) override {
 |----|-------------|--------|-----|
 | **DA-01** | ¿ReplicationEngine opera como proceso independiente o como librería `.so`? | **Cerrado — Librería `.so`** | `ADR-001-proceso-vs-libreria.md` |
 | **DA-02** | Mecanismo de comunicación entre DDM y ReplicationBridge. | **Cerrado — `IReplicationListener`** | `ADR-002-replicationbridge-mechanism.md` |
-| **DA-03** | ¿Quién lee el Domain ID de DDS (RF-DDS-006): ReplicationEngine o DDM? | **Cerrado — DDM lo lee e inyecta por constructor** | `ADR-012-domain-id-source.md` |
 
-No quedan decisiones abiertas en este documento. Las decisiones pendientes del proyecto se encuentran en ADR-003 (nombre DDSTransport).
+No quedan decisiones abiertas en este documento. Las decisiones pendientes del proyecto se encuentran en ADR-003 (nombre DDSTransport), ADR-004 (sincronización de relojes) y ADR-005 (hilos internos de RE).
 
 ---
 

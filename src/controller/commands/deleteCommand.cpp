@@ -16,7 +16,8 @@ CommandResult DeleteCommand::execute(const CommandInvocation& inv, CommandContex
         return {false, "ID inválido"};
     }
 
-    TrackOperationResult result = ctx.trackService->deleteTrackById(id);
+    TrackService trackService(&ctx);
+    TrackOperationResult result = trackService.deleteTrackById(id);
     if (result.success) {
         return {true, QString("OK delete → id=%1").arg(id)};
     }

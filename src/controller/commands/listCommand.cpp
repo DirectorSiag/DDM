@@ -10,7 +10,8 @@
 CommandResult ListCommand::execute(const CommandInvocation& inv, CommandContext& ctx) const {
     Q_UNUSED(inv);
 
-    const QJsonArray serializedTracks = ctx.trackService->serializeTracks();
+    TrackService trackService(&ctx);
+    const QJsonArray serializedTracks = trackService.serializeTracks();
     if (serializedTracks.isEmpty()) return {true, "(sin tracks)"};
 
     QString out;
