@@ -6,6 +6,8 @@ workflow:
 
 variables:
   GIT_CLEAN_FLAGS: -ffdx
+  GIT_SUBMODULE_STRATEGY: recursive
+  GIT_SUBMODULE_DEPTH: 1
 stages:
   - build
   - release
