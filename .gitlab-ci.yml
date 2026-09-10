@@ -12,15 +12,19 @@ stages:
 
 build_linux:
   stage: build
-  image: stateoftheartio/qt6:6.7-gcc-aqt
+  image: ddm-opendds-builder:3.33.0
   tags:
     - ddm-linux-local
   only:
     - develop
     - tags
+  variables:
+    DDS_ROOT: "/opt/opendds"
   script:
+    - echo "Verificando DDS_ROOT..."
+    - if [ -z "$DDS_ROOT" ]; then echo "ERROR: DDS_ROOT vacio, abortando build"; exit 1; fi
     - echo "Preparando entorno de Linux instalando dependencias gráficas..."
-    - sudo apt-get update -qq && sudo apt-get install -y libgl1-mesa-dev libglu1-mesa-dev
+    - sudo apt-get update -qq && sudo apt-get install -y libgl1-mesa-dev libglu1-mesa-dev libsqlite3-dev
     - echo "Compilando versión RELEASE en Debian..."
     - mkdir -p build_linux
     - cd build_linux
