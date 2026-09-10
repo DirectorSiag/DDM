@@ -57,6 +57,7 @@ build_windows:
   only:
     - develop
     - tags
+    - fix/gitmodules
   script:
     - echo "Compilando versión RELEASE en Windows..."
     - $env:Path = "C:\Qt\6.7.3\mingw_64\bin;C:\Qt\Tools\mingw1120_64\bin;" + $env:Path
