@@ -17,6 +17,7 @@ build_linux:
     - ddm-linux-local
   only:
     - develop
+    - fix/gitmodules
     - tags
   variables:
     DDS_ROOT: "/opt/opendds"
