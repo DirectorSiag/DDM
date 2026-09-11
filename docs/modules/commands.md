@@ -123,26 +123,30 @@ En la arquitectura general, este módulo es la entrada CLI paralela al pipeline 
 
 ## Referencia de comandos
 
-| Nombre del comando | Clase | Sintaxis CLI | Descripción |
-|---|---|---|---|
-| `add` | `AddCommand` | `add <--type <SPC|LINCO|ASW|OPS|HECO|APC|AAW|EW>|-f|-e|-u> [identidad] <x> <y> [legacyVelKnots] [legacyCourseDeg]` | Crea un track táctico. |
-| `delete` | `DeleteCommand` | `delete <id>` | Elimina track por id. |
-| `list` | `ListCommand` | `list` | Lista tracks actuales. |
-| `center` | `CenterCommand` | `center <x> <y>` | Actualiza centro global. |
-| `addCursor` | `AddCursorCommand` | `addCursor <tipoLinea> <x> <y> <largo> <angulo>` | Crea cursor/línea. |
-| `listcursors` | `ListCursorsCommand` | `listcursors` | Lista cursores. |
-| `deletecursor` | `DeleteCursorsCommand` | `deletecursor <id>` | Elimina cursor por id. |
-| `sitrep` | `SitrepCommand` | `sitrep [list]` / `sitrep watch` / `sitrep delete <trackId>` / `sitrep info <trackId> <texto>` | Operaciones SITREP. |
-| `cpa` | `CpaCommand` | `Uso: cpa <trackId1> <trackId2>` | Calcula/consulta CPA entre tracks (comando CLI específico). |
-| `ownship` | `OwnShipCommand` | `ownship [show] | ownship set <course_deg> <speed_knots> [source]` | Muestra/actualiza ownship. |
-| `estacionamiento` | `EstacionamientoCommand` | `estacionamiento [--track-a=<id|0000>] --track-b=<id_externo> --az=<deg> --d=<dm> (--vd=<knots> | --du=<hours>)` | Calcula rumbo/tiempo de estacionamiento. |
-| `fondeo` | `FondeoCommand` | `fondeo --track=<id> --az=<deg> --dt=<mn> --pa-az=<deg> --pa-dt=<yds> --r1..--r5=<yds>` (o `--pf-lat-deg=...` para modo GMS) / `fondeo --stop` / `fondeo --info` | Inicia/detiene/consulta la maniobra de fondeo. |
-| `display` | `DisplayModeCommand` | `display mode <relative|true|true_motion|show>` | Cambia modo de movimiento del display. |
-| `addArea` | `AddAreaCommand` | `addArea(ax,ay,bx,by,cx,cy,dx,dy,tipo,color)` | Crea área táctica. |
-| `addCircle` | `AddCircleCommand` | `addCircle(x,y,radius,type,color)` | Crea círculo táctico. |
-| `addPolygono` | `AddPolygonoCommand` | `addPolygono(x1, y1, x2, y2, ..., xn, yn, tipo, color)` | Crea polígono táctico. |
-| `deleteArea` | `DeleteAreaCommand` | `deleteArea(id)` | Elimina área y cursores asociados. |
-| `deleteCircle` | `DeleteCircleCommand` | `deleteCircle(id)` | Elimina círculo y cursores asociados. |
+| Nombre del comando | Clase | Sintaxis CLI | Descripción | Ejemplo |
+|---|---|---|---|---|
+| `add` | `AddCommand` | `add <--type <SPC|LINCO|ASW|OPS|HECO|APC|AAW|EW>|-t <...>|-f|-e|-u> [identidad] <x> <y> [legacyVelKnots] [legacyCourseDeg]` (opcionales: `--spd`, `--kt`, `--crs`, `--fc`, `--asgc`, `--linky`, `--link14`, `--info`, `--priv`) | Crea un track táctico. Coordenadas en rango -256..256. | `add --type SPC --id F 50 50 --spd 12.5 --crs 90` |
+| `delete` | `DeleteCommand` | `delete <id>` | Elimina track por id. | `delete 0007` |
+| `list` | `ListCommand` | `list` | Lista tracks actuales. | `list` |
+| `center` | `CenterCommand` | `center <x> <y>` (rango -255..255) | Actualiza centro global. | `center 0 0` |
+| `addCursor` | `AddCursorCommand` | `addCursor <tipoLinea> <x> <y> <largo> <angulo>` (tipoLinea 0..7, largo 0..256, ángulo se normaliza a 0..360) | Crea cursor/línea. | `addCursor 0 10 10 50 90` |
+| `listcursors` | `ListCursorsCommand` | `listcursors` | Lista cursores. | `listcursors` |
+| `deletecursor` | `DeleteCursorsCommand` | `deletecursor <id>` | Elimina cursor por id. | `deletecursor 2` |
+| `sitrep` | `SitrepCommand` | `sitrep [list]` / `sitrep watch` / `sitrep delete <trackId>` / `sitrep info <trackId> <texto>` | `list`: foto estática de tracks. `watch`: actualización continua (bloquea la consola hasta Ctrl+C). `delete`: borra el track y también cancela sus sesiones de estacionamiento asociadas. `info`: asocia texto al track. | `sitrep info 0012 contacto reevaluado` |
+| `cpa` | `CpaCommand` | `cpa <trackId1> <trackId2>` | Valida los dos IDs y los muestra. **El cálculo real de CPA (TCPA/DCPA) no está implementado en este comando CLI** — el motor `CPAService` solo está conectado al pipeline JSON. | `cpa 0001 0002` |
+| `ownship` | `OwnShipCommand` | `ownship [show]` / `ownship set <course_deg> <speed_knots> [source]` / `ownship setgeo <lat_deg> <lon_deg>` / `ownship setgeodms <latDeg> <latMin> <latSec> <lonDeg> <lonMin> <lonSec>` | Muestra/actualiza ownship, por curso+velocidad o por posición geográfica (decimal o GMS). | `ownship set 90 20 GPS` |
+| `estacionamiento` | `EstacionamientoCommand` | `estacionamiento [--track-a=<id|0000>] --track-b=<id_externo> --az=<deg> --d=<dm> (--vd=<knots> | --du=<hours>)` | Calcula rumbo/tiempo de estacionamiento. Si `--track-a` se omite o es `0000`, usa OwnShip como TRACK-A (debe estar inicializado). | `estacionamiento --track-b=0012 --az=90 --d=15 --vd=20` |
+| `fondeo` | `FondeoCommand` | `fondeo --track=<id> --az=<deg> --dt=<mn> --pa-az=<deg 0..359> --pa-dt=<yds> --r1..--r5=<yds>` (o `--pf-lat-deg=...` para modo GMS) / `fondeo --stop` / `fondeo --info` | Inicia (modo track o GMS), detiene o consulta el estado (distancias/azimuts PF-PA, próximo movimiento, ids de anillos) de la maniobra de fondeo. | `fondeo --track=0012 --az=45 --dt=5 --pa-az=90 --pa-dt=300 --r1=100 --r2=200 --r3=300 --r4=400 --r5=500` |
+| `display` | `DisplayModeCommand` | `display mode <relative|rm|true|true_motion|tm|show>` (sin valor o `show`: muestra el modo actual) | Cambia modo de movimiento del display. | `display mode true_motion` |
+| `addArea` | `AddAreaCommand` | `addArea <ax> <ay> <bx> <by> <cx> <cy> <dx> <dy> <tipo> <color>` | Crea área táctica de 4 puntos. | `addArea 10 10 20 10 20 20 10 20 1 amarillo` |
+| `addCircle` | `AddCircleCommand` | `addCircle <x> <y> <radius> <type> <color>` (radius > 0) | Crea círculo táctico. | `addCircle 0 0 10 1 amarillo` |
+| `addPolygono` | `AddPolygonoCommand` | `addPolygono <x1> <y1> <x2> <y2> ... <xn> <yn> <tipo> <color>` (mínimo 3 puntos) | Crea polígono táctico. | `addPolygono 0 0 10 0 10 10 0 10 1 amarillo` |
+| `deleteArea` | `DeleteAreaCommand` | `deleteArea <id>` | Elimina área y cursores asociados. | `deleteArea 3` |
+| `deleteCircle` | `DeleteCircleCommand` | `deleteCircle <id>` | Elimina círculo y cursores asociados. | `deleteCircle 3` |
+| `borneo` | `BorneoCommand` | `borneo (--clase=<MEKO_360|MEKO_140|PATAGONIA> | --eslora=<mts>) --grilletes=<n> --profundidad=<mts>` / `borneo --stop` / `borneo --info` | Calcula y gestiona el radio del Círculo de Borneo. | `borneo --clase=MEKO_360 --grilletes=6 --profundidad=20` |
+| `canal` | `CanalCommand` | `canal --start [--a=<track>] [--b=<track>] [--c=<track>] [--d=<track>]` / `canal --borrar` (alias `--stop`) / `canal --info` | Asesoramiento de canal en 4 columnas (A-D). | `canal --start --a=0001 --b=0002` |
+| `ha` | `HaCommand` | `ha --popa` / `ha --cursor` / `ha --latlon --lat=<g,m,s> --lon=<g,m,s>` / `ha --az=<deg> --d=<yds>` / `ha --stop [<slot>]` / `ha --info <slot>` / `ha --list` | Gestiona emergencias Hombre al Agua (múltiples sesiones por slot). | `ha --popa` |
+| `2w` | `TwoWCommand` | `2w --guia=<trackId> --est=<estacion 1..68> [--radio=<mn>] [--aliadas=<est1,est2,...>]` / `2w --aliadas=<...>` / `2w --stop` / `2w --info` | Gestiona la Disposición 2W. | `2w --guia=0001 --est=5 --radio=10` |
 
 ## Flujo de datos
 

@@ -11,7 +11,7 @@ public:
     // Su equivalente para AR-TDC es el comando JSON create_area.
     QString getName() const override { return "addArea"; }
     QString getDescription() const override { return "Crea un área interactiva definiendo puntos A, B, C, D, tipo y color."; }
-    QString usage() const override { return "addArea(ax,ay,bx,by,cx,cy,dx,dy,tipo,color)"; }
+    QString usage() const override { return "addArea <ax> <ay> <bx> <by> <cx> <cy> <dx> <dy> <tipo> <color>\nEjemplo: addArea 10 10 20 10 20 20 10 20 1 amarillo"; }
 
     // El método execute es const por interfaz, no se puede cambiar
     CommandResult execute(const CommandInvocation& inv, CommandContext& ctx) const override;

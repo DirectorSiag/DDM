@@ -1,5 +1,5 @@
 /*
-Comando `list`/`ls`: imprime tabla con `id`, `type`, `ident`, `x`, `y` de los tracks existentes.
+Comando `list`: imprime tabla con `id`, `type`, `ident`, `x`, `y` de los tracks existentes.
 */
 
 #pragma once
@@ -10,6 +10,6 @@ class ListCommand : public ICommand {
 public:
     QString getName() const override { return "list"; }
     QString getDescription() const override { return "Lista los tracks actuales"; }
-    QString usage() const override { return "list"; }
+    QString usage() const override { return "list\nEjemplo: list"; }
     CommandResult execute(const CommandInvocation& inv, CommandContext& ctx) const override;
 };

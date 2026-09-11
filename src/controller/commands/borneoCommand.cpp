@@ -39,7 +39,8 @@ QString BorneoCommand::getDescription() const
 
 QString BorneoCommand::usage() const
 {
-    return QStringLiteral("borneo (--clase=<MEKO_360|MEKO_140|PATAGONIA> | --eslora=<mts>) --grilletes=<n> --profundidad=<mts> | --stop | --info");
+    return QStringLiteral("borneo (--clase=<MEKO_360|MEKO_140|PATAGONIA> | --eslora=<mts>) --grilletes=<n> --profundidad=<mts> | --stop | --info\n"
+                          "Ejemplo: borneo --clase=MEKO_360 --grilletes=6 --profundidad=20");
 }
 
 CommandResult BorneoCommand::execute(const CommandInvocation& inv, CommandContext& ctx) const

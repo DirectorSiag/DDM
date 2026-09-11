@@ -13,7 +13,8 @@ public:
             "ownship [show] | "
             "ownship set <course_deg> <speed_knots> [source] | "
             "ownship setgeo <lat_deg> <lon_deg> | "
-            "ownship setgeodms <latDeg> <latMin> <latSec> <lonDeg> <lonMin> <lonSec>"
+            "ownship setgeodms <latDeg> <latMin> <latSec> <lonDeg> <lonMin> <lonSec>\n"
+            "Ejemplo: ownship set 90 20 GPS"
             );
     }
 

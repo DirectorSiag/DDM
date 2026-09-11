@@ -73,20 +73,19 @@ void CommandDispatcher::onLine(const QString& line) {
     // Admin: help
     if (first.compare("help", Qt::CaseInsensitive) == 0) {
         printPrefijo(true);
-        ctx_.out << Ansi::cyan << "Comandos:\n";
+        ctx_.out << Ansi::cyan << "Comandos:\n" << Ansi::reset;
 
         // Admin fijos
-        ctx_.out << "  help, exit/salir\n";
+        ctx_.out << Ansi::yellow << "help, exit/salir" << Ansi::reset << "\n\n";
 
         for (const auto& sp : reg_->all()) {
             const ICommand* cmd = sp.data();
-            ctx_.out << "  "
+            ctx_.out << Ansi::yellow << cmd->getName() << Ansi::reset
+                     << " - " << Ansi::cyan << cmd->getDescription() << Ansi::reset << "\n"
                      << cmd->usage()
-                     << "  - " << cmd->getDescription()
-                     << "\n";
+                     << "\n\n";
         }
 
-        ctx_.out << Ansi::reset;
         ctx_.out.flush();
         return;
     }

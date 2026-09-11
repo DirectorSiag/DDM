@@ -9,14 +9,15 @@ public:
     QString getName() const override { return QStringLiteral("canal"); }
 
     QString getDescription() const override {
-        return QStringLiteral("Asesoramiento canal");
+        return QStringLiteral("Asesoramiento de canal en 4 columnas (A-D): inicia/actualiza columnas con --start, limpia la sesión con --borrar (o --stop) y consulta el estado con --info.");
     }
 
     QString usage() const override {
         return QStringLiteral(
-            "  canal --start [--a=<track>] [--b=<track>] [--c=<track>] [--d=<track>]\n\n"
-            "  canal --borrar  (Limpia todas las columnas)\n"
+            "  canal --start [--a=<track>] [--b=<track>] [--c=<track>] [--d=<track>]   (al menos una columna)\n\n"
+            "  canal --borrar  (alias: --stop)  (Limpia todas las columnas)\n"
             "  canal --info    (Muestra el estado actual)\n"
+            "Ejemplo: canal --start --a=0001 --b=0002\n"
             );
     }
 

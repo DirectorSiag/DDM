@@ -11,7 +11,7 @@ public:
     // En AR-TDC se invoca con JSON create_circle.
     QString getName() const override { return "addCircle"; }
     QString getDescription() const override { return "Crea un círculo definido por centro (x, y), radio, tipo y color."; }
-    QString usage() const override { return "addCircle(x,y,radius,type,color)"; }
+    QString usage() const override { return "addCircle <x> <y> <radius> <type> <color>   (radius > 0)\nEjemplo: addCircle 0 0 10 1 amarillo"; }
 
     CommandResult execute(const CommandInvocation& inv, CommandContext& ctx) const override;
 };
