@@ -13,6 +13,8 @@
 #include <QObject>
 #include <QTextStream>
 #include <QThread>
+#include <atomic>
+#include <cstdlib>
 
 #ifdef Q_OS_WIN
 #include <windows.h>
@@ -62,6 +64,15 @@
 #include "derrotasService.h"
 
 
+#include "trackservice.h"
+#include "replicationEngine/replicationListener.h"
+
+#include "ReplicationEngine/ReplicationEngine.h"
+#include "ObjectStorage/ObjectStorage.h"
+#include "ConflictResolver/ConflictResolver.h"
+#include "DDSTransport/DDSTransport.h"
+#include "ReplicationBridge/CallbackBridge.h"
+
 // static void enableAnsiColorsOnWindows() {
 //   DWORD mode = 0;
 //   HANDLE hOut = GetStdHandle(STD_OUTPUT_HANDLE);
@@ -86,6 +97,14 @@ int main(int argc, char *argv[]) {
 
     QCoreApplication app(argc, argv);
 
+    // Config de despliegue por consola (RF-DDS-006, ADR-012): domain_id no tiene
+    // default seguro — sin él no es seguro arrancar (riesgo de mezclar por error
+    // una consola de simulación con la red de combate real). Se falla temprano,
+    // antes de levantar cualquier otro subsistema.
+    if (!Configuration::instance().loadReplicationConfig()) {
+        return 1;
+    }
+
     auto *ctx = new CommandContext();
     auto *registry = new CommandRegistry();
     auto *parser = new CommandParser();
@@ -98,6 +117,42 @@ int main(int argc, char *argv[]) {
     auto *derrotasService = new DerrotasService(ctx);
     auto *textService = new TextService(ctx);   // <-- AGREGADO: faltaba instanciar
     auto *dsiService = new DSIService(ctx);
+
+    // --- Replicación (ICD): instancia única de TrackService + listener + engine ---
+    auto *trackService = new TrackService(ctx, &app);
+    auto *replicationListener = new ReplicationListener(&app);
+
+    // Wiring de la librería real (ADR-001: enlace estático, mismo proceso).
+    // Orden de construcción según ICD §8/§9.2: el listener se registra en el
+    // bridge ANTES de construir el engine.
+    auto replicationStorage   = std::make_unique<replication_engine::ObjectStorage>("tactical_db.db");
+    auto replicationTransport = std::make_unique<replication_engine::DDSTransport>();
+    auto replicationResolver  = std::make_unique<replication_engine::ConflictResolver>();
+    auto replicationBridge    = std::make_unique<replication_engine::CallbackBridge>();
+    replicationBridge->registerListener(replicationListener);
+
+    auto replicationEngine = std::make_unique<replication_engine::ReplicationEngine>(
+        std::move(replicationStorage), std::move(replicationTransport),
+        std::move(replicationResolver), std::move(replicationBridge),
+        Configuration::instance().domainId, Configuration::instance().consoleId);
+
+    trackService->setReplicationEngine(replicationEngine.get());
+    trackService->setConsoleId(Configuration::instance().consoleId);
+    ctx->trackService = trackService;
+
+    replicationEngine->start();
+
+    // Bajada RE → DDM: el listener emite desde el Worker Thread de RE;
+    // QueuedConnection entrega los slots en el hilo Qt (ICD §9.4).
+    QObject::connect(replicationListener, &ReplicationListener::trackReceived,
+                     trackService, &TrackService::onReplicatedTrackCreate,
+                     Qt::QueuedConnection);
+    QObject::connect(replicationListener, &ReplicationListener::trackRemoved,
+                     trackService, &TrackService::onReplicatedTrackRemoved,
+                     Qt::QueuedConnection);
+    QObject::connect(replicationListener, &ReplicationListener::clearAllReceived,
+                     trackService, &TrackService::onReplicatedClearAll,
+                     Qt::QueuedConnection);
 
     // registrar comandos
     registry->registerCommand(QSharedPointer<ICommand>(new AddCommand()));
@@ -138,8 +193,6 @@ int main(int argc, char *argv[]) {
                      &StdinReader::readLoop);
     QObject::connect(&reader, &StdinReader::lineRead, &dispatcher,
                      &CommandDispatcher::onLine);
-    QObject::connect(&dispatcher, &CommandDispatcher::quitRequested, &app,
-                     &QCoreApplication::quit);
     QObject::connect(&reader, &StdinReader::finished, &ioThread, &QThread::quit);
 
     QTextStream out(stdout);
@@ -251,11 +304,41 @@ int main(int argc, char *argv[]) {
             qDebug() << t->toString();
     });
 
+    // Secuencia de apagado ordenado. Se corta la generación de eventos (timers),
+    // luego el transporte con el juego, y por último ReplicationEngine::stop()
+    // —bloqueante: hace join del Worker Thread y disconnect() del participante
+    // DDS (baja SPDP para los peers)—. El reset() corre ~ReplicationEngine, que
+    // cierra el handle SQLite de tactical_db.db. Idempotente: lo invocan tanto el
+    // camino de `exit` del operador como el retorno normal de app.exec().
+    auto shutdown = [&]() {
+        static std::atomic<bool> done{false};
+        if (done.exchange(true))
+            return;
+        timer.stop();
+        updatePositionTimer.stop();
+        transport->stop();
+        replicationEngine->stop();
+        replicationEngine.reset();
+    };
+
+    // `exit`/`salir` en la consola: el dispatcher emite quitRequested() desde el
+    // hilo Qt. app.exec() no alcanza a retornar porque el hilo de StdinReader
+    // sigue bloqueado en readLine() (ioThread.wait() se colgaría), así que se
+    // fuerza la salida con _Exit — pero recién después de cerrar RE/DDS y SQLite.
+    QObject::connect(&dispatcher, &CommandDispatcher::quitRequested, &app,
+                     [&shutdown]() {
+                         shutdown();
+                         std::_Exit(0);
+                     });
+
     timer.start(40);
     updatePositionTimer.start(80);
 
     ioThread.start();
     const int code = app.exec();
     ioThread.wait();
+
+    shutdown();
+
     return code;
 }

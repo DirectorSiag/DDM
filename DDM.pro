@@ -26,6 +26,83 @@ INCLUDEPATH += \
     src/view/ \
 
 
+# --- ReplicationEngine (SiOp) ---
+# Integración por código fuente vía submódulo git (ADR-001 Addendum 2026-07-15,
+# ICD §9.5): RE se compila con su propio CMakeLists.txt (fuente de verdad de su
+# lógica de build/dependencias) y qmake solo consume el resultado. No se duplica
+# la detección de SQLite3/OpenDDS acá.
+RE_ROOT    = $$PWD/third_party/replicationengine
+RE_INCLUDE = $$RE_ROOT/include
+RE_BUILD   = $$RE_ROOT/build
+
+INCLUDEPATH += $$RE_INCLUDE
+
+CONFIG(debug, debug|release) {
+    RE_BUILD_TYPE = Debug
+} else {
+    RE_BUILD_TYPE = Release
+}
+
+# OpenDDS habilitado: DDSTransport ya tiene implementación real de
+# RealTimeReplication sobre OpenDDS (rama DDS-RealTimeReplication de RE). Como no
+# todas las máquinas de Ingeniería tienen OpenDDS instalado, la decisión se toma
+# según el entorno: si setenv.sh de OpenDDS está aplicado (DDS_ROOT exportado) se
+# compila con DDS real, y si no se cae al modo stub de siempre.
+DDS_ROOT_ENV = $$(DDS_ROOT)
+
+!isEmpty(DDS_ROOT_ENV) {
+    ACE_ROOT_ENV = $$(ACE_ROOT)
+    isEmpty(ACE_ROOT_ENV): ACE_ROOT_ENV = $$DDS_ROOT_ENV/ACE_wrappers
+
+    RE_CMAKE_DDS = -DOpenDDS_DIR=$$DDS_ROOT_ENV/cmake
+
+    # libDDSTransport.a es estática: los símbolos de OpenDDS/TAO/ACE que arrastra
+    # quedan sin resolver hasta el link final de DDM, así que la lista de
+    # bibliotecas que CMake resuelve por su link interface hay que repetirla acá
+    # (es la misma que usa DDSTransportIntegrationTest en el build de RE).
+    # Se guarda en una variable y se agrega a LIBS recién después de las .a de
+    # RE: con --as-needed, una .so que se nombra antes de quien la necesita se
+    # descarta.
+    DDS_LIBS = \
+        -L$$DDS_ROOT_ENV/lib \
+        -lOpenDDS_Rtps_Udp -lOpenDDS_Rtps -lOpenDDS_Dcps \
+        -L$$ACE_ROOT_ENV/lib \
+        -lTAO_BiDirGIOP -lTAO_PI -lTAO_PortableServer -lTAO_Valuetype \
+        -lTAO_CodecFactory -lTAO_AnyTypeCode -lTAO -lACE \
+        -ldl -lrt
+
+    # Sin rpath, DDM solo corre con LD_LIBRARY_PATH del setenv.sh de OpenDDS.
+    QMAKE_RPATHDIR += $$DDS_ROOT_ENV/lib $$ACE_ROOT_ENV/lib
+} else {
+    RE_CMAKE_DDS = -DCMAKE_DISABLE_FIND_PACKAGE_OpenDDS=ON
+}
+
+re_configure.target = $$RE_BUILD/CMakeCache.txt
+re_configure.commands = cmake -S $$RE_ROOT -B $$RE_BUILD -DCMAKE_BUILD_TYPE=$$RE_BUILD_TYPE $$RE_CMAKE_DDS
+
+# Target "phony": sin archivo real asociado, así que make siempre lo considera
+# desactualizado y vuelve a invocar cmake --build. CMake/Make deciden internamente
+# si hay algo para recompilar — evita que un submódulo actualizado (git submodule
+# update) quede con una .a vieja linkeada por falta de tracking de dependencias
+# a nivel de qmake.
+re_build.target = re_build_phony
+re_build.depends = re_configure
+re_build.commands = cmake --build $$RE_BUILD --parallel
+
+QMAKE_EXTRA_TARGETS += re_configure re_build
+PRE_TARGETDEPS += re_build_phony
+
+LIBS += \
+    -L$$RE_BUILD/src/ReplicationEngine -lReplicationEngine \
+    -L$$RE_BUILD/src/ObjectStorage -lObjectStorage \
+    -L$$RE_BUILD/src/DDSTransport -lDDSTransport \
+    -L$$RE_BUILD/src/ConflictResolver -lConflictResolver \
+    -L$$RE_BUILD/src/ReplicationBridge -lReplicationBridge \
+    -lsqlite3
+
+LIBS += $$DDS_LIBS
+
+
 HEADERS += \
     src/controller/commandRegistry.h \
     src/controller/commanddispatcher.h \
@@ -141,6 +218,7 @@ HEADERS += \
     src/model/utils/configuration.h \
     src/model/entities/track.h \
     src/model/utils/consoleUtils.h \
+    src/replicationEngine/replicationListener.h \
     src/view/commandParser.h \
     src/view/ansi.h \
     src/view/iInputParser.h \
@@ -248,11 +326,19 @@ SOURCES += \
     src/model/sitrep/sitrep.cpp \
     src/model/utils/RadarMath.cpp \
     src/model/utils/configuration.cpp \
+    src/replicationEngine/replicationListener.cpp \
     src/view/stdinreader.cpp \
     src/model/texto/textCalculator.cpp \
     src/controller/services/textService.cpp \
     src/controller/commands/textCommand.cpp
 
-
-
+# --- Deploy configs junto al binario ------------------------------------------
+# ddm.ini debe estar en applicationDirPath; opendds.ini sigue al cwd /
+# OPENDDS_CONFIG_DIR. Ambos son gitignored (artefactos de despliegue), por eso
+# cada copy va guardado con [ -f ]: en un checkout limpio sin .ini no rompe.
+deployinis.commands = \
+    ([ -f $$PWD/ddm.ini ] && cp -f $$PWD/ddm.ini $$OUT_PWD/ || true) && \
+    ([ -f $$PWD/opendds.ini ] && cp -f $$PWD/opendds.ini $$OUT_PWD/ || true)
+QMAKE_EXTRA_TARGETS += deployinis
+POST_TARGETDEPS += deployinis
 

@@ -269,8 +269,6 @@ EstacionamientoService::CalculationResult EstacionamientoService::calculateFromO
         return out;
     }
 
-    TrackService trackService(m_context);
-
     auto resolveKinematicState = [&](int trackId,
                                      const QString& label,
                                      EstacionamientoCalculator::KinematicState& outState,
@@ -295,7 +293,7 @@ EstacionamientoService::CalculationResult EstacionamientoService::calculateFromO
             return true;
         }
 
-        Track* track = trackService.findTrackById(trackId);
+        Track* track = m_context->trackService->findTrackById(trackId);
         if (!track) {
             resolutionError = QStringLiteral("%1 no encontrado: %2").arg(label).arg(trackId);
             return false;
