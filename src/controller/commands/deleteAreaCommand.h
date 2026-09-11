@@ -8,7 +8,7 @@ public:
     // Este comando elimina areas desde CLI; en AR-TDC se corresponde con delete_area.
     QString getName() const override { return "deleteArea"; }
     QString getDescription() const override { return "Elimina un área y sus cursores asociados dado su ID."; }
-    QString usage() const override { return "deleteArea(id)"; }
+    QString usage() const override { return "deleteArea <id>\nEjemplo: deleteArea 3"; }
 
     CommandResult execute(const CommandInvocation& inv, CommandContext& ctx) const override;
 };

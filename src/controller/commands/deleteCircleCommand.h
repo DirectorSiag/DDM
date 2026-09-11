@@ -8,7 +8,7 @@ public:
     // Este comando elimina circulos desde CLI; en AR-TDC se corresponde con delete_circle.
     QString getName() const override { return "deleteCircle"; }
     QString getDescription() const override { return "Elimina un círculo y sus cursores asociados dado su ID."; }
-    QString usage() const override { return "deleteCircle(id)"; }
+    QString usage() const override { return "deleteCircle <id>\nEjemplo: deleteCircle 3"; }
 
     CommandResult execute(const CommandInvocation& inv, CommandContext& ctx) const override;
 };
