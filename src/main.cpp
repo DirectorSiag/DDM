@@ -13,6 +13,8 @@
 #include <QObject>
 #include <QTextStream>
 #include <QThread>
+#include <atomic>
+#include <cstdlib>
 
 #ifdef Q_OS_WIN
 #include <windows.h>
@@ -37,6 +39,8 @@
 #include "ownshipcommand.h"
 #include "estacionamientocommand.h"
 #include "displaymodecommand.h"
+#include "textCommand.h"
+#include "../services/textService.h"
 #include "fondeoCommand.h"
 #include "fondeoservice.h"
 #include "canalCommand.h"
@@ -46,6 +50,8 @@
 #include "TwoWService.h"
 #include "haCommand.h"
 #include "haService.h"
+#include "dsiCommand.h"
+#include "dsiService.h"
 #include "borneoCommand.h"
 #include "addareacommand.h"
 #include "addpolygonocommand.h"
@@ -54,6 +60,18 @@
 #include "deleteCircleCommand.h"
 #include "addSectorCommand.h"
 #include "deleteSectorCommand.h"
+#include "derrotasCommand.h"
+#include "derrotasService.h"
+
+
+#include "trackservice.h"
+#include "replicationEngine/replicationListener.h"
+
+#include "ReplicationEngine/ReplicationEngine.h"
+#include "ObjectStorage/ObjectStorage.h"
+#include "ConflictResolver/ConflictResolver.h"
+#include "DDSTransport/DDSTransport.h"
+#include "ReplicationBridge/CallbackBridge.h"
 
 // static void enableAnsiColorsOnWindows() {
 //   DWORD mode = 0;
@@ -77,168 +95,250 @@ int main(int argc, char *argv[]) {
   SetConsoleOutputCP(CP_UTF8);
 #endif
 
-  QCoreApplication app(argc, argv);
+    QCoreApplication app(argc, argv);
 
-  auto *ctx = new CommandContext();
-  auto *registry = new CommandRegistry();
-  auto *parser = new CommandParser();
-  auto *obmHandler = new OBMHandler();
-  auto *obmService = new ObmService(obmHandler);
-  auto *fondeoService = new FondeoService(ctx);
-  auto *twoWService = new TwoWService(ctx);
-  auto *haService = new HaService(ctx, obmService);
-  auto *canalService = new CanalService(ctx);
+    // Config de despliegue por consola (RF-DDS-006, ADR-012): domain_id no tiene
+    // default seguro — sin él no es seguro arrancar (riesgo de mezclar por error
+    // una consola de simulación con la red de combate real). Se falla temprano,
+    // antes de levantar cualquier otro subsistema.
+    if (!Configuration::instance().loadReplicationConfig()) {
+        return 1;
+    }
 
-  // registrar comandos
-  registry->registerCommand(QSharedPointer<ICommand>(new AddCommand()));
-  registry->registerCommand(QSharedPointer<ICommand>(new DeleteCommand()));
-  registry->registerCommand(QSharedPointer<ICommand>(new CenterCommand()));
-  registry->registerCommand(QSharedPointer<ICommand>(new ListCommand()));
-  registry->registerCommand(QSharedPointer<ICommand>(new AddCursorCommand()));
-  registry->registerCommand(QSharedPointer<ICommand>(new ListCursorsCommand()));
-  registry->registerCommand(QSharedPointer<ICommand>(new DeleteCursorsCommand()));
-  registry->registerCommand(QSharedPointer<ICommand>(new SitrepCommand()));
-  registry->registerCommand(QSharedPointer<ICommand>(new CpaCommand()));
-  registry->registerCommand(QSharedPointer<ICommand>(new OwnShipCommand()));
-  registry->registerCommand(QSharedPointer<ICommand>(new EstacionamientoCommand()));
-  registry->registerCommand(QSharedPointer<ICommand>(new DisplayModeCommand()));
-  registry->registerCommand(QSharedPointer<ICommand>(new AddAreaCommand()));
-  registry->registerCommand(QSharedPointer<ICommand>(new AddPolygonoCommand()));
-  registry->registerCommand(QSharedPointer<ICommand>(new AddCircleCommand()));
-  registry->registerCommand(QSharedPointer<ICommand>(new DeleteAreaCommand()));
-  registry->registerCommand(QSharedPointer<ICommand>(new DeleteCircleCommand()));
-  registry->registerCommand(QSharedPointer<ICommand>(new AddSectorCommand()));
-  registry->registerCommand(QSharedPointer<ICommand>(new DeleteSectorCommand()));
-  registry->registerCommand(QSharedPointer<ICommand>(new FondeoCommand()));
-  registry->registerCommand(QSharedPointer<ICommand>(new TwoWCommand()));
-  registry->registerCommand(QSharedPointer<ICommand>(new HaCommand(obmService)));
-  registry->registerCommand(QSharedPointer<ICommand>(new BorneoCommand()));
-  registry->registerCommand(QSharedPointer<ICommand>(new CanalCommand()));
+    auto *ctx = new CommandContext();
+    auto *registry = new CommandRegistry();
+    auto *parser = new CommandParser();
+    auto *obmHandler = new OBMHandler();
+    auto *obmService = new ObmService(obmHandler);
+    auto *fondeoService = new FondeoService(ctx);
+    auto *twoWService = new TwoWService(ctx);
+    auto *haService = new HaService(ctx, obmService);
+    auto *canalService = new CanalService(ctx);
+    auto *derrotasService = new DerrotasService(ctx);
+    auto *textService = new TextService(ctx);   // <-- AGREGADO: faltaba instanciar
+    auto *dsiService = new DSIService(ctx);
 
-  CommandDispatcher dispatcher(registry, parser, *ctx);
+    // --- Replicación (ICD): instancia única de TrackService + listener + engine ---
+    auto *trackService = new TrackService(ctx, &app);
+    auto *replicationListener = new ReplicationListener(&app);
 
-  QThread ioThread;
-  StdinReader reader;
-  reader.moveToThread(&ioThread);
+    // Wiring de la librería real (ADR-001: enlace estático, mismo proceso).
+    // Orden de construcción según ICD §8/§9.2: el listener se registra en el
+    // bridge ANTES de construir el engine.
+    auto replicationStorage   = std::make_unique<replication_engine::ObjectStorage>("tactical_db.db");
+    auto replicationTransport = std::make_unique<replication_engine::DDSTransport>();
+    auto replicationResolver  = std::make_unique<replication_engine::ConflictResolver>();
+    auto replicationBridge    = std::make_unique<replication_engine::CallbackBridge>();
+    replicationBridge->registerListener(replicationListener);
 
-  QObject::connect(&ioThread, &QThread::started, &reader,
-                   &StdinReader::readLoop);
-  QObject::connect(&reader, &StdinReader::lineRead, &dispatcher,
-                   &CommandDispatcher::onLine);
-  QObject::connect(&dispatcher, &CommandDispatcher::quitRequested, &app,
-                   &QCoreApplication::quit);
-  QObject::connect(&reader, &StdinReader::finished, &ioThread, &QThread::quit);
+    auto replicationEngine = std::make_unique<replication_engine::ReplicationEngine>(
+        std::move(replicationStorage), std::move(replicationTransport),
+        std::move(replicationResolver), std::move(replicationBridge),
+        Configuration::instance().domainId, Configuration::instance().consoleId);
 
-  QTextStream out(stdout);
-  ctx->out << ANSI_YELLOW << "Consola lista (help | exit)" << ANSI_RESET
-           << "\n";
-  ctx->out.flush();
+    trackService->setReplicationEngine(replicationEngine.get());
+    trackService->setConsoleId(Configuration::instance().consoleId);
+    ctx->trackService = trackService;
 
-  encoderLPD *encoder = new encoderLPD();
-  auto *decoder = new ConcDecoder();
+    replicationEngine->start();
 
-  bool useLocalIpc = Configuration::instance().useLocalIpc;
+    // Bajada RE → DDM: el listener emite desde el Worker Thread de RE;
+    // QueuedConnection entrega los slots en el hilo Qt (ICD §9.4).
+    QObject::connect(replicationListener, &ReplicationListener::trackReceived,
+                     trackService, &TrackService::onReplicatedTrackCreate,
+                     Qt::QueuedConnection);
+    QObject::connect(replicationListener, &ReplicationListener::trackRemoved,
+                     trackService, &TrackService::onReplicatedTrackRemoved,
+                     Qt::QueuedConnection);
+    QObject::connect(replicationListener, &ReplicationListener::clearAllReceived,
+                     trackService, &TrackService::onReplicatedClearAll,
+                     Qt::QueuedConnection);
 
-  TransportOpts opts;
-  if (useLocalIpc) {
-    opts.localName =
-        "siag_ddm"; // debe coincidir con el nombre que use el servidor (juego)
-  }
+    // registrar comandos
+    registry->registerCommand(QSharedPointer<ICommand>(new AddCommand()));
+    registry->registerCommand(QSharedPointer<ICommand>(new DeleteCommand()));
+    registry->registerCommand(QSharedPointer<ICommand>(new CenterCommand()));
+    registry->registerCommand(QSharedPointer<ICommand>(new ListCommand()));
+    registry->registerCommand(QSharedPointer<ICommand>(new AddCursorCommand()));
+    registry->registerCommand(QSharedPointer<ICommand>(new ListCursorsCommand()));
+    registry->registerCommand(QSharedPointer<ICommand>(new DeleteCursorsCommand()));
+    registry->registerCommand(QSharedPointer<ICommand>(new SitrepCommand()));
+    registry->registerCommand(QSharedPointer<ICommand>(new CpaCommand()));
+    registry->registerCommand(QSharedPointer<ICommand>(new OwnShipCommand()));
+    registry->registerCommand(QSharedPointer<ICommand>(new EstacionamientoCommand()));
+    registry->registerCommand(QSharedPointer<ICommand>(new DisplayModeCommand()));
+    registry->registerCommand(QSharedPointer<ICommand>(new AddAreaCommand()));
+    registry->registerCommand(QSharedPointer<ICommand>(new AddPolygonoCommand()));
+    registry->registerCommand(QSharedPointer<ICommand>(new AddCircleCommand()));
+    registry->registerCommand(QSharedPointer<ICommand>(new DeleteAreaCommand()));
+    registry->registerCommand(QSharedPointer<ICommand>(new DeleteCircleCommand()));
+    registry->registerCommand(QSharedPointer<ICommand>(new AddSectorCommand()));
+    registry->registerCommand(QSharedPointer<ICommand>(new DeleteSectorCommand()));
+    registry->registerCommand(QSharedPointer<ICommand>(new FondeoCommand()));
+    registry->registerCommand(QSharedPointer<ICommand>(new TwoWCommand()));
+    registry->registerCommand(QSharedPointer<ICommand>(new HaCommand(obmService)));
+    registry->registerCommand(QSharedPointer<ICommand>(new BorneoCommand()));
+    registry->registerCommand(QSharedPointer<ICommand>(new CanalCommand()));
+    registry->registerCommand(QSharedPointer<ICommand>(new DerrotasCommand(derrotasService)));
+    registry->registerCommand(QSharedPointer<ICommand>(new DSICommand()));
 
-  // Mantené vivo el unique_ptr (no uses release), y usá get() para el crudo
-  std::unique_ptr<ITransport> transportGuard =
-      useLocalIpc ? makeTransport(TransportKind::LocalIpc, opts, &app)
-                  : makeTransport(TransportKind::Udp, TransportOpts{}, &app);
 
-  ITransport *transport = transportGuard.get();
-  transport->start();
+    CommandDispatcher dispatcher(registry, parser, *ctx);
 
-  JsonCommandHandler *jsonHandler = nullptr;
+    QThread ioThread;
+    StdinReader reader;
+    reader.moveToThread(&ioThread);
+
+    QObject::connect(&ioThread, &QThread::started, &reader,
+                     &StdinReader::readLoop);
+    QObject::connect(&reader, &StdinReader::lineRead, &dispatcher,
+                     &CommandDispatcher::onLine);
+    QObject::connect(&reader, &StdinReader::finished, &ioThread, &QThread::quit);
+
+    QTextStream out(stdout);
+    ctx->out << ANSI_YELLOW << "Consola lista (help | exit)" << ANSI_RESET
+             << "\n";
+    ctx->out.flush();
+
+    encoderLPD *encoder = new encoderLPD();
+    auto *decoder = new ConcDecoder();
+
+    bool useLocalIpc = Configuration::instance().useLocalIpc;
+
+    TransportOpts opts;
+    if (useLocalIpc) {
+        opts.localName =
+            "siag_ddm"; // debe coincidir con el nombre que use el servidor (juego)
+    }
+
+    // Mantené vivo el unique_ptr (no uses release), y usá get() para el crudo
+    std::unique_ptr<ITransport> transportGuard =
+        useLocalIpc ? makeTransport(TransportKind::LocalIpc, opts, &app)
+                    : makeTransport(TransportKind::Udp, TransportOpts{}, &app);
+
+    ITransport *transport = transportGuard.get();
+    transport->start();
+
+    JsonCommandHandler *jsonHandler = nullptr;
 
   QTimer timer;
   QTimer updatePositionTimer;
   QObject::connect(&updatePositionTimer, &QTimer::timeout,
-                   [ctx, fondeoService, twoWService, haService, canalService, &updatePositionTimer]() {
+                   [ctx, fondeoService, twoWService, haService, derrotasService, dsiService, canalService, textService, &updatePositionTimer]() {
                      double deltaTime = updatePositionTimer.interval() / 1000.0;
                      ctx->updateTracks(deltaTime);
                      fondeoService->update();
                      twoWService->update();
                      haService->update();
-                     canalService->update();
+                     dsiService->update();
+                     derrotasService->update();
+                     textService->update();
                    });
 
-  QObject::connect(&timer, &QTimer::timeout, &timer,
-                   [ctx, encoder, transport, &jsonHandler]() {
-                     if (jsonHandler) {
-                       jsonHandler->refreshActiveCpaSessions();
-                     }
-                     transport->send(encoder->buildFullMessage(*ctx));
-                   });
 
-  auto *ownCurs = new OwnCurs(ctx, obmHandler);
+    QObject::connect(&timer, &QTimer::timeout, &timer,
+                     [ctx, encoder, transport, &jsonHandler]() {
+                         if (jsonHandler) {
+                             jsonHandler->refreshActiveCpaSessions();
+                         }
+                         transport->send(encoder->buildFullMessage(*ctx));
+                     });
 
-  // 1. Crear los controladores
-  auto *dclConcController = new DclConcController(transport, decoder, &app);
-  jsonHandler = new JsonCommandHandler(ctx, transport, obmService, &app);
+    auto *ownCurs = new OwnCurs(ctx, obmHandler);
 
-  // 2. Crear el Router y pasarle los controladores
-  auto *router = new MessageRouter(dclConcController, jsonHandler, &app);
+    // 1. Crear los controladores
+    auto *dclConcController = new DclConcController(transport, decoder, &app);
+    jsonHandler = new JsonCommandHandler(ctx, transport, obmService, &app);
 
-  // 3. Conectar el transporte ÚNICAMENTE al router
-  QObject::connect(transport, &ITransport::messageReceived, router,
-                   &MessageRouter::onMessageReceived);
+    // 2. Crear el Router y pasarle los controladores
+    auto *router = new MessageRouter(dclConcController, jsonHandler, &app);
 
-  auto *overlayHandler = new OverlayHandler();
-  overlayHandler->setContext(ctx);
-  overlayHandler->setOBMHandler(obmHandler);
+    // 3. Conectar el transporte ÚNICAMENTE al router
+    QObject::connect(transport, &ITransport::messageReceived, router,
+                     &MessageRouter::onMessageReceived);
 
-  // conectar señales del decoder con ownCurse
-  QObject::connect(decoder, &ConcDecoder::newHandWheel, ownCurs,
-                   [ownCurs](QPair<float, float> delta) {
-                     ownCurs->updateHandwheel(QPair<qfloat16, qfloat16>(
-                         static_cast<qfloat16>(delta.first),
-                         static_cast<qfloat16>(delta.second)));
-                   });
-  QObject::connect(decoder, &ConcDecoder::cuOrOffCentLeft, ownCurs,
-                   &OwnCurs::cuOrOffCent);
-  QObject::connect(decoder, &ConcDecoder::cuOrCentLeft, ownCurs,
-                   &OwnCurs::cuOrCent);
-  QObject::connect(decoder, &ConcDecoder::ownCurs, ownCurs,
-                   &OwnCurs::ownCursActive);
 
-  // Conecta señales que emite el decoder
-  QObject::connect(decoder, &ConcDecoder::newOverlay, overlayHandler,
-                   &OverlayHandler::onNewOverlay);
-  QObject::connect(decoder, &ConcDecoder::newQEK, overlayHandler,
-                   &OverlayHandler::onNewQEK);
+    auto *overlayHandler = new OverlayHandler();
+    overlayHandler->setContext(ctx);
+    overlayHandler->setOBMHandler(obmHandler);
 
-  QObject::connect(decoder, &ConcDecoder::newRange, obmHandler,
-                   &OBMHandler::updateRange);
-  QObject::connect(decoder, &ConcDecoder::newRollingBall, obmHandler,
-                   &OBMHandler::updatePosition);
-  encoder->setOBMHandler(obmHandler);
+    // conectar señales del decoder con ownCurse
+    QObject::connect(decoder, &ConcDecoder::newHandWheel, ownCurs,
+                    [ownCurs](QPair<float, float> delta) {
+                        ownCurs->updateHandwheel(QPair<qfloat16, qfloat16>(
+                            static_cast<qfloat16>(delta.first),
+                            static_cast<qfloat16>(delta.second)));
+                    });
+    QObject::connect(decoder, &ConcDecoder::cuOrOffCentLeft, ownCurs,
+                    &OwnCurs::cuOrOffCent);
+    QObject::connect(decoder, &ConcDecoder::cuOrCentLeft, ownCurs,
+                    &OwnCurs::cuOrCent);
+    QObject::connect(decoder, &ConcDecoder::ownCurs, ownCurs,
+                    &OwnCurs::ownCursActive);
 
-  QObject::connect(decoder, &ConcDecoder::offCentLeft, [ctx, obmHandler]() {
-    ctx->setCenter(obmHandler->getPosition());
-  });
+    // Conecta señales que emite el decoder
+    QObject::connect(decoder, &ConcDecoder::newOverlay, overlayHandler,
+                     &OverlayHandler::onNewOverlay);
+    QObject::connect(decoder, &ConcDecoder::newQEK, overlayHandler,
+                     &OverlayHandler::onNewQEK);
 
-  QObject::connect(decoder, &ConcDecoder::centLeft,
-                   [ctx]() { ctx->resetCenter(); });
+    QObject::connect(decoder, &ConcDecoder::newRange, obmHandler,
+                     &OBMHandler::updateRange);
+    QObject::connect(decoder, &ConcDecoder::newRollingBall, obmHandler,
+                     &OBMHandler::updatePosition);
+    encoder->setOBMHandler(obmHandler);
 
-  QObject::connect(decoder, &ConcDecoder::resetObmLeft,
-                   [obmHandler]() { obmHandler->setPosition({0.0, 0.0}); });
+    QObject::connect(decoder, &ConcDecoder::offCentLeft, [ctx, obmHandler]() {
+        ctx->setCenter(obmHandler->getPosition());
+    });
 
-  QObject::connect(decoder, &ConcDecoder::dataReqLeft, [obmHandler, ctx]() {
-    Track *t = obmHandler->OBMAssociationProcess(ctx);
-    if (t)
-      qDebug() << t->toString();
-  });
+    QObject::connect(decoder, &ConcDecoder::centLeft,
+                     [ctx]() { ctx->resetCenter(); });
 
-  timer.start(40);
-  updatePositionTimer.start(80);
+    QObject::connect(decoder, &ConcDecoder::resetObmLeft,
+                     [obmHandler]() { obmHandler->setPosition({0.0, 0.0}); });
 
-  ioThread.start();
-  const int code = app.exec();
-  ioThread.wait();
-  return code;
+    QObject::connect(decoder, &ConcDecoder::dataReqLeft, [obmHandler, ctx]() {
+        Track *t = obmHandler->OBMAssociationProcess(ctx);
+        if (t)
+            qDebug() << t->toString();
+    });
+
+    // Secuencia de apagado ordenado. Se corta la generación de eventos (timers),
+    // luego el transporte con el juego, y por último ReplicationEngine::stop()
+    // —bloqueante: hace join del Worker Thread y disconnect() del participante
+    // DDS (baja SPDP para los peers)—. El reset() corre ~ReplicationEngine, que
+    // cierra el handle SQLite de tactical_db.db. Idempotente: lo invocan tanto el
+    // camino de `exit` del operador como el retorno normal de app.exec().
+    auto shutdown = [&]() {
+        static std::atomic<bool> done{false};
+        if (done.exchange(true))
+            return;
+        timer.stop();
+        updatePositionTimer.stop();
+        transport->stop();
+        replicationEngine->stop();
+        replicationEngine.reset();
+    };
+
+    // `exit`/`salir` en la consola: el dispatcher emite quitRequested() desde el
+    // hilo Qt. app.exec() no alcanza a retornar porque el hilo de StdinReader
+    // sigue bloqueado en readLine() (ioThread.wait() se colgaría), así que se
+    // fuerza la salida con _Exit — pero recién después de cerrar RE/DDS y SQLite.
+    QObject::connect(&dispatcher, &CommandDispatcher::quitRequested, &app,
+                     [&shutdown]() {
+                         shutdown();
+                         std::_Exit(0);
+                     });
+
+    timer.start(40);
+    updatePositionTimer.start(80);
+
+    ioThread.start();
+    const int code = app.exec();
+    ioThread.wait();
+
+    shutdown();
+
+    return code;
 }

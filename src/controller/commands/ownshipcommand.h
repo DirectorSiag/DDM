@@ -1,7 +1,5 @@
 #pragma once
-
 #include "iCommand.h"
-
 class OwnShipCommand : public ICommand
 {
     Q_OBJECT
@@ -17,6 +15,5 @@ public:
             "Ejemplo: ownship set 90 20 GPS"
             );
     }
-
     CommandResult execute(const CommandInvocation& inv, CommandContext& ctx) const override;
 };

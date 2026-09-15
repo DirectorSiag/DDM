@@ -19,13 +19,19 @@
 #include "entities/areaEntity.h"
 #include "entities/circleEntity.h"
 #include "entities/polygonoentity.h"
+#include "texto/textSessionState.h"
 #include "entities/sectorEntity.h"
 #include "model/fondeo/fondeoSessionState.h"
 #include "model/2w/twoWSessionState.h"
+#include "dsi/dsiSessionState.h"
 #include "ha/haSessionState.h"
 #include <array>
 #include "borneo/borneoSessionState.h"
 #include "model/canal/canalSessionState.h"
+#include "model/derrotas/derrotasSessionState.h"
+
+
+class TrackService;
 
 struct CommandContext {
     enum MotionMode {
@@ -113,16 +119,20 @@ struct CommandContext {
     std::deque<SectorEntity> sectors;
     std::deque<CpaMarkerState> cpaMarkers;
     std::map<int, StationingSession> stationingSessions;
-    BorneoSessionState borneoSession;
 
+    BorneoSessionState borneoSession;
     FondeoSessionState fondeoSession;
     TwoWSessionState twoWSession;
+    DSISessionState dsiSession;
 
     static constexpr int kMaxHaSessions = 10;
     std::array<HaSessionState, kMaxHaSessions> haSessions;
     int activeHaSlot = -1;  // slot actualmente seleccionado para consulta (-1 = ninguno)
 
     CanalSessionState canalSession;
+    DerrotasSessionState derrotasSession;
+
+    TextSessionState textSession;
 
     double centerX = 0.0;
     double centerY = 0.0;
@@ -131,6 +141,11 @@ struct CommandContext {
     // Transport opcional: si está seteado, los comandos CLI/backend pueden
     // notificar eventos JSON al frontend via transport->send()
     ITransport* transport = nullptr;
+
+    // Puerta única para crear/borrar tracks. Instancia única cuyo dueño es
+    // main (no-owning, mismo patrón que transport). El contexto solo la
+    // transporta para que los comandos la alcancen.
+    TrackService* trackService = nullptr;
 
     inline std::deque<Track>& getTracks() { return tracks; }
     inline const std::deque<Track>& getTracks() const { return tracks; }

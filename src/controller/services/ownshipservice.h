@@ -1,7 +1,8 @@
 #pragma once
 
-#include <QJsonObject>
 #include <QString>
+#include <QJsonObject>
+#include <optional>
 
 class CommandContext;
 
@@ -11,8 +12,7 @@ struct OwnShipOperationResult {
     QString message;
 };
 
-class OwnShipService
-{
+class OwnShipService {
 public:
     explicit OwnShipService(CommandContext* context);
 
@@ -22,7 +22,9 @@ public:
                                             int lonDeg, int lonMin, double lonSec);
     OwnShipOperationResult setFromCli(double courseDeg,
                                       double speedKnots,
-                                      const QString& source = QStringLiteral("CLI"));
+                                      const QString& source = QStringLiteral("CLI"),
+                                      std::optional<double> latDeg = std::nullopt,
+                                      std::optional<double> lonDeg = std::nullopt);
 
     QJsonObject serializeOwnShip() const;
     QString formatOwnShip() const;
