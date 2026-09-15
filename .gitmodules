@@ -1,4 +1,5 @@
 [submodule "third_party/replicationengine"]
 	path = third_party/replicationengine
+	# URL interna (red de la Armada): fuera de esa red (p.ej. clonando desde GitHub) el submódulo no se puede inicializar.
 	url = https://gitlabsiag.armada.mil.ar/rnavarro/replicationengine.git
 	branch = DDS-RealTimeReplication
